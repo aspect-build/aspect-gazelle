@@ -49,6 +49,8 @@ const (
 	Directive_LibraryNamingConvention = "js_project_naming_convention"
 	// The target name for npm_package() rules. See npm_translate_lock(npm_package_target_name)
 	Directive_NpmPackageNameConvention = "js_npm_package_target_name"
+	// The target name for the ts_proto_library() rules. Interpolates {proto_library} with the name of the proto_library target.
+	Directive_ProtoNamingConvention = "js_proto_naming_convention"
 	// Directive_TestsNamingConvention represents the directive that controls the ts_project test
 	// naming convention. See js_project_naming_convention for more info on
 	// the package name interpolation.
