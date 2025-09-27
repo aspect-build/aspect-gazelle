@@ -14,7 +14,7 @@ Additional plugins will be loaded from `${STARZELLE_PLUGINS}/*.lang.star` glob.
 
 ## TODO:
 
-* logging API, builtin logging of some events/plugins/stages/?
-* PrepareContext.properties access: https://github.com/aspect-build/silo/pull/5663#pullrequestreview-2103466655
-* better error handling when plugins return bad data: https://github.com/aspect-build/silo/pull/5668#discussion_r1631761789
-* change CLI config `configure.plugins.*` to support: plugin key/id, glob, references to external repos
+- logging API, builtin logging of some events/plugins/stages/?
+- PrepareContext.properties access: https://github.com/aspect-build/silo/pull/5663#pullrequestreview-2103466655
+- better error handling when plugins return bad data: https://github.com/aspect-build/silo/pull/5668#discussion_r1631761789
+- change CLI config `configure.plugins.*` to support: plugin key/id, glob, references to external repos
