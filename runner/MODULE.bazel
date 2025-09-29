@@ -34,6 +34,15 @@ bazel_dep(name = "gazelle", version = "0.45.0")  # must match go.mod
 bazel_dep(name = "rules_python_gazelle_plugin", version = "1.6.3")  # must match go.mod
 bazel_dep(name = "gazelle_cc", version = "0.1.0")  # must match go.mod
 bazel_dep(name = "bazel_skylib_gazelle_plugin", version = "1.8.2")
+bazel_dep(name = "contrib_rules_jvm", version = "0.30.0")
+
+# rules_jvm pre-release that includes https://github.com/bazel-contrib/rules_jvm/pull/350
+archive_override(
+    module_name = "contrib_rules_jvm",
+    integrity = "sha256-wrM0bI4ymQVTd0WGy30F9aleS0P8CKFTDTw/LaBKdG8=",
+    strip_prefix = "rules_jvm-b032e6d62e2f6e31ce337409a7c3eaef22c0e072",
+    urls = ["https://github.com/bazel-contrib/rules_jvm/archive/b032e6d62e2f6e31ce337409a7c3eaef22c0e072.tar.gz"],
+)
 
 # Override the gazelle version used locally to pre-release and apply aspect patches
 archive_override(

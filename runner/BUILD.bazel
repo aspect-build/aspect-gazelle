@@ -59,6 +59,7 @@ go_library(
         "@aspect_gazelle_js",
         "@aspect_gazelle_orion",
         "@bazel_skylib_gazelle_plugin//bzl",
+        "@contrib_rules_jvm//java/gazelle",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//language/go",
