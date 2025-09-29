@@ -34,6 +34,7 @@ bazel_dep(name = "gazelle", version = "0.47.0")  # must match go.mod
 # Gazelle languages via bzlmod
 bazel_dep(name = "rules_python_gazelle_plugin", version = "1.6.3")  # must match go.mod
 bazel_dep(name = "gazelle_cc", version = "0.1.0")  # must match go.mod
+bazel_dep(name = "contrib_rules_jvm", version = "0.31.1")  # must match go.mod
 
 # Override the gazelle used locally to apply aspect patches
 single_version_override(
