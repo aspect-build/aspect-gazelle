@@ -66,8 +66,8 @@ func (kt *kotlinLang) Configure(c *config.Config, rel string, f *rule.File) {
 		logger := zerolog.New(BazelLog.GetOutput()).Level(zerolog.TraceLevel)
 
 		resolver, err := jvm_maven.NewResolver(
-			cfg.MavenInstallFile(),
-			logger,
+			jvm_maven.WithInstallFile(cfg.MavenInstallFile()),
+			jvm_maven.WithLogger(logger),
 		)
 		if err != nil {
 			BazelLog.Fatalf("error creating Maven resolver: %s", err.Error())

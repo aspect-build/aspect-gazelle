@@ -8,6 +8,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593
+	github.com/bazel-contrib/rules_jvm v0.33.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260223163720-bac549496f67
 	github.com/bazelbuild/bazel-gazelle v0.50.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
@@ -27,7 +28,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/bazel-contrib/rules_jvm v0.32.0 // indirect
+	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
@@ -44,6 +45,7 @@ require (
 	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/itchyny/gojq v0.12.19 // indirect
 	github.com/itchyny/timefmt-go v0.1.8 // indirect
@@ -70,6 +72,9 @@ require (
 	golang.org/x/text v0.36.0 // indirect
 	golang.org/x/tools v0.44.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
+	google.golang.org/grpc v1.71.0 // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
