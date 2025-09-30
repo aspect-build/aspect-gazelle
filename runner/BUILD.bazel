@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 
 # Use the gazelle bazel modules instead of go.mod modules
 # gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
+# gazelle:resolve_regexp go github.com/bazelbuild/bazel-skylib/gazelle @bazel_skylib_gazelle_plugin//bzl
 # gazelle:resolve_regexp go github.com/bazel-contrib/rules_python/gazelle/(.*) @rules_python_gazelle_plugin//$1
 # gazelle:resolve_regexp go github.com/EngFlow/gazelle_cc/(.*) @gazelle_cc//$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
@@ -26,7 +27,7 @@ gazelle(
 gazelle_binary(
     name = "gazelle_prebuilt_bin",
     languages = [
-        "//language/bzl",
+        "@bazel_skylib_gazelle_plugin//bzl",
         "@rules_python_gazelle_plugin//python",
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
@@ -50,7 +51,6 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/runner",
     visibility = ["//visibility:public"],
     deps = [
-        "//language/bzl",
         "//pkg/git",
         "//pkg/ibp",
         "//progress",
@@ -58,6 +58,7 @@ go_library(
         "@aspect_gazelle//common/bazel",
         "@aspect_gazelle_js",
         "@aspect_gazelle_orion",
+        "@bazel_skylib_gazelle_plugin//bzl",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//language/go",
