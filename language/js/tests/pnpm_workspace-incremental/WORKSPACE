@@ -1,0 +1,4 @@
+# A copy of pnpm_workspace with some BUILD.out files pre-generated
+# and an additional arguments.txt to only update a subset of files.
+
+workspace(name = "pnpm_workspace-incremental")
