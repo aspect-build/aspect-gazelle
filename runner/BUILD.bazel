@@ -30,6 +30,7 @@ gazelle_binary(
         "//language/python",
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
+        "@aspect_gazelle_orion",
         "@gazelle_cc//language/cc",
         "@gazelle//language/proto",
         "@gazelle//language/go",
