@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir assets
           for platform in linux_amd64_cgo linux_arm64_cgo darwin_arm64_cgo; do
-            bazel run --run_under cp --platforms="@rules_go//go/toolchain:$platform" //runner:gazelle_prebuilt_bin "$PWD/assets/gazelle-$platform"
+            bazel run --run_under cp --platforms="@rules_go//go/toolchain:$platform" //:gazelle_prebuilt_bin "$PWD/assets/gazelle-$platform"
           done
           shasum -a 256 assets/* > assets/CHECKSUMS
 
