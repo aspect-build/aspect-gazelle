@@ -71,3 +71,6 @@ go_deps2.module_override(
     ],
     path = "github.com/bazelbuild/bazel-gazelle",
 )
+
+# For cgo
+include("//:llvm.MODULE.bazel")

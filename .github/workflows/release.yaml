@@ -1,6 +1,8 @@
 name: Release
 on:
   workflow_dispatch:
+  push:
+    branches: ['test-release']
 permissions:
   id-token: write
   attestations: write
