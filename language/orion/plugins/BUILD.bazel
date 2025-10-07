@@ -1,1 +1,1 @@
-exports_files(srcs = glob(["**/*.star"]))
+exports_files(srcs = glob(["**/*.axl"]))

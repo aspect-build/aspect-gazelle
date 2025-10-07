@@ -1,7 +1,7 @@
 # TODO: tests should be relative to the test WORKSPACE, currently they are relative to the real WORKSPACE
 
-load("//tests/starzelle/starlark_load/utils:declare.star", "declare_targets")
-load("//tests/starzelle/starlark_load/utils:prepare.star", "prepare")
+load("//tests/starzelle/starlark_load/utils:declare.axl", "declare_targets")
+load("//tests/starzelle/starlark_load/utils:prepare.axl", "prepare")
 
 aspect.register_configure_extension(
     id = "fgs",
