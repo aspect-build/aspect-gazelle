@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/aspect-build/aspect-gazelle/common/bazel/workspace"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
