@@ -90,8 +90,8 @@ func (h *GazelleHost) loadStarzellePlugins(configurePlugins []string) *GazelleHo
 
 func (h *GazelleHost) loadEnvStarzellePlugins() {
 	// Add plugins configured via env
-	builtinPluginParentDir := "."
 	builtinPluginDir := os.Getenv("ORION_EXTENSIONS")
+	builtinPluginSubdir := "."
 
 	if builtinPluginDir == "" {
 		// Noop if env is not set and not running tests
@@ -101,19 +101,24 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		}
 
 		// Load from runfiles + TEST_ORION_EXTENSIONS if running tests
-		builtinPluginParentDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
-		builtinPluginDir = os.Getenv("TEST_ORION_EXTENSIONS")
+		builtinPluginDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
+		builtinPluginSubdir = os.Getenv("TEST_ORION_EXTENSIONS")
 	}
 
-	var pluginPath string
-	if filepath.IsAbs(builtinPluginDir) {
-		pluginPath = path.Join(builtinPluginDir, "*.axl")
-	} else {
-		pluginPath = path.Join(builtinPluginParentDir, builtinPluginDir, "*.axl")
+	if !filepath.IsAbs(builtinPluginDir) {
+		BazelLog.Fatalf("ORION_EXTENSIONS must be an absolute path, got %q", builtinPluginDir)
+		return
 	}
-	builtinPlugins, err := filepath.Glob(pluginPath)
+
+	builtinPlugins, err := filepath.Glob(path.Join(builtinPluginDir, builtinPluginSubdir, "*.axl"))
 	if err != nil {
 		BazelLog.Fatalf("Failed to find builtin plugins: %v", err)
+		return
+	}
+
+	if len(builtinPlugins) == 0 {
+		BazelLog.Warnf("No orion plugins found in %q", builtinPluginDir)
+		return
 	}
 
 	// Sort to ensure a consistent order not dependent on the fs or glob ordering.
@@ -121,32 +126,19 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 
 	// Split the plugin paths to dir + rel for better logging and load API
 	// Only relativize if builtinPluginDir is not absolute
-	if !filepath.IsAbs(builtinPluginDir) {
-		for i, p := range builtinPlugins {
-			if relPath, err := filepath.Rel(builtinPluginParentDir, p); err == nil {
-				builtinPlugins[i] = relPath
-			} else {
-				// Fallback to original path if relativization fails
-				builtinPlugins[i] = p
-			}
+	for i, p := range builtinPlugins {
+		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
+			builtinPlugins[i] = relPath
+		} else {
+			// Fallback to original path if relativization fails
+			builtinPlugins[i] = p
 		}
 	}
 
-	if len(builtinPlugins) == 0 {
-		BazelLog.Warnf("No orion plugins found in %q", builtinPluginDir)
-	} else {
-		BazelLog.Infof("Loading orion plugins from %q: %v", builtinPluginDir, builtinPlugins)
-	}
+	BazelLog.Infof("Loading orion plugins from %q: %v", builtinPluginDir, builtinPlugins)
 
 	for _, p := range builtinPlugins {
-		if filepath.IsAbs(builtinPluginDir) {
-			// If builtinPluginDir is absolute, extract just the filename from the full path
-			pluginName := filepath.Base(p)
-			h.LoadPlugin(builtinPluginDir, pluginName)
-		} else {
-			// If builtinPluginDir is relative, use builtinPluginParentDir
-			h.LoadPlugin(builtinPluginParentDir, p)
-		}
+		h.LoadPlugin(builtinPluginDir, p)
 	}
 }
 func (h *GazelleHost) LoadPlugin(pluginDir, pluginPath string) {
