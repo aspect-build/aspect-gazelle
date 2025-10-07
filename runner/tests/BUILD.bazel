@@ -9,7 +9,7 @@ load("@rules_go//go:def.bzl", "go_binary", "go_library")
         name = "%s_test" % t,
         dir = t,
         env = {
-            "TEST_STARZELLE_PLUGINS": "%s/%s" % (
+            "TEST_ORION_EXTENSIONS": "%s/%s" % (
                 package_name(),
                 t,
             ),

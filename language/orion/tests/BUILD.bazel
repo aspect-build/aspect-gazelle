@@ -13,11 +13,11 @@ BZL_TESTS = [t.replace("/WORKSPACE", "") for t in glob(["bzl/*/WORKSPACE"])]
     gazelle_generation_test(
         name = "%s_test" % t.replace("bzl/", "bzl-"),
         data = [
-            "//%s:bzl.lang.star" % BUILTIN_PLUGINS_DIR,
+            "//%s:bzl.axl" % BUILTIN_PLUGINS_DIR,
         ],
         dir = t,
         env = {
-            "TEST_STARZELLE_PLUGINS": BUILTIN_PLUGINS_DIR,
+            "TEST_ORION_EXTENSIONS": BUILTIN_PLUGINS_DIR,
         },
         gazelle_binary = ":gazelle_orion_binary",
     )

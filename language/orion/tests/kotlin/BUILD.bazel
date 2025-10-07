@@ -11,12 +11,12 @@ KOTLIN_TESTS = [t.replace("/WORKSPACE", "") for t in glob(["*/WORKSPACE"])]
     gazelle_generation_test(
         name = "%s_test" % t,
         data = [
-            "//%s:kotlin.lang.star" % BUILTIN_PLUGINS_DIR,
-            "//%s:maven.lang.star" % BUILTIN_PLUGINS_DIR,
+            "//%s:kotlin.axl" % BUILTIN_PLUGINS_DIR,
+            "//%s:maven.axl" % BUILTIN_PLUGINS_DIR,
         ],
         dir = t,
         env = {
-            "TEST_STARZELLE_PLUGINS": BUILTIN_PLUGINS_DIR,
+            "TEST_ORION_EXTENSIONS": BUILTIN_PLUGINS_DIR,
         },
         gazelle_binary = "//tests:gazelle_orion_binary",
     )
