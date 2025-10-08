@@ -10,7 +10,7 @@ require (
 	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/fatih/color v1.18.0 // indirect
-	github.com/itchyny/gojq v0.12.17
+	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	go.starlark.net v0.0.0-20250717191651-336a4b3a6d1d
 	golang.org/x/mod v0.28.0 // indirect

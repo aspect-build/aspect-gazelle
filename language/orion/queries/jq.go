@@ -20,21 +20,22 @@ func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 	eg := errgroup.Group{}
 	eg.SetLimit(10)
 
-	// TODO: parallelize, see https://github.com/itchyny/gojq/issues/236
-	// for issue + potential workaround (patch).
 	for key, q := range queries {
-		r, err := runJsonQuery(doc, q.Params.(plugin.JsonQueryParams))
-		if err != nil {
-			return err
-		}
+		eg.Go(func() error {
+			r, err := runJsonQuery(doc, q.Params.(plugin.JsonQueryParams))
+			if err != nil {
+				return err
+			}
 
-		queryResults <- &plugin.QueryProcessorResult{
-			Key:    key,
-			Result: r,
-		}
+			queryResults <- &plugin.QueryProcessorResult{
+				Key:    key,
+				Result: r,
+			}
+			return nil
+		})
 	}
 
-	return nil
+	return eg.Wait()
 }
 
 func runJsonQuery(doc interface{}, query string) (interface{}, error) {
