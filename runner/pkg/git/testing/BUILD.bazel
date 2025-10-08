@@ -8,11 +8,11 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/git",
-        "@gazelle//config",
-        "@gazelle//label",
-        "@gazelle//language",
-        "@gazelle//repo",
-        "@gazelle//resolve",
-        "@gazelle//rule",
+        "@com_github_bazelbuild_bazel_gazelle//config",
+        "@com_github_bazelbuild_bazel_gazelle//label",
+        "@com_github_bazelbuild_bazel_gazelle//language",
+        "@com_github_bazelbuild_bazel_gazelle//repo",
+        "@com_github_bazelbuild_bazel_gazelle//resolve",
+        "@com_github_bazelbuild_bazel_gazelle//rule",
     ],
 )

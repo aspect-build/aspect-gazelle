@@ -9,14 +9,14 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/runner/language/bzl",
     visibility = ["//visibility:public"],
     deps = [
+        "@com_github_bazelbuild_bazel_gazelle//config",
+        "@com_github_bazelbuild_bazel_gazelle//label",
+        "@com_github_bazelbuild_bazel_gazelle//language",
+        "@com_github_bazelbuild_bazel_gazelle//pathtools",
+        "@com_github_bazelbuild_bazel_gazelle//repo",
+        "@com_github_bazelbuild_bazel_gazelle//resolve",
+        "@com_github_bazelbuild_bazel_gazelle//rule",
         "@com_github_bazelbuild_buildtools//build",
-        "@gazelle//config",
-        "@gazelle//label",
-        "@gazelle//language",
-        "@gazelle//pathtools",
-        "@gazelle//repo",
-        "@gazelle//resolve",
-        "@gazelle//rule",
     ],
 )
 
