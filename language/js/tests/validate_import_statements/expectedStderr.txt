@@ -4,6 +4,8 @@ Import "bad-import" from "main.ts" is an unknown dependency. Possible solutions:
 	1. Instruct Gazelle to resolve to a known dependency using a directive:
 		# aspect:resolve [src-lang] js import-string label
 		   or
+		# aspect:resolve_regex [src-lang] js import-string-regex label
+		   or
 		# aspect:js_resolve import-string-glob label
 	2. Ignore the dependency using the '# aspect:js_ignore_imports bad-import' directive.
 	3. Disable Gazelle resolution validation using '# aspect:js_validate_import_statements off'
@@ -11,6 +13,8 @@ Import "bad-import" from "main.ts" is an unknown dependency. Possible solutions:
 Import "bad-import2" from "main.ts" is an unknown dependency. Possible solutions:
 	1. Instruct Gazelle to resolve to a known dependency using a directive:
 		# aspect:resolve [src-lang] js import-string label
+		   or
+		# aspect:resolve_regex [src-lang] js import-string-regex label
 		   or
 		# aspect:js_resolve import-string-glob label
 	2. Ignore the dependency using the '# aspect:js_ignore_imports bad-import2' directive.
