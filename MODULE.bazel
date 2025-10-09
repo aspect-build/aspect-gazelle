@@ -12,10 +12,6 @@ go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//common:go.mod")
 use_repo(go_deps, "com_github_bazelbuild_buildtools", "com_github_bmatcuk_doublestar_v4", "com_github_emirpasic_gods", "com_github_onsi_gomega", "com_github_smacker_go_tree_sitter", "in_gopkg_op_go_logging_v1")
 
-go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
-go_sdk.nogo(nogo = "//bazel/go:nogo")
-use_repo(go_sdk, "go_sdk")
-
 # tree-sitter languages
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
@@ -122,11 +118,13 @@ visibility = ["//visibility:public"],
 ####### Dev dependencies ########
 
 # Go SDK version which can only be defined in a root MODULE
-go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk2.from_file(
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
+go_sdk.nogo(nogo = "//bazel/go:nogo")
+go_sdk.from_file(
     name = "go_sdk",
     go_mod = "//common:go.mod",
 )
+use_repo(go_sdk, "go_sdk")
 
 # Go deps loaded just for bazel/tools
 go_deps2 = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
