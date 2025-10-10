@@ -27,7 +27,7 @@ gazelle_binary(
     name = "gazelle_prebuilt_bin",
     languages = [
         "//language/bzl",
-        "//language/python",
+        "@rules_python_gazelle_plugin//python",
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",
@@ -51,7 +51,6 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//language/bzl",
-        "//language/python",
         "//pkg/git",
         "//pkg/ibp",
         "//progress",
@@ -68,5 +67,6 @@ go_library(
         "@io_opentelemetry_go_otel//attribute",
         "@io_opentelemetry_go_otel_trace//:trace",
         "@org_golang_x_term//:term",
+        "@rules_python_gazelle_plugin//python",
     ],
 )
