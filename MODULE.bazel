@@ -24,8 +24,8 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
-    integrity = "sha256-M7w7RN4de4FfUv6fQuSXhsWDPZGB/Vn9aRDBnIJVkik=",
-    urls = ["https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.23.4/tree-sitter-go.tar.xz"],
+    sha256 = "ac412018d59f7cd5bb72fbde557e9ebf9fdfac12c5853f2bb03669f980a953bb",
+    urls = ["https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.25.0/tree-sitter-go.tar.gz"],
 )
 
 http_archive(
