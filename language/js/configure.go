@@ -52,6 +52,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_LibraryNamingConvention,
 		Directive_TestsNamingConvention,
 		Directive_NpmPackageNameConvention,
+		Directive_ProtoNamingConvention,
 		Directive_PackageRuleKind,
 		Directive_LibraryFiles,
 		Directive_TestFiles,
@@ -183,6 +184,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			default:
 				log.Fatalf("invalid value for directive %q: %s", Directive_ValidateImportStatements, d.Value)
 			}
+		case Directive_ProtoNamingConvention:
+			config.SetTsProtoLibraryNamingConvention(value)
 		case Directive_LibraryNamingConvention:
 			config.SetLibraryNamingConvention(value)
 		case Directive_TestsNamingConvention:
