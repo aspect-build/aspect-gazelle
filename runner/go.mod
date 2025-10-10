@@ -41,17 +41,21 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-00010101000000-000000000000
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-00010101000000-000000000000
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-00010101000000-000000000000
+	github.com/bazel-contrib/rules_jvm v0.30.0
 )
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/a8m/envsubst v1.4.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
+	github.com/bazelbuild/rules_go v0.56.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/google/btree v1.1.3 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209 // indirect
 	github.com/itchyny/timefmt-go v0.1.6 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
@@ -59,10 +63,14 @@ require (
 	github.com/mikefarah/yq/v4 v4.46.1 // indirect
 	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
+	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	go.starlark.net v0.0.0-20250717191651-336a4b3a6d1d // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/text v0.29.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250204164813-702378808489 // indirect
+	google.golang.org/grpc v1.70.0 // indirect
+	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 )
 
