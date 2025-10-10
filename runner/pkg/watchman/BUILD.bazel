@@ -13,7 +13,7 @@ go_library(
         "@aspect_gazelle//common/bazel",
         "@aspect_gazelle//common/cache",
         "@aspect_gazelle//common/logger",
-        "@gazelle//config",
+        "@com_github_bazelbuild_bazel_gazelle//config",
     ],
 )
 
