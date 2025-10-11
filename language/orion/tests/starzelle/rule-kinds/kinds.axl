@@ -1,14 +1,14 @@
-aspect.register_rule_kind("my_build", {
+aspect.gazelle_rule_kind("my_build", {
     "From": "@builder//:a.bzl",
     "NonEmptyAttrs": ["x"],
 })
 
-aspect.register_rule_kind("my_test", {
+aspect.gazelle_rule_kind("my_test", {
     "From": "@tester//:b.bzl",
     "NonEmptyAttrs": ["y"],
 })
 
-aspect.register_rule_kind("should never be used", {
+aspect.gazelle_rule_kind("should never be used", {
     "From": "@--invalid --label",
 })
 
@@ -28,7 +28,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "gen",
     declare = declare,
 )

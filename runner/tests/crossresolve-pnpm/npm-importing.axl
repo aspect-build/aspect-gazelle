@@ -1,4 +1,4 @@
-aspect.register_rule_kind("x_lib", {
+aspect.gazelle_rule_kind("x_lib", {
     "From": "@deps-test//my:rules.bzl",
     "ResolveAttrs": ["deps"],
 })
@@ -18,7 +18,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "npm-imports-test",
     declare = declare,
 )

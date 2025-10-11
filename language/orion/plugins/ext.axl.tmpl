@@ -96,7 +96,7 @@ def is_native(imp):
 
     return False
 
-aspect.register_rule_kind("my_rule", {
+aspect.gazelle_rule_kind("my_rule", {
     "From": "@my_ruleset//:defs.bzl",
     "NonEmptyAttrs": ["srcs"],
     "MergeableAttrs": ["srcs"],

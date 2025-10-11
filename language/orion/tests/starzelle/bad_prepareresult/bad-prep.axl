@@ -1,4 +1,4 @@
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "bad_prepareresult-bool",
     prepare = lambda _ : aspect.PrepareResult(
         sources = aspect.SourceGlobs(True, 3, [4]),

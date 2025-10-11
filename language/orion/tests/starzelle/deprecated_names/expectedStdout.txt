@@ -1,0 +1,2 @@
+DEPRECATED: 'register_rule_kind' is deprecated, please use 'gazelle_rule_kind' instead.
+DEPRECATED: 'register_configure_extension' is deprecated, please use 'orion_extension' instead.

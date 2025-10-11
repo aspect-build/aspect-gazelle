@@ -15,13 +15,18 @@ import (
 	"go.starlark.net/starlark"
 )
 
-func registerConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func deprecatedRegisterConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	fmt.Printf("DEPRECATED: 'register_configure_extension' is deprecated, please use 'orion_extension' instead.\n")
+	return registerOrionPlugin(t, b, args, kwargs)
+}
+
+func registerOrionPlugin(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var pluginId starlark.String
 	var properties *starlark.Dict
 	var prepare, analyze, declare *starlark.Function
 
 	err := starlark.UnpackArgs(
-		"register_configure_extension",
+		"orion_extension",
 		args,
 		kwargs,
 		"id", &pluginId,
@@ -46,12 +51,18 @@ func registerConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args st
 	return starlark.None, err
 }
 
-func registerRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+func deprecatedRegisterRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	fmt.Printf("DEPRECATED: 'register_rule_kind' is deprecated, please use 'gazelle_rule_kind' instead.\n")
+
+	return registerGazelleRuleKind(t, b, args, kwargs)
+}
+
+func registerGazelleRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var kind starlark.String
 	var attributes *starlark.Dict
 
 	err := starlark.UnpackArgs(
-		"register_rule_kind",
+		"gazelle_rule_kind",
 		args,
 		kwargs,
 		"name", &kind,
@@ -443,8 +454,10 @@ func newProperty(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 var aspectModule = starUtils.CreateModule(
 	"aspect",
 	map[string]starUtils.ModuleFunction{
-		"register_configure_extension": registerConfigureExtension,
-		"register_rule_kind":           registerRuleKind,
+		"register_configure_extension": deprecatedRegisterConfigureExtension,
+		"register_rule_kind":           deprecatedRegisterRuleKind,
+		"orion_extension":              registerOrionPlugin,
+		"gazelle_rule_kind":            registerGazelleRuleKind,
 		"AstQuery":                     newAstQuery,
 		"RegexQuery":                   newRegexQuery,
 		"RawQuery":                     newRawQuery,

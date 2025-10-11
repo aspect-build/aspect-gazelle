@@ -3,7 +3,7 @@
 load("//tests/starzelle/starlark_load/utils:declare.axl", "declare_targets")
 load("//tests/starzelle/starlark_load/utils:prepare.axl", "prepare")
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "fgs",
     prepare = prepare,
     declare = declare_targets,

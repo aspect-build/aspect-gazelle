@@ -33,7 +33,7 @@ def declare_maven_targets(ctx):
                 ),
             )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "maven",
     properties = {
         JAVA_MAVEN_INSTALL_FILE: aspect.Property(

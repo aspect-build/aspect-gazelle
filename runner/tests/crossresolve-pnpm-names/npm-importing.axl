@@ -1,4 +1,4 @@
-aspect.register_rule_kind("x_lib", {
+aspect.gazelle_rule_kind("x_lib", {
     "From": "@deps-test//my:rules.bzl",
     "ResolveAttrs": ["deps"],
 })
@@ -59,7 +59,7 @@ def declare_targets(ctx):
         )] if package_name else [],
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "pkg-aligning-deps",
     prepare = prepare,
     declare = declare_targets,

@@ -1,4 +1,4 @@
-aspect.register_rule_kind("rust_library", {
+aspect.gazelle_rule_kind("rust_library", {
     "From": "@deps-test//my:rules.bzl",
     "MergeableAttrs": ["srcs"],
     "ResolveAttrs": ["deps"],
@@ -14,7 +14,7 @@ def declare(ctx):
             },
         )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "rust-test",
     prepare = lambda _: aspect.PrepareResult(
         # All source files to be processed

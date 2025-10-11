@@ -1,4 +1,4 @@
-aspect.register_rule_kind("js_library", {
+aspect.gazelle_rule_kind("js_library", {
     "From": "@aspect_rules_js//js:defs.bzl",
     "NonEmptyAttrs": ["srcs"],
     "MergeableAttrs": ["srcs"],
@@ -42,7 +42,7 @@ def declare(ctx):
             )],
         )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "dummy-js",
     prepare = prepare,
     declare = declare,

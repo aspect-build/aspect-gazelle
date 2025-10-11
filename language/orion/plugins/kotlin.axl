@@ -9,14 +9,14 @@ PROVIDER_NAME = "kt"
 
 LANG_NAME = "kotlin"
 
-aspect.register_rule_kind(KT_JVM_LIBRARY, {
+aspect.gazelle_rule_kind(KT_JVM_LIBRARY, {
     "From": "@" + RULES_KOTLIN_REPO_NAME + "//kotlin:jvm.bzl",
     "NonEmptyAttrs": ["srcs"],
     "MergeableAttrs": ["srcs"],
     "ResolveAttrs": ["deps"],
 })
 
-aspect.register_rule_kind(KT_JVM_BINARY, {
+aspect.gazelle_rule_kind(KT_JVM_BINARY, {
     "From": "@" + RULES_KOTLIN_REPO_NAME + "//kotlin:jvm.bzl",
     "NonEmptyAttrs": ["srcs", "main_class"],
 })
@@ -183,7 +183,7 @@ def is_native(imp):
 
     return False
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = LANG_NAME,
     properties = {},
     prepare = prepare,

@@ -3,7 +3,7 @@ BZL_LIBRARY = "bzl_library"
 LANG_NAME = "starlark"
 BZL_EXT = ".bzl"
 
-aspect.register_rule_kind(BZL_LIBRARY, {
+aspect.gazelle_rule_kind(BZL_LIBRARY, {
     "From": "@bazel_skylib//:bzl_library.bzl",
     "NonEmptyAttrs": ["srcs"],
     "MergeableAttrs": ["srcs"],
@@ -74,7 +74,7 @@ def declare_targets(ctx):
         )
     return {}
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = LANG_NAME,
     properties = {},
     prepare = prepare,

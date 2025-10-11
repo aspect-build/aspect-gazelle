@@ -1,10 +1,10 @@
-aspect.register_rule_kind("props_test", {
+aspect.gazelle_rule_kind("props_test", {
     "From": "@test//:x.bzl",
     "NonEmptyAttrs": ["s"],
     "MergeableAttrs": ["s", "sa", "b", "n"],
 })
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "property-types",
     properties = {
         "s": aspect.Property(

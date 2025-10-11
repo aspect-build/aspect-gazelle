@@ -8,7 +8,7 @@ See: https://docs.aspect.build/cli/starlark
 
 VITEST_CONFIG_FILE = "vitest.config.mjs"
 
-aspect.register_rule_kind("vitest_test", {
+aspect.gazelle_rule_kind("vitest_test", {
     "From": "//bazel:defs.bzl",
     "NonEmptyAttrs": ["config"],
     "ResolveAttrs": ["config", "data"],
@@ -53,7 +53,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "vitest_test",
     prepare = prepare,
     declare = declare,

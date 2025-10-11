@@ -16,7 +16,7 @@ def declare_targets(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "copy-txt",
     prepare = prepare,
     declare = declare_targets,

@@ -1,4 +1,4 @@
-aspect.register_rule_kind("postcss", {
+aspect.gazelle_rule_kind("postcss", {
     "From": "//:pcss.bzl",
     "NonEmptyAttrs": ["config", "srcs"],
     "MergeableAttrs": ["srcs"],
@@ -29,7 +29,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "postcss",
     prepare = prepare,
     declare = declare,

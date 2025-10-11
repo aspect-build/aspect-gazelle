@@ -1,0 +1,10 @@
+aspect.register_rule_kind("props_test", {
+    "From": "@test//:x.bzl",
+    "NonEmptyAttrs": ["s"],
+    "MergeableAttrs": ["s", "sa", "b", "n"],
+})
+
+aspect.register_configure_extension(
+    id = "deprecated-names-props",
+)
+
