@@ -1,8 +1,8 @@
 # A plugin implementing nothing
-aspect.register_configure_extension(id = "nothing")
+aspect.register_orion_plugin(id = "nothing")
 
 # A plugin with noop callbacks, ensuring return values are optional
-aspect.register_configure_extension(
+aspect.register_orion_plugin(
     id = "empties",
     properties = {},
     prepare = lambda _: None,

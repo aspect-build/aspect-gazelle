@@ -34,7 +34,7 @@ def declare_list(ctx):
             },
         )
 
-aspect.register_configure_extension(
+aspect.register_orion_plugin(
     id = "fg-groups",
     prepare = prepare_list,
     declare = declare_list,

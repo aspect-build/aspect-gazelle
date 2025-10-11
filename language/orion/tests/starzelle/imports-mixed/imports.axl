@@ -30,7 +30,7 @@ def declare(ctx):
         )],
     )
 
-aspect.register_configure_extension(
+aspect.register_orion_plugin(
     id = "mixed-import-and-values-test",
     declare = declare,
 )

@@ -18,7 +18,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.register_orion_plugin(
     id = "npm-imports-test",
     declare = declare,
 )
