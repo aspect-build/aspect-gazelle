@@ -1,4 +1,4 @@
-aspect.register_configure_extension(
+aspect.register_orion_plugin(
     id = "bad-test",
     prepare = lambda _: aspect.PrepareResult(
         # All source files to be processed
