@@ -47,7 +47,7 @@ def declare(ctx):
             )],
         )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "re-test",
     prepare = prepare,
     declare = declare,

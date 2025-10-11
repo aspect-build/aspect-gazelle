@@ -94,7 +94,7 @@ def declare(ctx):
         )],
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "attribute-types-test",
     declare = declare,
 )

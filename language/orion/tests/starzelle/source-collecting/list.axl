@@ -17,7 +17,7 @@ def declare_list(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "fg-list",
     prepare = prepare_list,
     declare = declare_list,

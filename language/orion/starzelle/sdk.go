@@ -19,12 +19,18 @@ import (
 )
 
 func registerConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	// TODO: warn of deprecation?
+
+	return registerOrionPlugin(t, b, args, kwargs)
+}
+
+func registerOrionPlugin(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var pluginId starlark.String
 	var properties *starlark.Dict
 	var prepare, analyze, declare *starlark.Function
 
 	err := starlark.UnpackArgs(
-		"register_configure_extension",
+		"orion_extension",
 		args,
 		kwargs,
 		"id", &pluginId,
@@ -397,6 +403,7 @@ var aspectModule = starUtils.CreateModule(
 	"aspect",
 	map[string]starUtils.ModuleFunction{
 		"register_configure_extension": registerConfigureExtension,
+		"orion_extension":              registerOrionPlugin,
 		"register_rule_kind":           registerRuleKind,
 		"AstQuery":                     newAstQuery,
 		"RegexQuery":                   newRegexQuery,

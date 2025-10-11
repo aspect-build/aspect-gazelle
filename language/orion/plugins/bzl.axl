@@ -74,7 +74,7 @@ def declare_targets(ctx):
         )
     return {}
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = LANG_NAME,
     properties = {},
     prepare = prepare,
