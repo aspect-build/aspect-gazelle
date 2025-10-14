@@ -70,19 +70,6 @@ filegroup(
 )
 
 http_archive(
-    name = "tree-sitter-rust",
-    build_file_content = """
-filegroup(
-    name = "srcs",
-    srcs = glob(["src/**/*.c", "src/**/*.h"]),
-    visibility = ["//visibility:public"],
-)
-""",
-    sha256 = "faad55f71adcdc6a1b4c0266971ea4998d2d039d23161dfdb03a6fa558ce1a7b",
-    urls = ["https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.24.0/tree-sitter-rust.tar.gz"],
-)
-
-http_archive(
     name = "tree-sitter-starlark",
     build_file_content = """
 filegroup(

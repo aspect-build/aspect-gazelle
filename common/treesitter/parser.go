@@ -22,16 +22,9 @@ import (
 	"iter"
 	"log"
 	"path"
+	"unsafe"
 
-	golang "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/golang"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/java"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/starlark"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
 	sitter "github.com/smacker/go-tree-sitter"
-	"github.com/smacker/go-tree-sitter/rust"
 )
 
 type LanguageGrammar string
@@ -47,6 +40,31 @@ const (
 	Rust                        = "rust"
 )
 
+type Language interface {
+}
+
+func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
+	return &treeLanguage{
+		grammar: grammar,
+		lang:    sitter.NewLanguage(langPtr),
+	}
+}
+func NewLanguageFromSitter(grammar LanguageGrammar, lang *sitter.Language) Language {
+	return &treeLanguage{
+		grammar: grammar,
+		lang:    lang,
+	}
+}
+
+type treeLanguage struct {
+	grammar LanguageGrammar
+	lang    *sitter.Language
+}
+
+func (tree *treeLanguage) String() string {
+	return fmt.Sprintf("treeLanguage{grammar: %q}", tree.grammar)
+}
+
 type ASTQueryResult interface {
 	Captures() map[string]string
 }
@@ -60,7 +78,7 @@ type AST interface {
 	Close()
 }
 type treeAst struct {
-	lang       LanguageGrammar
+	lang       *treeLanguage
 	filePath   string
 	sourceCode []byte
 
@@ -76,31 +94,7 @@ func (tree *treeAst) Close() {
 }
 
 func (tree *treeAst) String() string {
-	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang, tree.filePath, tree.sitterTree.RootNode().String())
-}
-
-func toSitterLanguage(lang LanguageGrammar) *sitter.Language {
-	switch lang {
-	case Go:
-		return sitter.NewLanguage(golang.Language())
-	case Java:
-		return sitter.NewLanguage(java.Language())
-	case JSON:
-		return sitter.NewLanguage(json.Language())
-	case Kotlin:
-		return sitter.NewLanguage(kotlin.Language())
-	case Rust:
-		return rust.GetLanguage()
-	case Starlark:
-		return sitter.NewLanguage(starlark.Language())
-	case Typescript:
-		return sitter.NewLanguage(typescript.LanguageTypescript())
-	case TypescriptX:
-		return sitter.NewLanguage(tsx.LanguageTSX())
-	}
-
-	log.Panicf("Unknown LanguageGrammar %q", lang)
-	return nil
+	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().String())
 }
 
 func PathToLanguage(p string) LanguageGrammar {
@@ -108,7 +102,7 @@ func PathToLanguage(p string) LanguageGrammar {
 }
 
 // Based on https://github.com/github-linguist/linguist/blob/master/lib/linguist/languages.yml
-var EXT_LANGUAGES = map[string]LanguageGrammar{
+var extLanguages = map[string]LanguageGrammar{
 	"go": Go,
 
 	"rs": Rust,
@@ -138,7 +132,7 @@ var EXT_LANGUAGES = map[string]LanguageGrammar{
 // In theory, this is a mirror of
 // https://github.com/github-linguist/linguist/blob/master/lib/linguist/languages.yml
 func extensionToLanguage(ext string) LanguageGrammar {
-	var lang, found = EXT_LANGUAGES[ext[1:]]
+	var lang, found = extLanguages[ext[1:]]
 
 	// TODO: allow override or fallback language for files
 	if !found {
@@ -148,16 +142,16 @@ func extensionToLanguage(ext string) LanguageGrammar {
 	return lang
 }
 
-func ParseSourceCode(lang LanguageGrammar, filePath string, sourceCode []byte) (AST, error) {
+func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, error) {
 	ctx := context.Background()
 
 	parser := sitter.NewParser()
-	parser.SetLanguage(toSitterLanguage(lang))
+	parser.SetLanguage(lang.(*treeLanguage).lang)
 
 	tree, err := parser.ParseCtx(ctx, nil, sourceCode)
 	if err != nil {
 		return nil, err
 	}
 
-	return &treeAst{lang: lang, filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
+	return &treeAst{lang: lang.(*treeLanguage), filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
 }

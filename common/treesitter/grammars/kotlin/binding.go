@@ -21,8 +21,12 @@ package kotlin
 import "C"
 import (
 	"unsafe"
+
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
 
-func Language() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_kotlin())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguage(
+		treesitter.Kotlin,
+		unsafe.Pointer(C.tree_sitter_kotlin()))
 }

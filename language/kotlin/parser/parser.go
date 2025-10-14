@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	Log "github.com/aspect-build/aspect-gazelle/common/logger"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
 
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
@@ -63,7 +64,8 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 
 	errs := make([]error, 0)
 
-	tree, err := treeutils.ParseSourceCode(treeutils.Kotlin, filePath, sourceCode)
+	lang := kotlin.NewLanguage()
+	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -71,7 +73,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 	if tree != nil {
 		defer tree.Close()
 
-		q := treeutils.GetQuery(treeutils.Kotlin, importsQuery)
+		q := treeutils.GetQuery(lang, importsQuery)
 		for queryResult := range tree.Query(q) {
 			Log.Tracef("Kotlin AST Query %q: %v", filePath, queryResult)
 

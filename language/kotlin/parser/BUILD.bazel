@@ -8,6 +8,7 @@ go_library(
     deps = [
         "@aspect_gazelle//common/logger",
         "@aspect_gazelle//common/treesitter",
+        "@aspect_gazelle//common/treesitter/grammars/kotlin",
     ],
 )
 

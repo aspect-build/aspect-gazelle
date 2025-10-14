@@ -13,14 +13,6 @@ go_library(
     deps = [
         "//common",
         "//common/logger",
-        "//common/treesitter/grammars/golang",
-        "//common/treesitter/grammars/java",
-        "//common/treesitter/grammars/json",
-        "//common/treesitter/grammars/kotlin",
-        "//common/treesitter/grammars/starlark",
-        "//common/treesitter/grammars/tsx",
-        "//common/treesitter/grammars/typescript",
         "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
-        "@com_github_smacker_go_tree_sitter//rust",
     ],
 )

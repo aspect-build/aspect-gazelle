@@ -5,8 +5,12 @@ package starlark
 import "C"
 import (
 	"unsafe"
+
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
 
-func Language() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_starlark())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguage(
+		treesitter.Starlark,
+		unsafe.Pointer(C.tree_sitter_starlark()))
 }

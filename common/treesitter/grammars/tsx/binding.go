@@ -21,8 +21,12 @@ package tsx
 import "C"
 import (
 	"unsafe"
+
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
 
-func LanguageTSX() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_tsx())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguage(
+		treesitter.TypescriptX,
+		unsafe.Pointer(C.tree_sitter_tsx()))
 }

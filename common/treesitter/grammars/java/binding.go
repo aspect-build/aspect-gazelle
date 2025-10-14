@@ -5,8 +5,13 @@ package java
 import "C"
 import (
 	"unsafe"
+
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
 
-func Language() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_java())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguage(
+		treesitter.Java,
+		unsafe.Pointer(C.tree_sitter_java()),
+	)
 }

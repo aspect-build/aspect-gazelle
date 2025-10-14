@@ -1,13 +1,25 @@
 package queries
 
 import (
+	"log"
+
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/golang"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/java"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/rust"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/starlark"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
 func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
-	ast, err := treeutils.ParseSourceCode(toTreeGrammar(fileName, queries), fileName, sourceCode)
+	lang := toTreeLanguage(fileName, queries)
+	ast, err := treeutils.ParseSourceCode(lang, fileName, sourceCode)
 	if err != nil {
 		return err
 	}
@@ -25,7 +37,7 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 	// TODO: look into running queries in parallel on the same AST
 	for key, query := range queries {
 		params := query.Params.(plugin.AstQueryParams)
-		treeQuery := treeutils.GetQuery(treeutils.LanguageGrammar(params.Grammar), params.Query)
+		treeQuery := treeutils.GetQuery(lang, params.Query)
 
 		// TODO: delay collection from channel until first read?
 		// Then it must be cached for later reads...
@@ -40,6 +52,32 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 		}
 	}
 
+	return nil
+}
+
+func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Language {
+	lang := toTreeGrammar(fileName, queries)
+
+	switch lang {
+	case treesitter.Go:
+		return golang.NewLanguage()
+	case treesitter.Java:
+		return java.NewLanguage()
+	case treesitter.JSON:
+		return json.NewLanguage()
+	case treesitter.Kotlin:
+		return kotlin.NewLanguage()
+	case treesitter.Rust:
+		return rust.NewLanguage()
+	case treesitter.Starlark:
+		return starlark.NewLanguage()
+	case treesitter.Typescript:
+		return typescript.NewLanguage()
+	case treesitter.TypescriptX:
+		return tsx.NewLanguage()
+	}
+
+	log.Panicf("Unknown LanguageGrammar %q", lang)
 	return nil
 }
 

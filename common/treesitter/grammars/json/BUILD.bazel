@@ -9,5 +9,6 @@ go_library(
     cgo = True,
     copts = ["-Iexternal/*tree-sitter-json"],  #keep
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json",
-    visibility = ["//common/treesitter:__subpackages__"],
+    visibility = ["//visibility:public"],
+    deps = ["//common/treesitter"],
 )

@@ -19,12 +19,15 @@ type TreeQuery interface {
 // A cache of parsed queries per language
 var queryCache = sync.Map{}
 
-func GetQuery(lang LanguageGrammar, queryStr string) *sitterQuery {
-	key := string(lang) + ":" + queryStr
+func GetQuery(lang Language, queryStr string) *sitterQuery {
+	grammar := lang.(*treeLanguage).grammar
+	treeLang := lang.(*treeLanguage).lang
+
+	key := string(grammar) + ":" + queryStr
 
 	q, found := queryCache.Load(key)
 	if !found {
-		q, _ = queryCache.LoadOrStore(key, mustNewQuery(lang, queryStr))
+		q, _ = queryCache.LoadOrStore(key, mustNewQuery(treeLang, queryStr))
 	}
 	return q.(*sitterQuery)
 }
@@ -77,8 +80,8 @@ func (tree *treeAst) mapQueryMatchCaptures(m *sitter.QueryMatch, q *sitterQuery)
 	return captures
 }
 
-func mustNewTreeQuery(lang LanguageGrammar, query string) *sitter.Query {
-	treeQ, err := sitter.NewQuery([]byte(query), toSitterLanguage(lang))
+func mustNewTreeQuery(lang *sitter.Language, query string) *sitter.Query {
+	treeQ, err := sitter.NewQuery([]byte(query), lang)
 	if err != nil {
 		BazelLog.Fatalf("Failed to create query for %q: %v", query, err)
 	}

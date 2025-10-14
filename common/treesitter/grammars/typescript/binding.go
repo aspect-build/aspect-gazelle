@@ -21,8 +21,12 @@ package typescript
 import "C"
 import (
 	"unsafe"
+
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
 
-func LanguageTypescript() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_typescript())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguage(
+		treesitter.Typescript,
+		unsafe.Pointer(C.tree_sitter_typescript()))
 }

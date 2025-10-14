@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	Log "github.com/aspect-build/aspect-gazelle/common/logger"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
 
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
 )
@@ -173,14 +175,14 @@ func getTripleSlashDirectiveModule(comment string) (string, bool) {
 }
 
 // File extension to language key
-func filenameToLanguage(filename string) treeutils.LanguageGrammar {
+func filenameToLanguage(filename string) treeutils.Language {
 	ext := path.Ext(filename)[1:]
 	switch ext {
 	case "tsx":
-		return treeutils.TypescriptX
+		fallthrough
 	case "jsx":
-		return treeutils.TypescriptX
+		return tsx.NewLanguage()
 	}
 
-	return treeutils.Typescript
+	return typescript.NewLanguage()
 }

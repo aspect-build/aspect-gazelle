@@ -1,12 +1,14 @@
 package rust
 
-//#include "tree_sitter/parser.h"
-//TSLanguage *tree_sitter_rust();
-import "C"
 import (
-	"unsafe"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter"
+
+	// TODO: replace with direct use of https://github.com/tree-sitter/tree-sitter-rust
+	"github.com/smacker/go-tree-sitter/rust"
 )
 
-func Language() unsafe.Pointer {
-	return unsafe.Pointer(C.tree_sitter_rust())
+func NewLanguage() treesitter.Language {
+	return treesitter.NewLanguageFromSitter(
+		treesitter.Rust,
+		rust.GetLanguage())
 }

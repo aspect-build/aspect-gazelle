@@ -14,7 +14,7 @@ type sitterQuery struct {
 
 var _ TreeQuery = (*sitterQuery)(nil)
 
-func mustNewQuery(lang LanguageGrammar, query string) *sitterQuery {
+func mustNewQuery(lang *sitter.Language, query string) *sitterQuery {
 	q := mustNewTreeQuery(lang, query)
 
 	captureNames := make([]string, q.CaptureCount())
