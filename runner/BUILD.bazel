@@ -2,13 +2,8 @@ load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
 load("@rules_go//go:def.bzl", "go_library")
 
 # Use the gazelle bazel modules instead of go.mod modules
-# gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
 # gazelle:resolve_regexp go github.com/bazel-contrib/rules_python/gazelle/(.*) @rules_python_gazelle_plugin//$1
-# gazelle:resolve_regexp go github.com/EngFlow/gazelle_cc/(.*) @gazelle_cc//$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/js @aspect_gazelle_js
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/orion @aspect_gazelle_orion
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/kotlin @aspect_gazelle_kotlin
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/runner/(.*) //$1
 
 gazelle(
@@ -56,13 +51,13 @@ go_library(
         "//progress",
         "//vendored/gazelle",
         "@aspect_gazelle//common/bazel",
-        "@aspect_gazelle_js",
-        "@aspect_gazelle_orion",
-        "@gazelle//config",
-        "@gazelle//language",
-        "@gazelle//language/go",
-        "@gazelle//language/proto",
-        "@gazelle_cc//language/cc",
+        "@com_github_aspect_build_aspect_gazelle_language_js//:js",
+        "@com_github_aspect_build_aspect_gazelle_language_orion//:orion",
+        "@com_github_bazelbuild_bazel_gazelle//config",
+        "@com_github_bazelbuild_bazel_gazelle//language",
+        "@com_github_bazelbuild_bazel_gazelle//language/go",
+        "@com_github_bazelbuild_bazel_gazelle//language/proto",
+        "@com_github_engflow_gazelle_cc//language/cc",
         "@io_opentelemetry_go_otel//:otel",
         "@io_opentelemetry_go_otel//attribute",
         "@io_opentelemetry_go_otel_trace//:trace",

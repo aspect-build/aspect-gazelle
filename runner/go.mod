@@ -38,9 +38,9 @@ require (
 )
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-00010101000000-000000000000
-	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-00010101000000-000000000000
-	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-00010101000000-000000000000
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251007231102-88e4ec95608b
+	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20251001194427-669d53ca49e3
+	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20251001194427-669d53ca49e3
 )
 
 require (

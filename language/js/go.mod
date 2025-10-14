@@ -18,7 +18,7 @@ require (
 
 require golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 
-require github.com/aspect-build/aspect-gazelle/common v0.0.0-00010101000000-000000000000
+require github.com/aspect-build/aspect-gazelle/common v0.0.0-20251007231102-88e4ec95608b
 
 require (
 	github.com/kr/text v0.2.0 // indirect
