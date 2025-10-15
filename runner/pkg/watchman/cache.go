@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"sync"
 
@@ -27,6 +28,8 @@ type watchmanCache struct {
 	w *WatchmanWatcher
 
 	file string
+
+	symlinks *sync.Map
 
 	old           map[string]map[string]any
 	new           *sync.Map
@@ -50,11 +53,17 @@ func NewWatchmanCache(c *config.Config) cache.Cache {
 		log.Fatalf("failed to start the watcher: %v", err)
 	}
 
+	return newWatchmanCache(w, diskCachePath)
+}
+
+func newWatchmanCache(w *WatchmanWatcher, diskCachePath string) *watchmanCache {
 	wc := &watchmanCache{
 		w:    w,
 		file: diskCachePath,
 		old:  map[string]map[string]any{},
 		new:  &sync.Map{},
+
+		symlinks: &sync.Map{},
 	}
 	wc.read()
 
@@ -88,6 +97,8 @@ func (c *watchmanCache) read() {
 		return
 	}
 
+	loadedEntriesCount := len(v.Entries)
+
 	cs, err := c.w.GetDiff(v.ClockSpec)
 	if err != nil {
 		BazelLog.Errorf("Failed to get diff from watchman: %v", err)
@@ -109,7 +120,13 @@ func (c *watchmanCache) read() {
 	c.old = v.Entries
 	c.lastClockSpec = cs.ClockSpec
 
-	BazelLog.Infof("Watchman cache: %d entries at clock spec %s", len(c.old), c.lastClockSpec)
+	// Persist the fact that all persisted paths are not symlinks.
+	// Only new paths with no cache entries will require a stat call.
+	for k := range c.old {
+		c.symlinks.LoadOrStore(k, k)
+	}
+
+	BazelLog.Infof("Watchman cache: %d/%d entries at clock spec %q", len(c.old), loadedEntriesCount, c.lastClockSpec)
 }
 
 func (c *watchmanCache) write() {
@@ -148,7 +165,10 @@ func (c *watchmanCache) write() {
 
 	if e := cacheEncoder.Encode(s); e != nil {
 		BazelLog.Errorf("Failed to write cache %q: %v", c.file, e)
+		return
 	}
+
+	BazelLog.Debugf("Wrote %d entries at clockspec %q to cache %q\n", len(m), c.lastClockSpec, c.file)
 }
 
 func (c *watchmanCache) Persist() {
@@ -156,20 +176,26 @@ func (c *watchmanCache) Persist() {
 }
 
 func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCompute) (any, bool, error) {
+	// Watchman is based on real path locations so symlinks must be resolved to the real path for cache keys.
+	realP, err := c.resolveSymlink(root, p)
+	if err != nil {
+		return nil, false, err
+	}
+
 	// Load directly from c.new to potentially convert map[] to sync.Map
-	fileMap, hasFileMap := c.new.Load(p)
+	fileMap, hasFileMap := c.new.Load(realP)
 	if !hasFileMap {
 		// A new map for this file path
 		newMap := &sync.Map{}
 
 		// Potentially load the previously persisted map[]
-		if oldMap, hasOld := c.old[p]; hasOld {
+		if oldMap, hasOld := c.old[realP]; hasOld {
 			for k, v := range oldMap {
 				newMap.Store(k, v)
 			}
 		}
 
-		fileMap, _ = c.new.LoadOrStore(p, newMap)
+		fileMap, _ = c.new.LoadOrStore(realP, newMap)
 	}
 
 	// Load any cached result from the file specific sync.Map
@@ -179,7 +205,7 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 	}
 
 	// Uncached and must be computed from file content
-	content, err := os.ReadFile(path.Join(root, p))
+	content, err := os.ReadFile(path.Join(root, realP))
 	if err != nil {
 		return nil, false, err
 	}
@@ -191,4 +217,37 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 	}
 
 	return v, found, err
+}
+
+func (c *watchmanCache) resolveSymlink(root, p string) (string, error) {
+	realP, isLinkKnown := c.symlinks.Load(p)
+	if !isLinkKnown {
+		// Not a link by default
+		realP = p
+
+		// Check if the path is a symlink using Lstat (doesn't follow symlinks)
+		fi, err := os.Lstat(path.Join(root, p))
+		if err != nil {
+			return p, err
+		}
+
+		// Resolve symlinks relative to the root dir
+		if fi.Mode()&os.ModeSymlink != 0 {
+			if evalPath, err := filepath.EvalSymlinks(path.Join(root, p)); err == nil {
+				if relPath, err := filepath.Rel(root, evalPath); err == nil {
+					realP = relPath
+				}
+			}
+		}
+
+		// Store the resolved path (or the original path if not a link)
+		realP, _ = c.symlinks.LoadOrStore(p, realP)
+
+		// Store the realpath map to itself to avoid a lstat on that in the future
+		if p != realP {
+			realP, _ = c.symlinks.LoadOrStore(realP, realP)
+		}
+	}
+
+	return realP.(string), nil
 }

@@ -20,7 +20,10 @@ go_library(
 
 go_test(
     name = "watchman_test",
-    srcs = ["watch_test.go"],
+    srcs = [
+        "cache_test.go",
+        "watch_test.go",
+    ],
     embed = [":watchman"],
     tags = ["manual"],  # TODO: we need watchman in our runners.
 )

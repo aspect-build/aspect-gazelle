@@ -15,12 +15,21 @@ func getTempDir(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Log(tmp)
 	tmp, err = os.MkdirTemp(tmp, "watchman-test-")
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Log(tmp)
 	return tmp
+}
+
+func getTempFile(t *testing.T) string {
+	f, err := os.CreateTemp(os.TempDir(), "test-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(f.Name())
+	return f.Name()
 }
 
 func createWatchman(root string) *WatchmanWatcher {

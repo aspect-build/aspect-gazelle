@@ -143,7 +143,7 @@ func (w *WatchmanWatcher) getWatchmanSocket() (string, error) {
 	cmd := exec.Command(w.watchmanPath, "get-sockname")
 	out, err := cmd.Output()
 	if err != nil {
-		return "", fmt.Errorf("failed to get watchman socket: %w", err)
+		return "", fmt.Errorf("watchman get-sockname failed: %w", err)
 	}
 
 	var sockname map[string]string
