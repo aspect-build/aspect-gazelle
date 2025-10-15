@@ -259,7 +259,7 @@ func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, excludes []
 		fmt.Printf("Detected changes in %v\n", changedDirs)
 
 		// Run gazelle
-		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, p.InstantiateLanguages(), append(fixArgs, changedDirs...))
+		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, languages, append(fixArgs, changedDirs...))
 		if err != nil {
 			return fmt.Errorf("failed to run gazelle fix/update: %w", err)
 		}
