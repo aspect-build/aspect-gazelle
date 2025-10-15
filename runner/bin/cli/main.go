@@ -29,7 +29,7 @@ func main() {
 
 	mode, languages, plugins, args := parseArgs()
 
-	c := runner.New()
+	c := runner.New(os.Getenv("GAZELLE_PROGRESS") != "")
 
 	// Add languages
 	fmt.Printf("Languages: %v\n", languages)
@@ -47,14 +47,14 @@ func main() {
 	fmt.Printf("Args: %v\n", args)
 
 	if watchSocket := os.Getenv(ibp.PROTOCOL_SOCKET_ENV); watchSocket != "" {
-		err := c.Watch(watchSocket, mode, args)
+		err := c.Watch(watchSocket, runner.UpdateCmd, mode, args)
 
 		// Handle command errors
 		if err != nil {
 			log.Fatalf("Error running gazelle watcher: %v", err)
 		}
 	} else {
-		_, err := c.Generate(mode, args)
+		_, err := c.Generate(runner.UpdateCmd, mode, args)
 
 		// Handle command errors
 		if err != nil {

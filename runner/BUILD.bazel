@@ -1,5 +1,7 @@
-load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_library")
+load("//:def.bzl", "aspect_gazelle")
 
 # Use the gazelle bazel modules instead of go.mod modules
 # gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
@@ -11,6 +13,7 @@ load("@rules_go//go:def.bzl", "go_library")
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/kotlin @aspect_gazelle_kotlin
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/runner/(.*) //$1
 
+# Pure gazelle targets
 gazelle(
     name = "gazelle",
     extra_args = ["-index=lazy"],
@@ -23,20 +26,23 @@ gazelle(
     mode = "diff",
 )
 
-gazelle_binary(
+# Aspect gazelle targets - should be functionally identical to above but with added aspect functionality
+aspect_gazelle(
+    name = "aspect_gazelle",
+    extra_args = ["-index=lazy"],
+    languages = ["go"],
+)
+
+aspect_gazelle(
+    name = "aspect_gazelle.check",
+    languages = ["go"],
+    mode = "diff",
+)
+
+# The target used to publish the prebuilt gazelle binary.
+alias(
     name = "gazelle_prebuilt_bin",
-    languages = [
-        "//language/bzl",
-        "@rules_python_gazelle_plugin//python",
-        "@aspect_gazelle_js",
-        # Kotlin not included in the prebuild because it interferes with normal operation
-        # and there is no directive to disable it.
-        # "@aspect_gazelle_kotlin",
-        "@aspect_gazelle_orion",
-        "@gazelle_cc//language/cc",
-        "@gazelle//language/proto",
-        "@gazelle//language/go",
-    ],
+    actual = "//bin/gazelle:gazelle",
     visibility = ["//visibility:public"],
 )
 
@@ -73,4 +79,11 @@ go_library(
         "@org_golang_x_term//:term",
         "@rules_python_gazelle_plugin//python",
     ],
+)
+
+bzl_library(
+    name = "def",
+    srcs = ["def.bzl"],
+    visibility = ["//visibility:public"],
+    deps = ["@gazelle//:def"],
 )

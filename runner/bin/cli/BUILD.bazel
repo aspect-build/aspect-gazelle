@@ -18,5 +18,6 @@ go_library(
 go_binary(
     name = "cli",
     embed = [":cli_lib"],
+    tags = ["supports_incremental_build_protocol"],
     visibility = ["//visibility:public"],
 )

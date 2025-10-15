@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "gazelle_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/runner/bin/gazelle",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:runner",
+        "//pkg/ibp",
+        "@aspect_gazelle//common/logger",
+    ],
+)
+
+go_binary(
+    name = "gazelle",
+    embed = [":gazelle_lib"],
+    tags = ["supports_incremental_build_protocol"],
+    visibility = ["//visibility:public"],
+)
