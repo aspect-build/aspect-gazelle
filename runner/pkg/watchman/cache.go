@@ -169,7 +169,7 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 			}
 		}
 
-		fileMap, hasFileMap = c.new.LoadOrStore(p, newMap)
+		fileMap, _ = c.new.LoadOrStore(p, newMap)
 	}
 
 	// Load any cached result from the file specific sync.Map
