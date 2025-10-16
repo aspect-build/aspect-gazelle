@@ -201,6 +201,12 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 		return nil, fmt.Errorf("failed to receive query response: %w", err)
 	}
 
+	// Check for error in query response
+	// https://facebook.github.io/watchman/docs/cmd/query#response
+	if resp["error"] != nil {
+		return nil, fmt.Errorf("query error response: %s", resp["error"])
+	}
+
 	files := make([]string, 0)
 
 	if resp["files"] != nil {
@@ -284,6 +290,15 @@ func (w *WatchmanWatcher) Stop() error {
 	w.lastClockSpec = ""
 	if err := w.send("watch-del", w.watchedRoot); err != nil {
 		return fmt.Errorf("failed to send watch-del command: %w", err)
+	}
+	// Receive and validate watch-del response
+	// https://facebook.github.io/watchman/docs/cmd/watch-del#response
+	rsp, err := w.recv()
+	if err != nil {
+		return fmt.Errorf("failed to receive watch-del response: %w", err)
+	}
+	if rsp["watch-del"] == nil || !rsp["watch-del"].(bool) {
+		return fmt.Errorf("unknown watch-del response: %v", rsp)
 	}
 	return nil
 }
