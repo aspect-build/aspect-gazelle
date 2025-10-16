@@ -29,7 +29,9 @@ gazelle_binary(
         "//language/bzl",
         "@rules_python_gazelle_plugin//python",
         "@aspect_gazelle_js",
-        "@aspect_gazelle_kotlin",
+        # Kotlin not included in the prebuild because it interferes with normal operation
+        # and there is no directive to disable it.
+        # "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",
         "@gazelle_cc//language/cc",
         "@gazelle//language/proto",
