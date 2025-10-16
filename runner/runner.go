@@ -189,15 +189,6 @@ func (runner *GazelleRunner) Generate(mode GazelleMode, excludes []string, args 
 	return updated > 0, err
 }
 
-// A Generate()-like function desinged for running in gazelle test targets
-func (runner *GazelleRunner) Test() (bool, error) {
-	wd, fixArgs := runner.PrepareGazelleArgs(Fix, []string{}, []string{
-		os.Getenv("BUILD_WORKSPACE_DIRECTORY"),
-	})
-	_, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, runner.InstantiateLanguages(), fixArgs)
-	return updated > 0, err
-}
-
 func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, excludes []string, args []string) error {
 	watch := ibp.NewClient(watchAddress)
 	if err := watch.Connect(); err != nil {
