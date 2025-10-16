@@ -130,7 +130,7 @@ func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 	}
 }
 
-func (runner *GazelleRunner) PrepareGazelleArgs(mode GazelleMode, excludes []string, args []string) (string, []string) {
+func (runner *GazelleRunner) PrepareGazelleArgs(mode GazelleMode, args []string) (string, []string) {
 	var wd string
 	if wsRoot := bazel.FindWorkspaceDirectory(); wsRoot != "" {
 		wd = wsRoot
@@ -143,10 +143,6 @@ func (runner *GazelleRunner) PrepareGazelleArgs(mode GazelleMode, excludes []str
 
 	// Append the aspect-cli mode flag to the args parsed by gazelle.
 	fixArgs := []string{"--mode=" + mode}
-
-	for _, exclude := range excludes {
-		fixArgs = append(fixArgs, "--exclude="+exclude)
-	}
 
 	// Append additional args including specific directories to fix.
 	fixArgs = append(fixArgs, args...)
@@ -163,16 +159,15 @@ func (runner *GazelleRunner) InstantiateLanguages() []language.Language {
 	return languages
 }
 
-func (runner *GazelleRunner) Generate(mode GazelleMode, excludes []string, args []string) (bool, error) {
+func (runner *GazelleRunner) Generate(mode GazelleMode, args []string) (bool, error) {
 	_, t := runner.tracer.Start(context.Background(), "GazelleRunner.Generate", trace.WithAttributes(
 		traceAttr.String("mode", mode),
 		traceAttr.StringSlice("languages", runner.languageKeys),
-		traceAttr.StringSlice("excludes", excludes),
 		traceAttr.StringSlice("args", args),
 	))
 	defer t.End()
 
-	wd, fixArgs := runner.PrepareGazelleArgs(mode, excludes, args)
+	wd, fixArgs := runner.PrepareGazelleArgs(mode, args)
 
 	if mode == "fix" {
 		fmt.Printf("Updating BUILD files for %s\n", strings.Join(runner.languageKeys, ", "))
@@ -189,14 +184,14 @@ func (runner *GazelleRunner) Generate(mode GazelleMode, excludes []string, args 
 	return updated > 0, err
 }
 
-func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, excludes []string, args []string) error {
+func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, args []string) error {
 	watch := ibp.NewClient(watchAddress)
 	if err := watch.Connect(); err != nil {
 		return fmt.Errorf("failed to connect to watchman: %w", err)
 	}
 
 	// Params for the underlying gazelle call
-	wd, fixArgs := p.PrepareGazelleArgs(mode, excludes, args)
+	wd, fixArgs := p.PrepareGazelleArgs(mode, args)
 
 	// Initial run and status update to stdout.
 	fmt.Printf("Initialize BUILD file generation --watch in %v\n", wd)
@@ -214,7 +209,6 @@ func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, excludes []
 	ctx, t := p.tracer.Start(context.Background(), "GazelleRunner.Watch", trace.WithAttributes(
 		traceAttr.String("mode", mode),
 		traceAttr.StringSlice("languages", p.languageKeys),
-		traceAttr.StringSlice("excludes", excludes),
 		traceAttr.StringSlice("args", args),
 	))
 	defer t.End()

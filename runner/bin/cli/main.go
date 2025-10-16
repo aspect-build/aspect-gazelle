@@ -27,7 +27,7 @@ func main() {
 		_ = os.Chdir(wd)
 	}
 
-	mode, languages, plugins, dirs := parseArgs()
+	mode, languages, plugins, args := parseArgs()
 
 	c := runner.New()
 
@@ -44,17 +44,17 @@ func main() {
 	})
 
 	fmt.Printf("Mode: %s\n", mode)
-	fmt.Printf("Dirs: %v\n", dirs)
+	fmt.Printf("Args: %v\n", args)
 
 	if watchSocket := os.Getenv(ibp.PROTOCOL_SOCKET_ENV); watchSocket != "" {
-		err := c.Watch(watchSocket, mode, []string{}, dirs)
+		err := c.Watch(watchSocket, mode, args)
 
 		// Handle command errors
 		if err != nil {
 			log.Fatalf("Error running gazelle watcher: %v", err)
 		}
 	} else {
-		_, err := c.Generate(mode, []string{}, dirs)
+		_, err := c.Generate(mode, args)
 
 		// Handle command errors
 		if err != nil {
