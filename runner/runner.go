@@ -73,9 +73,6 @@ const (
 	Diff              = "diff"
 )
 
-// An environment variable to set the full path to the gazelle repo_config
-const GO_REPOSITORY_CONFIG_ENV = "bazel_gazelle_go_repository_config"
-
 // Setup gitignore within Gazelle.
 func init() {
 	git.SetupGitIgnore()
@@ -149,23 +146,6 @@ func (runner *GazelleRunner) PrepareGazelleArgs(mode GazelleMode, excludes []str
 
 	for _, exclude := range excludes {
 		fixArgs = append(fixArgs, "--exclude="+exclude)
-	}
-
-	// gazelle --cpuprofile enabled via environment variable.
-	cpuprofile := os.Getenv("GAZELLE_CPUPROFILE")
-	if cpuprofile != "" {
-		fixArgs = append(fixArgs, "--cpuprofile="+cpuprofile)
-	}
-
-	// gazelle --memprofile enabled via environment variable.
-	memprofile := os.Getenv("GAZELLE_MEMPROFILE")
-	if memprofile != "" {
-		fixArgs = append(fixArgs, "--memprofile="+memprofile)
-	}
-
-	go_repo_config := os.Getenv(GO_REPOSITORY_CONFIG_ENV)
-	if go_repo_config != "" {
-		fixArgs = append(fixArgs, "--repo_config="+go_repo_config)
 	}
 
 	// Append additional args including specific directories to fix.
