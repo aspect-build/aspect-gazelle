@@ -334,22 +334,24 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, dropWithinState string)
 			return
 		}
 
+		// Create a child context that we can cancel to ensure goroutine cleanup
+		ctxCancel, cancel := context.WithCancel(ctx)
+		defer cancel() // Ensure the goroutine exits when the iterator completes
+
 		sock, err := w.connect()
 		if err != nil {
 			yield(nil, err)
 			return
 		}
 
-		// Close the socket when the iterator is complete.
+		// Close the socket when the iterator is complete (immediate cleanup)
 		defer sock.Close()
 
-		// Close the socket when the context is done.
-		if ctx != nil {
-			go func() {
-				<-ctx.Done()
-				sock.Close()
-			}()
-		}
+		// Close the socket on context cancellation to interrupt blocking I/O operations
+		go func() {
+			<-ctxCancel.Done()
+			sock.Close() // Unblock any pending Recv/Send calls
+		}()
 
 		subscriptionName := fmt.Sprintf("aspect-cli-%d.%d", os.Getpid(), w.subscriberId.Add(1))
 		queryParams := w.makeQueryParams(w.lastClockSpec)
