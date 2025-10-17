@@ -134,9 +134,19 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	// Stage 3:
 	// Analyze each plugin source file.
 	for pluginId, prep := range cfg.pluginPrepareResults {
-		if targetSources := pluginTargetSources[pluginId]; len(targetSources) > 0 {
+		for _, src := range pluginTargetSources[pluginId] {
+			// Capture loop variables for goroutine
+			pluginId := pluginId
+			prep := prep
+			src := src
 			eg.Go(func() error {
-				host.analyzePluginTargetSources(pluginId, prep, targetSources)
+				actx := plugin.NewAnalyzeContext(prep.PrepareContext, &src, host.database)
+
+				err := host.plugins[pluginId].Analyze(actx)
+				if err != nil {
+					// TODO:
+					fmt.Println(fmt.Errorf("analyze failed for %s: %w", pluginId, err))
+				}
 				return nil
 			})
 		}
@@ -477,29 +487,6 @@ func (host *GazelleHost) collectSourceFilesByPlugin(cfg *BUILDConfig, args gazel
 	}
 
 	return pluginSourceFiles, sourceFilePlugins, pluginSourceGroupFiles
-}
-
-// Let plugins analyze sources and declare their outputs
-func (host *GazelleHost) analyzePluginTargetSources(pluginId plugin.PluginId, prep pluginConfig, sources map[string]plugin.TargetSource) {
-	eg := errgroup.Group{}
-	eg.SetLimit(100)
-
-	for _, src := range sources {
-		eg.Go(func() error {
-			actx := plugin.NewAnalyzeContext(prep.PrepareContext, &src, host.database)
-
-			err := host.plugins[pluginId].Analyze(actx)
-			if err != nil {
-				// TODO:
-				fmt.Println(fmt.Errorf("analyze failed for %s: %w", pluginId, err))
-			}
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		BazelLog.Errorf("Analyze plugin error: %v", err)
-	}
 }
 
 // Let plugins declare any targets they want to generate for the target sources.
