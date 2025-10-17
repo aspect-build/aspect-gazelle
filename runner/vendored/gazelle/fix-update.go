@@ -32,7 +32,6 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 
-	"github.com/aspect-build/aspect-gazelle/common/cache"
 	"github.com/aspect-build/aspect-gazelle/runner/vendored/gazelle/internal/wspace"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	gzflag "github.com/bazelbuild/bazel-gazelle/flag"
@@ -272,20 +271,30 @@ type fixUpdateStatus struct {
 
 // NOTE: additional aspect-cli wrapper of `runFixUpdate` to make public and add `fixUpdateStatus`
 // while minimizing the diff of vendored code.
-func RunGazelleFixUpdate(wd string, languages []language.Language, args []string) (int, int, error) {
+func RunGazelleFixUpdate(wd, cmdStr string, configs []config.Configurer, languages []language.Language, args []string) (int, int, error) {
 	stats := &fixUpdateStatus{}
-	err := runFixUpdate(wd, languages, updateCmd, args, stats)
+	err := runFixUpdate(wd, languages, commandFromName[cmdStr], args, configs, stats)
+
+	// Support `DoneGeneratingRules()` on all configs, not just languages (which gazelle supports+invokes).
+	for _, c := range configs {
+		if finishable, ok := c.(language.FinishableLanguage); ok {
+			finishable.DoneGeneratingRules()
+		}
+	}
+
 	return stats.visited, stats.updated, err
 }
 
-func runFixUpdate(wd string, languages []language.Language, cmd command, args []string, stats *fixUpdateStatus) error {
-	cexts := make([]config.Configurer, 0, len(languages)+5)
+func runFixUpdate(wd string, languages []language.Language, cmd command, args []string, configs []config.Configurer, stats *fixUpdateStatus) error {
+	cexts := make([]config.Configurer, 0, len(languages)+len(configs)+4)
 	cexts = append(cexts,
 		&config.CommonConfigurer{},
 		&updateConfigurer{},
 		&walk.Configurer{},
-		cache.NewConfigurer(), // NOTE: additional aspect-cli caching APIs
 		&resolve.Configurer{})
+
+	// NOTE: additional aspect-gazelle configurers
+	cexts = append(cexts, configs...)
 
 	for _, lang := range languages {
 		cexts = append(cexts, lang)
@@ -498,9 +507,7 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 		}
 	})
 
-	// NOTE: additional aspect-cli patch to invoke DoneGeneratingRules on all extensions
-	// and not only the languages.
-	for _, lang := range cexts {
+	for _, lang := range languages {
 		if finishable, ok := lang.(language.FinishableLanguage); ok {
 			finishable.DoneGeneratingRules()
 		}
@@ -601,8 +608,7 @@ func newFixUpdateConfiguration(wd string, cmd command, args []string, cexts []co
 	c := config.New()
 	c.WorkDir = wd
 
-	// NOTE: aspect-cli renamed "gazelle" to "default_values" (TODO: why?)
-	fs := flag.NewFlagSet("default_values", flag.ContinueOnError)
+	fs := flag.NewFlagSet("gazelle", flag.ContinueOnError)
 	// Flag will call this on any parse error. Don't print usage unless
 	// -h or -help were passed explicitly.
 	fs.Usage = func() {}

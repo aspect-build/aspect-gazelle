@@ -59,6 +59,7 @@ go_library(
         "//progress",
         "//vendored/gazelle",
         "@aspect_gazelle//common/bazel",
+        "@aspect_gazelle//common/cache",
         "@aspect_gazelle_js",
         "@aspect_gazelle_orion",
         "@gazelle//config",

@@ -26,6 +26,7 @@ import (
 
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/bazel"
+	"github.com/aspect-build/aspect-gazelle/common/cache"
 	js "github.com/aspect-build/aspect-gazelle/language/js"
 	orion "github.com/aspect-build/aspect-gazelle/language/orion"
 	"github.com/aspect-build/aspect-gazelle/runner/language/bzl"
@@ -64,12 +65,20 @@ const (
 	CC                         = "cc"
 )
 
+// Gazelle command
+type GazelleCommand = string
+
+const (
+	UpdateCmd GazelleCommand = "update"
+	FixCmd                   = "fix"
+)
+
 // Gazelle --mode
 type GazelleMode = string
 
 const (
 	Fix   GazelleMode = "fix"
-	Print             = "update"
+	Print             = "print"
 	Diff              = "diff"
 )
 
@@ -81,10 +90,6 @@ func init() {
 func New() *GazelleRunner {
 	c := &GazelleRunner{
 		tracer: otel.GetTracerProvider().Tracer("aspect-gazelle"),
-	}
-
-	if os.Getenv("GAZELLE_PROGRESS") != "" && term.IsTerminal(int(os.Stdout.Fd())) {
-		c.AddLanguageFactory("progress", progress.NewLanguage)
 	}
 
 	return c
@@ -159,6 +164,18 @@ func (runner *GazelleRunner) InstantiateLanguages() []language.Language {
 	return languages
 }
 
+func (runner *GazelleRunner) InstantiateConfigs() []config.Configurer {
+	configs := []config.Configurer{
+		cache.NewConfigurer(),
+	}
+
+	if os.Getenv("GAZELLE_PROGRESS") != "" && term.IsTerminal(int(os.Stdout.Fd())) {
+		configs = append(configs, progress.NewLanguage())
+	}
+
+	return configs
+}
+
 func (runner *GazelleRunner) Generate(mode GazelleMode, args []string) (bool, error) {
 	_, t := runner.tracer.Start(context.Background(), "GazelleRunner.Generate", trace.WithAttributes(
 		traceAttr.String("mode", mode),
@@ -169,14 +186,16 @@ func (runner *GazelleRunner) Generate(mode GazelleMode, args []string) (bool, er
 
 	wd, fixArgs := runner.PrepareGazelleArgs(mode, args)
 
-	if mode == "fix" {
+	if mode == Fix {
 		fmt.Printf("Updating BUILD files for %s\n", strings.Join(runner.languageKeys, ", "))
 	}
 
 	// Run gazelle
-	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, runner.InstantiateLanguages(), fixArgs)
+	langs := runner.InstantiateLanguages()
+	configs := runner.InstantiateConfigs()
+	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, UpdateCmd, configs, langs, fixArgs)
 
-	if mode == "fix" {
+	if mode == Fix {
 		fmt.Printf("%v BUILD %s visited\n", visited, pluralize("file", visited))
 		fmt.Printf("%v BUILD %s updated\n", updated, pluralize("file", updated))
 	}
@@ -196,7 +215,8 @@ func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, args []stri
 	// Initial run and status update to stdout.
 	fmt.Printf("Initialize BUILD file generation --watch in %v\n", wd)
 	languages := p.InstantiateLanguages()
-	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, languages, fixArgs)
+	configs := p.InstantiateConfigs()
+	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, UpdateCmd, configs, languages, fixArgs)
 	if err != nil {
 		return fmt.Errorf("failed to run gazelle fix/update: %w", err)
 	}
@@ -224,7 +244,7 @@ func (p *GazelleRunner) Watch(watchAddress string, mode GazelleMode, args []stri
 		fmt.Printf("Detected changes in %v\n", changedDirs)
 
 		// Run gazelle
-		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, languages, append(fixArgs, changedDirs...))
+		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(wd, UpdateCmd, configs, languages, append(fixArgs, changedDirs...))
 		if err != nil {
 			return fmt.Errorf("failed to run gazelle fix/update: %w", err)
 		}
