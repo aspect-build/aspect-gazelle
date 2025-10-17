@@ -24,6 +24,9 @@ func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 	eg.SetLimit(10)
 
 	for key, q := range queries {
+		// Capture loop variables for goroutine
+		key := key
+		q := q
 		eg.Go(func() error {
 			r, err := runYamlQuery(node, q.Params.(plugin.JsonQueryParams))
 			if err != nil {

@@ -84,6 +84,8 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 			continue
 		}
 
+		// Capture loop variables for goroutine
+		sourceFile := sourceFile
 		eg.Go(func() error {
 			p := path.Join(args.Rel, sourceFile)
 			queryResults, err := host.runSourceQueries(queryCache, queries, args.Config.RepoRoot, p)
@@ -161,6 +163,9 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	pluginTargetActions := make(map[plugin.PluginId][]plugin.TargetAction, len(cfg.pluginPrepareResults))
 	pluginTargetsLock := sync.Mutex{}
 	for pluginId, prep := range cfg.pluginPrepareResults {
+		// Capture loop variables for goroutine
+		pluginId := pluginId
+		prep := prep
 		eg.Go(func() error {
 			// Group the TargetSource's into the source groups for the plugin.
 			pluginTargetGroups := plugin.TargetSources{}

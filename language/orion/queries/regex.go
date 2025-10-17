@@ -13,6 +13,9 @@ func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries, queryResult
 	eg.SetLimit(10)
 
 	for key, q := range queries {
+		// Capture loop variables for goroutine
+		key := key
+		q := q
 		eg.Go(func() error {
 			queryResults <- &plugin.QueryProcessorResult{
 				Key:    key,

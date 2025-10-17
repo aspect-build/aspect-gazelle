@@ -26,7 +26,7 @@ func Parallelize[T any](values *treeset.Set, process func(string) T) chan T {
 
 	// Start the worker goroutines.
 	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
+	for range workerCount {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()

@@ -64,6 +64,9 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 			continue
 		}
 
+		// Capture loop variables for goroutine
+		k := k
+		p := p
 		eg.Go(func() error {
 			prepContext := configToPrepareContext(p, config)
 			prepResult := p.Prepare(prepContext)
