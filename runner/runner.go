@@ -157,7 +157,12 @@ func (runner *GazelleRunner) PrepareGazelleArgs(mode GazelleMode, args []string)
 
 // Instantiate an instance of each language enabled in this GazelleRunner instance.
 func (runner *GazelleRunner) InstantiateLanguages() []language.Language {
-	languages := make([]language.Language, 0, len(runner.languages))
+	languages := make([]language.Language, 0, len(runner.languages)+1)
+
+	if os.Getenv("GAZELLE_PROGRESS") != "" && term.IsTerminal(int(os.Stdout.Fd())) {
+		languages = append(languages, progress.NewLanguage())
+	}
+
 	for _, lang := range runner.languages {
 		languages = append(languages, lang())
 	}
@@ -167,10 +172,6 @@ func (runner *GazelleRunner) InstantiateLanguages() []language.Language {
 func (runner *GazelleRunner) InstantiateConfigs() []config.Configurer {
 	configs := []config.Configurer{
 		cache.NewConfigurer(),
-	}
-
-	if os.Getenv("GAZELLE_PROGRESS") != "" && term.IsTerminal(int(os.Stdout.Fd())) {
-		configs = append(configs, progress.NewLanguage())
 	}
 
 	return configs

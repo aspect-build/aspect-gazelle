@@ -33,7 +33,6 @@ func NewLanguage() language.Language {
 	l := &progressLang{
 		status: make(chan *progressStatus, 1),
 	}
-	go l.run(context.Background())
 	return l
 }
 
@@ -105,8 +104,7 @@ func (p *progressLang) Name() string { return "progress" }
 
 // 1. Before() all actions
 func (p *progressLang) Before(ctx context.Context) {
-	// Also use this gazelle-managed background context to initialize the
-	// the progress goroutine.
+	// Use this gazelle-managed background context to initialize the the goroutine.
 	go p.run(ctx)
 
 	p.send(progressPhaseWalk, "repository...")
