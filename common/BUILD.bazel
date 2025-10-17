@@ -7,6 +7,7 @@ go_library(
         "regex.go",
         "set.go",
         "walk.go",
+        "worker.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common",
     visibility = ["//visibility:public"],

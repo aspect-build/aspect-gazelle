@@ -2,12 +2,11 @@ package gazelle
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"path"
 	"strings"
-	"sync"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	ruleUtils "github.com/aspect-build/aspect-gazelle/common/rule"
 	"github.com/aspect-build/aspect-gazelle/language/kotlin/kotlinconfig"
@@ -17,11 +16,6 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/emirpasic/gods/sets/treeset"
-)
-
-const (
-	// TODO: move to common
-	MaxWorkerCount = 12
 )
 
 func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
@@ -160,64 +154,30 @@ func (kt *kotlinLang) addBinaryRule(targetName string, target *KotlinBinTarget, 
 	BazelLog.Infof("add rule '%s' '%s:%s'", ktBinary.Kind(), args.Rel, ktBinary.Name())
 }
 
-// TODO: put in common?
 func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources *treeset.Set) chan *parser.ParseResult {
-	// The channel of all files to parse.
-	sourcePathChannel := make(chan string)
+	rootDir := args.Config.RepoRoot
+	rel := args.Rel
 
-	// The channel of parse results.
-	resultsChannel := make(chan *parser.ParseResult)
+	return common.Parallelize(sources, func(sourcePath string) *parser.ParseResult {
+		r, errs := parseFile(rootDir, rel, sourcePath)
 
-	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+sources.Size()/2)))
-
-	// Start the worker goroutines.
-	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for sourcePath := range sourcePathChannel {
-				r, errs := parseFile(path.Join(args.Config.RepoRoot, args.Rel), sourcePath)
-
-				// Output errors to stdout
-				if len(errs) > 0 {
-					fmt.Println(sourcePath, "parse error(s):")
-					for _, err := range errs {
-						fmt.Println(err)
-					}
-				}
-
-				resultsChannel <- r
+		// Output errors to stdout
+		if len(errs) > 0 {
+			fmt.Println(sourcePath, "parse error(s):")
+			for _, err := range errs {
+				fmt.Println(err)
 			}
-		}()
-	}
-
-	// Send files to the workers.
-	go func() {
-		sourceFileChannelIt := sources.Iterator()
-		for sourceFileChannelIt.Next() {
-			sourcePathChannel <- sourceFileChannelIt.Value().(string)
 		}
 
-		close(sourcePathChannel)
-	}()
-
-	// Wait for all workers to finish.
-	go func() {
-		wg.Wait()
-		close(resultsChannel)
-	}()
-
-	return resultsChannel
+		return r
+	})
 }
 
 // Parse the passed file for import statements.
-func parseFile(rootDir, filePath string) (*parser.ParseResult, []error) {
+func parseFile(rootDir, rel, filePath string) (*parser.ParseResult, []error) {
 	BazelLog.Tracef("ParseImports(%s): %s", LanguageName, filePath)
 
-	content, err := os.ReadFile(path.Join(rootDir, filePath))
+	content, err := os.ReadFile(path.Join(rootDir, rel, filePath))
 	if err != nil {
 		return nil, []error{err}
 	}

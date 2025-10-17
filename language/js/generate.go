@@ -20,12 +20,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"math"
 	"os"
 	"path"
 	"strings"
-	"sync"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	ruleUtils "github.com/aspect-build/aspect-gazelle/common/rule"
@@ -54,8 +53,6 @@ const (
 	DefaultRootTargetName = "root"
 
 	configRelExtension = "__aspect_js_rel"
-
-	MaxWorkerCount = 12
 )
 
 var tsProjectReflectedConfigAttributes = []string{
@@ -806,49 +803,17 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 }
 
 func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles *treeset.Set) chan parseResult {
-	// The channel of all files to parse.
-	sourcePathChannel := make(chan string)
+	parserCache := cache.Get(args.Config)
+	rel := args.Rel
+	repoRoot := args.Config.RepoRoot
 
-	// The channel of parse results.
-	resultsChannel := make(chan parseResult)
-
-	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+sourceFiles.Size()/2)))
-
-	// Start the worker goroutines.
-	var wg sync.WaitGroup
-	for i := 0; i < workerCount; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for sourcePath := range sourcePathChannel {
-				resultsChannel <- ts.collectImports(cfg, args.Config, args.Config.RepoRoot, sourcePath)
-			}
-		}()
-	}
-
-	// Send files to the workers.
-	go func() {
-		sourceFileChannelIt := sourceFiles.Iterator()
-		for sourceFileChannelIt.Next() {
-			sourcePathChannel <- path.Join(args.Rel, sourceFileChannelIt.Value().(string))
-		}
-
-		close(sourcePathChannel)
-	}()
-
-	// Wait for all workers to finish.
-	go func() {
-		wg.Wait()
-		close(resultsChannel)
-	}()
-
-	return resultsChannel
+	return common.Parallelize(sourceFiles, func(sourcePath string) parseResult {
+		return ts.collectImports(cfg, parserCache, repoRoot, path.Join(rel, sourcePath))
+	})
 }
 
-func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, config *config.Config, rootDir, sourcePath string) parseResult {
-	parseResults, err := parseSourceFile(config, rootDir, sourcePath)
+func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache.Cache, rootDir, sourcePath string) parseResult {
+	parseResults, err := parseSourceFile(parserCache, rootDir, sourcePath)
 
 	result := parseResult{
 		SourcePath: sourcePath,
@@ -883,10 +848,8 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, config *config.Co
 }
 
 // Parse the passed file for import statements.
-func parseSourceFile(config *config.Config, rootDir, filePath string) (parser.ParseResult, error) {
+func parseSourceFile(parserCache cache.Cache, rootDir, filePath string) (parser.ParseResult, error) {
 	BazelLog.Tracef("ParseImports(%s): %s", LanguageName, filePath)
-
-	parserCache := cache.Get(config)
 
 	var p parser.ParseResult
 	r, _, err := parserCache.LoadOrStoreFile(rootDir, filePath, "js.ParseSource", func(filePath string, content []byte) (any, error) {
