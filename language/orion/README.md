@@ -8,9 +8,9 @@ See [Public Docsite](https://docs.aspect.build/cli/starlark/) for the plugin Sta
 
 ### Plugins via env
 
-Additional plugins will be loaded from `${ORION_EXTENSIONS}/*.axl` glob.
+Additional plugins will be loaded from `${ORION_EXTENSIONS_DIR}/*.axl` glob or from `${ORION_EXTENSIONS}` comma-separated list of paths.
 
-**FOR TESTING ONLY**: by default `ORION_EXTENSIONS=${RUNFILES_DIR}/aspect_silo/plugins/*.axl` for unit tests.
+**FOR TESTING ONLY**: by default `ORION_EXTENSIONS_DIR=${RUNFILES_DIR}/aspect_silo/plugins/*.axl` for unit tests.
 
 ## TODO:
 

@@ -94,27 +94,35 @@ func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
 }
 
 func (h *GazelleHost) loadEnvStarzellePlugins() {
-	// Add plugins configured via env
-	builtinPluginSubdir := os.Getenv("ORION_EXTENSIONS")
-	if builtinPluginSubdir == "" {
-		return
-	}
+	builtinPlugins := []string{}
 
+	// Load from cwd, or runfiles when running tests
 	builtinPluginDir, _ := os.Getwd()
-
-	// Load from runfiles when running tests
 	if os.Getenv("BAZEL_TEST") != "" {
 		builtinPluginDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
 	}
 
-	builtinPlugins, err := filepath.Glob(path.Join(builtinPluginDir, builtinPluginSubdir, "*.axl"))
-	if err != nil {
-		BazelLog.Fatalf("Failed to find builtin plugins: %v", err)
-		return
+	// Comma-separated list of plugin paths relative to the workspace root
+	if builtinPluginsList := os.Getenv("ORION_EXTENSIONS"); builtinPluginsList != "" {
+		builtinPlugins = append(builtinPlugins, strings.Split(builtinPluginsList, ",")...)
+	}
+
+	// Load all plugins in the specified subdirectory of the builtinPluginDir
+	if builtinPluginSubdir := os.Getenv("ORION_EXTENSIONS_DIR"); builtinPluginSubdir != "" {
+		builtinDirPlugins, err := filepath.Glob(path.Join(builtinPluginDir, builtinPluginSubdir, "*.axl"))
+		if err != nil {
+			BazelLog.Fatalf("Failed to find builtin plugins: %v", err)
+			return
+		}
+
+		if len(builtinDirPlugins) == 0 {
+			BazelLog.Warnf("No orion plugins found in %q", builtinPluginDir)
+		}
+
+		builtinPlugins = append(builtinPlugins, builtinDirPlugins...)
 	}
 
 	if len(builtinPlugins) == 0 {
-		BazelLog.Warnf("No orion plugins found in %q", builtinPluginDir)
 		return
 	}
 

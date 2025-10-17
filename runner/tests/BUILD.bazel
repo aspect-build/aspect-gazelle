@@ -8,7 +8,7 @@ load("@aspect_gazelle//:gazelle.bzl", "gazelle_generation_test")
         name = "%s_test" % t,
         dir = t,
         env = {
-            "ORION_EXTENSIONS": "%s/%s" % (
+            "ORION_EXTENSIONS_DIR": "%s/%s" % (
                 package_name(),
                 t,
             ),

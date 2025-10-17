@@ -18,7 +18,7 @@ BZL_TESTS = [t.replace("/WORKSPACE", "") for t in glob(["bzl/*/WORKSPACE"])]
         ],
         dir = t,
         env = {
-            "ORION_EXTENSIONS": BUILTIN_PLUGINS_DIR,
+            "ORION_EXTENSIONS_DIR": BUILTIN_PLUGINS_DIR,
         },
         gazelle_binary = ":gazelle_orion_binary",
     )
