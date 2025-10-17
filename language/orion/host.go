@@ -95,24 +95,16 @@ func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
 
 func (h *GazelleHost) loadEnvStarzellePlugins() {
 	// Add plugins configured via env
-	builtinPluginDir := os.Getenv("ORION_EXTENSIONS")
-	builtinPluginSubdir := "."
-
-	if builtinPluginDir == "" {
-		// Noop if env is not set and not running tests
-		if os.Getenv("BAZEL_TEST") != "1" {
-			BazelLog.Tracef("No ORION_EXTENSIONS environment variable set")
-			return
-		}
-
-		// Load from runfiles + TEST_ORION_EXTENSIONS if running tests
-		builtinPluginDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
-		builtinPluginSubdir = os.Getenv("TEST_ORION_EXTENSIONS")
+	builtinPluginSubdir := os.Getenv("ORION_EXTENSIONS")
+	if builtinPluginSubdir == "" {
+		return
 	}
 
-	if !filepath.IsAbs(builtinPluginDir) {
-		BazelLog.Fatalf("ORION_EXTENSIONS must be an absolute path, got %q", builtinPluginDir)
-		return
+	builtinPluginDir, _ := os.Getwd()
+
+	// Load from runfiles when running tests
+	if os.Getenv("BAZEL_TEST") != "" {
+		builtinPluginDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
 	}
 
 	builtinPlugins, err := filepath.Glob(path.Join(builtinPluginDir, builtinPluginSubdir, "*.axl"))

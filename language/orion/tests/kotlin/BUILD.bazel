@@ -16,7 +16,7 @@ KOTLIN_TESTS = [t.replace("/WORKSPACE", "") for t in glob(["*/WORKSPACE"])]
         ],
         dir = t,
         env = {
-            "TEST_ORION_EXTENSIONS": BUILTIN_PLUGINS_DIR,
+            "ORION_EXTENSIONS": BUILTIN_PLUGINS_DIR,
         },
         gazelle_binary = "//tests:gazelle_orion_binary",
     )
