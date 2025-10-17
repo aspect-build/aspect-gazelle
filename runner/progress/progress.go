@@ -104,7 +104,7 @@ func (p *progressLang) Name() string { return "progress" }
 
 // 1. Before() all actions
 func (p *progressLang) Before(ctx context.Context) {
-	// Use this gazelle-managed background context to initialize the the goroutine.
+	// Use this gazelle-managed background context to initialize the goroutine.
 	go p.run(ctx)
 
 	p.send(progressPhaseWalk, "repository...")
