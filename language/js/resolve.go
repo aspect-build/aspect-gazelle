@@ -321,7 +321,7 @@ func (ts *typeScriptLang) Resolve(
 		}
 
 		if !deps.Empty() {
-			r.SetAttr("deps", deps.Labels())
+			r.SetAttr("deps", deps)
 		}
 	case NpmPackageKind:
 		packageInfo, isPackageInfo := importData.(*TsPackageInfo)
@@ -339,12 +339,13 @@ func (ts *typeScriptLang) Resolve(
 			fmt.Println(msg)
 			BazelLog.Fatalf(msg)
 		}
-		for _, dep := range deps.Labels() {
-			srcs = append(srcs, dep.String())
+
+		for dep := range deps.Labels() {
+			srcs = append(srcs, dep)
 		}
 
 		if packageInfo.source != nil {
-			srcs = append(srcs, packageInfo.source.String())
+			srcs = append(srcs, packageInfo.source)
 		}
 
 		if len(srcs) > 0 {

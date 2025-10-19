@@ -147,26 +147,26 @@ func (re *GazelleHost) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo
 			BazelLog.Fatalf(msg)
 		}
 
-		attrLabels := importLabels.Labels()
-
 		// NOTE: the attribute might have additional values added via # keep which gazelle will maintain
 		// despite doing Set/DelAttr.
 
 		if attrValue.singleton {
-			switch len(attrLabels) {
+			switch importLabels.Size() {
 			case 0:
 				r.DelAttr(attr)
 			case 1:
-				r.SetAttr(attr, attrLabels[0].String())
+				for dep := range importLabels.Labels() {
+					r.SetAttr(attr, dep)
+				}
 			default:
-				msg := fmt.Sprintf("Attribute %q on %s has resolved to multiple values: %v", attr, r.Name(), attrLabels)
+				msg := fmt.Sprintf("Attribute %q on %s has resolved to multiple values: %v", attr, r.Name(), importLabels)
 				fmt.Println(msg)
 				BazelLog.Fatal(msg)
 			}
 		} else {
 			value := attrValue.values
-			for _, l := range attrLabels {
-				value = append(value, l.String())
+			for l := range importLabels.Labels() {
+				value = append(value, l)
 			}
 			if len(value) > 0 {
 				r.SetAttr(attr, value)

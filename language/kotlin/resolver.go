@@ -84,7 +84,7 @@ func (kt *kotlinLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.
 		}
 
 		if !deps.Empty() {
-			r.SetAttr("deps", deps.Labels())
+			r.SetAttr("deps", deps)
 		}
 	}
 

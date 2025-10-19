@@ -439,13 +439,13 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 	protoRuleLabelStr := protoRuleLabel.Rel("", args.Rel)
 
 	tsProtoLibrary := rule.NewRule(TsProtoLibraryKind, ruleName)
-	tsProtoLibrary.SetAttr("proto", protoRuleLabelStr.String())
+	tsProtoLibrary.SetAttr("proto", protoRuleLabelStr)
 
 	node_modules := ts.pnpmProjects.GetProject(args.Rel)
 	if node_modules != nil {
 		node_modulesLabel := label.New("", node_modules.Pkg(), cfg.npmLinkAllTargetName)
 		node_modulesLabelStr := node_modulesLabel.Rel("", args.Rel)
-		tsProtoLibrary.SetAttr("node_modules", node_modulesLabelStr.String())
+		tsProtoLibrary.SetAttr("node_modules", node_modulesLabelStr)
 	}
 
 	sourceFiles := protoLibrary.AttrStrings("srcs")

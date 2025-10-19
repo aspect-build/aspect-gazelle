@@ -1,8 +1,12 @@
 package gazelle
 
 import (
+	"iter"
+
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/label"
+	"github.com/bazelbuild/bazel-gazelle/rule"
+	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/sets/treeset"
 	"github.com/emirpasic/gods/utils"
 )
@@ -63,10 +67,26 @@ func (s *LabelSet) Empty() bool {
 	return s.labels.Empty()
 }
 
-func (s *LabelSet) Labels() []label.Label {
-	labels := make([]label.Label, 0, s.labels.Size())
-	for it := s.labels.Iterator(); it.Next(); {
-		labels = append(labels, it.Value().(label.Label))
+func (s *LabelSet) Labels() iter.Seq[label.Label] {
+	return func(yield func(label.Label) bool) {
+		for it := s.labels.Iterator(); it.Next(); {
+			if !yield(it.Value().(label.Label)) {
+				return
+			}
+		}
 	}
-	return labels
+}
+
+var _ rule.BzlExprValue = (*LabelSet)(nil)
+
+func (s *LabelSet) BzlExpr() bzl.Expr {
+	le := bzl.ListExpr{
+		List: make([]bzl.Expr, 0, s.labels.Size()),
+	}
+
+	for it := s.labels.Iterator(); it.Next(); {
+		le.List = append(le.List, it.Value().(label.Label).BzlExpr())
+	}
+
+	return &le
 }
