@@ -6,7 +6,7 @@ import (
 
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 // ImportStatement represents an ImportSpec imported from a source file.
@@ -57,7 +57,7 @@ func newTsPackageInfo(source *label.Label) *TsPackageInfo {
 	return &TsPackageInfo{
 		TsProjectInfo: TsProjectInfo{
 			imports: treeset.NewWith(importStatementComparator),
-			sources: treeset.NewWithStringComparator(),
+			sources: treeset.NewWith(strings.Compare),
 		},
 		source: source,
 	}
@@ -66,16 +66,16 @@ func newTsPackageInfo(source *label.Label) *TsPackageInfo {
 // TsProject rule import data
 type TsProjectInfo struct {
 	// `ImportStatement`s in ths project
-	imports *treeset.Set
+	imports *treeset.Set[ImportStatement]
 
 	// The 'srcs' of this project
-	sources *treeset.Set
+	sources *treeset.Set[string]
 }
 
 func newTsProjectInfo() *TsProjectInfo {
 	return &TsProjectInfo{
 		imports: treeset.NewWith(importStatementComparator),
-		sources: treeset.NewWithStringComparator(),
+		sources: treeset.NewWith(strings.Compare),
 	}
 }
 func (i *TsProjectInfo) AddImport(impt ImportStatement) {
@@ -85,7 +85,7 @@ func (i *TsProjectInfo) AddImport(impt ImportStatement) {
 func (i *TsProjectInfo) HasTsx() bool {
 	if i.sources != nil {
 		for it := i.sources.Iterator(); it.Next(); {
-			if isTsxFileExt(path.Ext(it.Value().(string))) {
+			if isTsxFileExt(path.Ext(it.Value())) {
 				return true
 			}
 		}
@@ -95,6 +95,6 @@ func (i *TsProjectInfo) HasTsx() bool {
 }
 
 // importStatementComparator compares modules by name.
-func importStatementComparator(a, b interface{}) int {
-	return strings.Compare(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
+func importStatementComparator(a, b ImportStatement) int {
+	return strings.Compare(a.Imp, b.Imp)
 }

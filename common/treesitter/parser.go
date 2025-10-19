@@ -129,13 +129,13 @@ var extLanguages = map[string]LanguageGrammar{
 	"jsh":  Java,
 	"json": JSON,
 
-	"rb":   Ruby,
-	"rake": Ruby,
-	"gemspec": Ruby,
-	"podspec": Ruby,
-	"thor": Ruby,
+	"rb":       Ruby,
+	"rake":     Ruby,
+	"gemspec":  Ruby,
+	"podspec":  Ruby,
+	"thor":     Ruby,
 	"jbuilder": Ruby,
-	"rabl": Ruby,
+	"rabl":     Ruby,
 }
 
 // In theory, this is a mirror of

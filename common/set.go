@@ -8,19 +8,16 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	bzl "github.com/bazelbuild/buildtools/build"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 // A basic set of label.Labels with logging of set modifications.
 type LabelSet struct {
 	from   label.Label
-	labels *treeset.Set
+	labels *treeset.Set[label.Label]
 }
 
-func LabelComparator(a, b interface{}) int {
-	al := a.(label.Label)
-	bl := b.(label.Label)
-
+func LabelComparator(al, bl label.Label) int {
 	if al.Relative && !bl.Relative {
 		return -1
 	} else if !al.Relative && bl.Relative {
@@ -70,7 +67,7 @@ func (s *LabelSet) Empty() bool {
 func (s *LabelSet) Labels() iter.Seq[label.Label] {
 	return func(yield func(label.Label) bool) {
 		for it := s.labels.Iterator(); it.Next(); {
-			if !yield(it.Value().(label.Label)) {
+			if !yield(it.Value()) {
 				return
 			}
 		}
@@ -85,7 +82,7 @@ func (s *LabelSet) BzlExpr() bzl.Expr {
 	}
 
 	for it := s.labels.Iterator(); it.Next(); {
-		le.List = append(le.List, it.Value().(label.Label).BzlExpr())
+		le.List = append(le.List, it.Value().BzlExpr())
 	}
 
 	return &le

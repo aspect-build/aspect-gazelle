@@ -13,7 +13,7 @@ go_library(
         "//common/logger",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
-        "@com_github_emirpasic_gods//sets/treeset",
+        "@com_github_emirpasic_gods_v2//sets/treeset",
         "@gazelle//label",
         "@gazelle//language",
         "@gazelle//rule",

@@ -13,7 +13,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "@aspect_gazelle//common/logger",
-        "@com_github_emirpasic_gods//sets/treeset",
+        "@com_github_emirpasic_gods_v2//sets/treeset",
         "@com_github_msolo_jsonr//:jsonr",
     ],
 )

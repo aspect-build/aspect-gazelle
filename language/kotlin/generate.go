@@ -14,7 +14,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/maps/treemap"
+	"github.com/emirpasic/gods/v2/maps/treemap"
 )
 
 func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
@@ -36,7 +36,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 
 	// TODO: multiple library targets (lib, test, ...)
 	libTarget := NewKotlinLibTarget()
-	binTargets := treemap.NewWithStringComparator()
+	binTargets := treemap.NewWith[string, *KotlinBinTarget](strings.Compare)
 
 	// Parse all source files and group information into target(s)
 	for p := range kt.parseFiles(args, sourceFiles) {
@@ -74,8 +74,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 		common.GenerationErrorf(args.Config, "Source rule generation error: %v", srcGenErr)
 	}
 
-	for _, v := range binTargets.Values() {
-		binTarget := v.(*KotlinBinTarget)
+	for _, binTarget := range binTargets.Values() {
 		binTargetName := toBinaryTargetName(binTarget.File)
 		kt.addBinaryRule(binTargetName, binTarget, args, &result)
 	}

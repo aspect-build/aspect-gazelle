@@ -1,8 +1,10 @@
 package gazelle
 
 import (
+	"strings"
+
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 const (
@@ -21,7 +23,7 @@ const (
 	NpmRepositoryName     = "npm"
 )
 
-var sourceRuleKinds = treeset.NewWithStringComparator(TsProjectKind, JsLibraryKind, TsProtoLibraryKind)
+var sourceRuleKinds = treeset.NewWith(strings.Compare, TsProjectKind, JsLibraryKind, TsProtoLibraryKind)
 
 // Kinds returns a map that maps rule names (kinds) and information on how to
 // match and merge attributes that may be found in rules of those kinds.

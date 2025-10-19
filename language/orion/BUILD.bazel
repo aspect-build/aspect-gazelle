@@ -43,7 +43,7 @@ go_library(
         "@aspect_gazelle//common/cache",
         "@aspect_gazelle//common/logger",
         "@aspect_gazelle//common/rule",
-        "@com_github_emirpasic_gods//sets/treeset",
+        "@com_github_emirpasic_gods_v2//sets/treeset",
         "@gazelle//config",
         "@gazelle//label",
         "@gazelle//language",

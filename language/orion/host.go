@@ -21,7 +21,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/label"
 	gazelleLanguage "github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 const GazelleLanguageName = "orion"
@@ -37,7 +37,7 @@ type GazelleHost struct {
 
 	// Metadata about rules being generated. May be pre-configured, potentially loaded from *.star etc
 	kinds           map[string]plugin.RuleKind
-	sourceRuleKinds *treeset.Set
+	sourceRuleKinds *treeset.Set[string]
 
 	// Lazy loaded from plugins
 	gazelleDirectives []string
@@ -53,7 +53,7 @@ func NewLanguage(plugins ...string) gazelleLanguage.Language {
 	l := &GazelleHost{
 		plugins:         make(map[string]plugin.Plugin),
 		kinds:           make(map[string]plugin.RuleKind),
-		sourceRuleKinds: treeset.NewWithStringComparator(),
+		sourceRuleKinds: treeset.NewWith(strings.Compare),
 		database:        &plugin.Database{},
 	}
 
