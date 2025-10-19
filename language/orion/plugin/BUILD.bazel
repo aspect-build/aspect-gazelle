@@ -17,7 +17,6 @@ go_library(
         "//starlark/utils",
         "@aspect_gazelle//common",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
-        "@com_github_emirpasic_gods//utils",
         "@net_starlark_go//starlark",
     ],
 )

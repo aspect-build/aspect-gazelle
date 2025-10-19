@@ -2,11 +2,11 @@ package gazelle
 
 import (
 	"path"
+	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/emirpasic/gods/sets/treeset"
-	godsutils "github.com/emirpasic/gods/utils"
 )
 
 // ImportStatement represents an ImportSpec imported from a source file.
@@ -85,5 +85,5 @@ func (i *TsProjectInfo) HasTsx() bool {
 
 // importStatementComparator compares modules by name.
 func importStatementComparator(a, b interface{}) int {
-	return godsutils.StringComparator(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
+	return strings.Compare(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
 }

@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/resolve"
-	godsutils "github.com/emirpasic/gods/utils"
 )
 
 // ImportStatement corresponds to a single Kotlin import. Only the package
@@ -26,7 +25,7 @@ func (is *ImportStatement) packageFullyQualifiedName() *javaFullyQualifiedName {
 
 // importStatementComparator compares modules by name.
 func importStatementComparator(a, b interface{}) int {
-	return godsutils.StringComparator(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
+	return strings.Compare(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
 }
 
 // javaFullyQualifiedName represents a fully-qualified name in Java, which is

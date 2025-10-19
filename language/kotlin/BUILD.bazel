@@ -43,7 +43,6 @@ go_library(
         "@aspect_gazelle//common/rule",
         "@com_github_emirpasic_gods//maps/treemap",
         "@com_github_emirpasic_gods//sets/treeset",
-        "@com_github_emirpasic_gods//utils",
         "@com_github_rs_zerolog//:zerolog",
         "@contrib_rules_jvm//java/gazelle/javaconfig",
         "@contrib_rules_jvm//java/gazelle/private/java",

@@ -1,8 +1,9 @@
 package plugin
 
 import (
+	"strings"
+
 	common "github.com/aspect-build/aspect-gazelle/common"
-	godsutils "github.com/emirpasic/gods/utils"
 )
 
 type Symbol struct {
@@ -54,12 +55,12 @@ type RemoveTargetAction struct {
 }
 
 func symbolComparator(a, b interface{}) int {
-	nc := godsutils.StringComparator(a.(Symbol).Id, b.(Symbol).Id)
+	nc := strings.Compare(a.(Symbol).Id, b.(Symbol).Id)
 	if nc != 0 {
 		return nc
 	}
 
-	return godsutils.StringComparator(a.(Symbol).Provider, b.(Symbol).Provider)
+	return strings.Compare(a.(Symbol).Provider, b.(Symbol).Provider)
 }
 
 func TargetImportComparator(a, b interface{}) int {
@@ -68,7 +69,7 @@ func TargetImportComparator(a, b interface{}) int {
 		return nc
 	}
 
-	return godsutils.StringComparator(a.(TargetImport).From, b.(TargetImport).From)
+	return strings.Compare(a.(TargetImport).From, b.(TargetImport).From)
 }
 
 func TargetExportComparator(a, b interface{}) int {

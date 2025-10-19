@@ -15,7 +15,6 @@ go_library(
         "//common/logger",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_emirpasic_gods//sets/treeset",
-        "@com_github_emirpasic_gods//utils",
         "@gazelle//label",
         "@gazelle//rule",
         "@gazelle//walk",

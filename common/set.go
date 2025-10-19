@@ -2,13 +2,13 @@ package gazelle
 
 import (
 	"iter"
+	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/sets/treeset"
-	"github.com/emirpasic/gods/utils"
 )
 
 // A basic set of label.Labels with logging of set modifications.
@@ -27,17 +27,17 @@ func LabelComparator(a, b interface{}) int {
 		return +1
 	}
 
-	c := utils.StringComparator(al.Repo, bl.Repo)
+	c := strings.Compare(al.Repo, bl.Repo)
 	if c != 0 {
 		return c
 	}
 
-	c = utils.StringComparator(al.Pkg, bl.Pkg)
+	c = strings.Compare(al.Pkg, bl.Pkg)
 	if c != 0 {
 		return c
 	}
 
-	return utils.StringComparator(al.Name, bl.Name)
+	return strings.Compare(al.Name, bl.Name)
 }
 
 func NewLabelSet(from label.Label) *LabelSet {
