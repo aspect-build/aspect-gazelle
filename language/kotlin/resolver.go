@@ -109,7 +109,7 @@ func (kt *kotlinLang) resolveImports(
 		}
 
 		if resolutionType == Resolution_NotFound {
-			BazelLog.Debugf("import '%s' for target '%s' not found", mod.Imp, from.String())
+			BazelLog.Debugf("import %q for target %v not found", mod.Imp, from)
 
 			notFound := fmt.Errorf(
 				"Import %[1]q from %[2]q is an unknown dependency. Possible solutions:\n"+

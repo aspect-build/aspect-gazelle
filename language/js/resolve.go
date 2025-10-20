@@ -413,9 +413,9 @@ func (ts *typeScriptLang) resolveImports(
 		// Neither the import or a type definition was found.
 		if resolutionType == Resolution_NotFound && len(types) == 0 {
 			if imp.Optional {
-				BazelLog.Infof("Optional import %q for target %q not found", imp.ImportPath, from.String())
+				BazelLog.Infof("Optional import %q for target %v not found", imp.ImportPath, from)
 			} else if cfg.ValidateImportStatements() != ValidationOff {
-				BazelLog.Debugf("import %q for target %q not found", imp.ImportPath, from.String())
+				BazelLog.Debugf("import %q for target %q not found", imp.ImportPath, from)
 
 				notFound := fmt.Errorf(
 					"Import %[1]q from %[2]q is an unknown dependency. Possible solutions:\n"+
@@ -445,10 +445,10 @@ func (ts *typeScriptLang) resolveImports(
 
 		switch cfg.ValidateImportStatements() {
 		case ValidationError:
-			fmt.Fprintf(os.Stderr, "Failed to validate dependencies for target %q:%v\n", from.String(), joinedErrs)
+			fmt.Fprintf(os.Stderr, "Failed to validate dependencies for target %q:%v\n", from, joinedErrs)
 			os.Exit(1)
 		case ValidationWarn:
-			fmt.Fprintf(os.Stderr, "Warning: Failed to validate dependencies for target %q:%v\n", from.String(), joinedErrs)
+			fmt.Fprintf(os.Stderr, "Warning: Failed to validate dependencies for target %q:%v\n", from, joinedErrs)
 		}
 	}
 

@@ -874,7 +874,7 @@ func (ts *typeScriptLang) addFileLabel(importPath string, label *label.Label) {
 	if existing != nil && isDeclarationFileType(existing.Name) {
 		// Can not have two imports (such as .js and .d.ts) from different labels
 		if isDeclarationFileType(label.Name) && !existing.Equal(*label) {
-			BazelLog.Fatalf("Duplicate file label ", importPath, " from ", existing.String(), " and ", label.String())
+			BazelLog.Fatalf("Duplicate file label %q from %v and %v", importPath, existing, label)
 		}
 
 		// Prefer the non-declaration file

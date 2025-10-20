@@ -195,7 +195,7 @@ func (re *GazelleHost) resolveImports(
 		}
 
 		if resolutionType == Resolution_NotFound {
-			BazelLog.Debugf("import '%s' for target '%s' not found", imp.Id, from.String())
+			BazelLog.Debugf("import %q for target %v not found", imp.Id, from)
 
 			if !imp.Optional {
 				notFound := fmt.Errorf(
