@@ -415,7 +415,7 @@ func (ts *typeScriptLang) resolveImports(
 			if imp.Optional {
 				BazelLog.Infof("Optional import %q for target %v not found", imp.ImportPath, from)
 			} else if cfg.ValidateImportStatements() != ValidationOff {
-				BazelLog.Debugf("import %q for target %q not found", imp.ImportPath, from)
+				BazelLog.Debugf("import %q for target %v not found", imp.ImportPath, from)
 
 				notFound := fmt.Errorf(
 					"Import %[1]q from %[2]q is an unknown dependency. Possible solutions:\n"+
