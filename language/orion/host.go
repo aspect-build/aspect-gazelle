@@ -109,7 +109,10 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 
 	// Load all plugins in the specified subdirectory of the builtinPluginDir
 	if builtinPluginSubdir := os.Getenv("ORION_EXTENSIONS_DIR"); builtinPluginSubdir != "" {
-		builtinDirPlugins, err := filepath.Glob(path.Join(builtinPluginDir, builtinPluginSubdir, "*.axl"))
+		if !path.IsAbs(builtinPluginSubdir) {
+			builtinPluginSubdir = path.Join(builtinPluginDir, builtinPluginSubdir)
+		}
+		builtinDirPlugins, err := filepath.Glob(path.Join(builtinPluginSubdir, "*.axl"))
 		if err != nil {
 			BazelLog.Fatalf("Failed to find builtin plugins: %v", err)
 			return
