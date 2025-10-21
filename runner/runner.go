@@ -27,6 +27,7 @@ import (
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
 	js "github.com/aspect-build/aspect-gazelle/language/js"
+	kotlin "github.com/aspect-build/aspect-gazelle/language/kotlin"
 	orion "github.com/aspect-build/aspect-gazelle/language/orion"
 	"github.com/aspect-build/aspect-gazelle/runner/language/bzl"
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/git"
@@ -62,6 +63,7 @@ type GazelleLanguage = string
 const (
 	JavaScript GazelleLanguage = js.LanguageName
 	Orion                      = orion.GazelleLanguageName
+	Kotlin                     = kotlin.LanguageName
 	Go                         = "go"
 	Protobuf                   = "proto"
 	Bzl                        = "starlark"
@@ -125,6 +127,8 @@ func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 	switch lang {
 	case JavaScript:
 		c.AddLanguageFactory(lang, js.NewLanguage)
+	case Kotlin:
+		c.AddLanguageFactory(lang, kotlin.NewLanguage)
 	case Orion:
 		c.AddLanguageFactory(lang, func() language.Language {
 			return orion.NewLanguage()
