@@ -1,0 +1,1 @@
+Failed to parse "package.json" imports: json: cannot unmarshal string into Go value of type gazelle.npmPackageJSON

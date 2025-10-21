@@ -1,0 +1,1 @@
+failed to read lockfile "pnpm-lock.yaml": failed to find lockfile version in: "foobar"

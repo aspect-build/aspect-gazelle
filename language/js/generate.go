@@ -285,7 +285,10 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 		return node.ParsePackageJsonImports(bytes.NewReader(content))
 	})
 	if err != nil {
-		BazelLog.Warnf("Failed to parse %q imports: %e", packageJsonPath, err)
+		msg := fmt.Sprintf("Failed to parse %q imports: %v", packageJsonPath, err)
+		fmt.Printf("%s\n", msg)
+		BazelLog.Fatal(msg)
+		return
 	}
 
 	for _, impt := range packageImports.([]string) {
@@ -992,7 +995,10 @@ func (ts *typeScriptLang) addPnpmLockfile(c *config.Config, cfg *JsGazelleConfig
 		return pnpm.ParsePnpmLockFileDependencies(content)
 	})
 	if readErr != nil {
-		BazelLog.Fatalf("failed to read lockfile %q: %v", lockfileRel, readErr)
+		msg := fmt.Sprintf("failed to read lockfile %q: %v", lockfileRel, readErr)
+		fmt.Printf("%s\n", msg)
+		BazelLog.Fatal(msg)
+		return
 	}
 
 	pnpmWorkspace := ts.pnpmProjects.NewWorkspace(lockfileRel)
