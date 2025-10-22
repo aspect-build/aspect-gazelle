@@ -8,7 +8,6 @@ package starzelle
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -88,7 +87,7 @@ func readGlobPatternFatal(v starlark.Value, what string) string {
 	s := v.(starlark.String).GoString()
 
 	if !doublestar.ValidatePattern(s) {
-		log.Fatalf("Invalid %s: %v", what, s)
+		BazelLog.Fatalf("Invalid %s: %v", what, s)
 	}
 
 	return s

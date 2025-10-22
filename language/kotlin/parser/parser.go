@@ -73,7 +73,10 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 	if tree != nil {
 		defer tree.Close()
 
-		q := treeutils.GetQuery(lang, importsQuery)
+		q, err := treeutils.GetQuery(lang, importsQuery)
+		if err != nil {
+			log.Fatalf("Failed to create kotlin 'importsQuery': %v", err)
+		}
 		for queryResult := range tree.Query(q) {
 			Log.Tracef("Kotlin AST Query %q: %v", filePath, queryResult)
 

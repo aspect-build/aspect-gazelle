@@ -3,7 +3,6 @@ package gazelle
 import (
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"path"
 	"strings"
@@ -147,7 +146,11 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				visLabels = visLabels[1:]
 			}
 
-			config.SetVisibility(group, visLabels)
+			err := config.SetVisibility(group, visLabels)
+			if err != nil {
+				common.MisconfiguredErrorf(c, "Invalid %s: %v", Directive_Visibility, err)
+				return
+			}
 
 		case Directive_Lockfile:
 			config.SetPnpmLockfile(value)
@@ -160,16 +163,16 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_Resolve:
 			globTarget := strings.Split(value, " ")
 			if len(globTarget) != 2 {
-				err := fmt.Errorf("invalid value for directive %q: %s: value must be filename/glob + label",
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s: value must be filename/glob + label",
 					Directive_Resolve, d.Value)
-				log.Fatal(err)
+				return
 			}
 
 			label, labelErr := label.Parse(strings.TrimSpace(globTarget[1]))
 			if labelErr != nil {
-				err := fmt.Errorf("invalid label for directive %q: %s",
-					Directive_Resolve, label)
-				log.Fatal(err)
+				common.MisconfiguredErrorf(c, "invalid label for directive %q: %s - %v",
+					Directive_Resolve, label, labelErr)
+				return
 			}
 
 			config.AddResolve(strings.TrimSpace(globTarget[0]), &label)
@@ -182,7 +185,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			case "off":
 				config.SetValidateImportStatements(ValidationOff)
 			default:
-				log.Fatalf("invalid value for directive %q: %s", Directive_ValidateImportStatements, d.Value)
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_ValidateImportStatements, d.Value)
+				return
 			}
 		case Directive_ProtoNamingConvention:
 			config.SetTsProtoLibraryNamingConvention(value)
@@ -199,7 +203,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			case NpmPackageKind:
 				config.packageTargetKind = NpmPackageKind
 			default:
-				log.Fatalf("invalid value for directive %q: %s", Directive_PackageRuleKind, d.Value)
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_PackageRuleKind, d.Value)
+				return
 			}
 		case Directive_LibraryFiles:
 			group := DefaultLibraryName

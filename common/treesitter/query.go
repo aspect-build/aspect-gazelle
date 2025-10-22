@@ -14,8 +14,11 @@ type sitterQuery struct {
 
 var _ TreeQuery = (*sitterQuery)(nil)
 
-func mustNewQuery(lang *sitter.Language, query string) *sitterQuery {
-	q := mustNewTreeQuery(lang, query)
+func newSitterQuery(lang *sitter.Language, query string) (*sitterQuery, error) {
+	q, err := sitter.NewQuery([]byte(query), lang)
+	if err != nil {
+		return nil, err
+	}
 
 	captureNames := make([]string, q.CaptureCount())
 	for i := uint32(0); i < q.CaptureCount(); i++ {
@@ -37,7 +40,7 @@ func mustNewQuery(lang *sitter.Language, query string) *sitterQuery {
 		stringValues:      stringValues,
 		captureNames:      captureNames,
 		predicatePatterns: predicatePatterns,
-	}
+	}, nil
 }
 
 // Cached query data accessors mirroring the tree-sitter Query signatures.

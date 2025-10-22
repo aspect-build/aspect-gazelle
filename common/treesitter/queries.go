@@ -19,7 +19,7 @@ type TreeQuery interface {
 // A cache of parsed queries per language
 var queryCache = sync.Map{}
 
-func GetQuery(lang Language, queryStr string) *sitterQuery {
+func GetQuery(lang Language, queryStr string) (*sitterQuery, error) {
 	grammar := lang.(*treeLanguage).grammar
 	treeLang := lang.(*treeLanguage).lang
 
@@ -27,9 +27,13 @@ func GetQuery(lang Language, queryStr string) *sitterQuery {
 
 	q, found := queryCache.Load(key)
 	if !found {
-		q, _ = queryCache.LoadOrStore(key, mustNewQuery(treeLang, queryStr))
+		sq, err := newSitterQuery(treeLang, queryStr)
+		if err != nil {
+			return nil, err
+		}
+		q, _ = queryCache.LoadOrStore(key, sq)
 	}
-	return q.(*sitterQuery)
+	return q.(*sitterQuery), nil
 }
 
 type queryResult struct {
@@ -80,14 +84,6 @@ func (tree *treeAst) mapQueryMatchCaptures(m *sitter.QueryMatch, q *sitterQuery)
 	return captures
 }
 
-func mustNewTreeQuery(lang *sitter.Language, query string) *sitter.Query {
-	treeQ, err := sitter.NewQuery([]byte(query), lang)
-	if err != nil {
-		BazelLog.Fatalf("Failed to create query for %q: %v", query, err)
-	}
-	return treeQ
-}
-
 // Create an error for each parse error.
 func (tree *treeAst) QueryErrors() []error {
 	node := tree.sitterTree.RootNode()
@@ -97,7 +93,10 @@ func (tree *treeAst) QueryErrors() []error {
 
 	errors := make([]error, 0)
 
-	query := GetQuery(tree.lang, ErrorsQuery)
+	query, err := GetQuery(tree.lang, ErrorsQuery)
+	if err != nil {
+		BazelLog.Fatalf("Failed to create util 'ErrorsQuery': %v", err)
+	}
 
 	// Execute the import query
 	qc := sitter.NewQueryCursor()

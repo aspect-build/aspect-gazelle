@@ -2,8 +2,6 @@ package gazelle
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"strings"
 	"time"
 
@@ -79,8 +77,8 @@ func (kt *kotlinLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.
 
 		deps, err := kt.resolveImports(c, ix, target.Imports, from)
 		if err != nil {
-			log.Fatalf("Resolution Error: %v", err)
-			os.Exit(1)
+			common.ImportErrorf(c, "Resolution error %v\n", err)
+			return
 		}
 
 		if !deps.Empty() {
@@ -118,6 +116,7 @@ func (kt *kotlinLang) resolveImports(
 				mod.Imp, mod.SourcePath,
 			)
 
+			// TODO: early-exit in strict mode
 			fmt.Printf("Resolution error %v\n", notFound)
 			continue
 		}

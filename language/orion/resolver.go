@@ -2,7 +2,6 @@ package gazelle
 
 import (
 	"fmt"
-	"log"
 	"path"
 	"strings"
 	"time"
@@ -49,7 +48,7 @@ func (re *GazelleHost) importsGenerateRules(cfg *BUILDConfig, c *config.Config, 
 
 	regularFiles, err := common.GetSourceRegularFiles(f.Pkg)
 	if err != nil {
-		log.Fatalf("Error getting regular files for %s: %v", f.Pkg, err)
+		BazelLog.Fatalf("Error getting regular files for %s: %v", f.Pkg, err)
 	}
 
 	return re.generateRules(cfg, gazelleLanguage.GenerateArgs{
@@ -142,9 +141,8 @@ func (re *GazelleHost) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo
 
 		importLabels, err := re.resolveImports(c, ix, pluginId, attrValue.imports, from)
 		if err != nil {
-			msg := fmt.Sprintf("Resolution Error: %v", err)
-			fmt.Println(msg)
-			BazelLog.Fatalf(msg)
+			common.ImportErrorf(c, "Resolution Error: %v", err)
+			continue
 		}
 
 		// NOTE: the attribute might have additional values added via # keep which gazelle will maintain
@@ -159,9 +157,7 @@ func (re *GazelleHost) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo
 					r.SetAttr(attr, dep)
 				}
 			default:
-				msg := fmt.Sprintf("Attribute %q on %s has resolved to multiple values: %v", attr, r.Name(), importLabels)
-				fmt.Println(msg)
-				BazelLog.Fatal(msg)
+				common.GenerationErrorf(c, "Attribute %q on %s has resolved to multiple values: %v", attr, r.Name(), importLabels)
 			}
 		} else {
 			value := attrValue.values
@@ -205,6 +201,7 @@ func (re *GazelleHost) resolveImports(
 					imp.Id, imp.Provider, imp.From, pluginId,
 				)
 
+				// TODO: early-exit in strict mode
 				fmt.Printf("Resolution error %v\n", notFound)
 				continue
 			}

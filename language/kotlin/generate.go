@@ -72,8 +72,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 
 	srcGenErr := kt.addLibraryRule(libTargetName, libTarget, args, false, &result)
 	if srcGenErr != nil {
-		fmt.Fprintf(os.Stderr, "Source rule generation error: %v\n", srcGenErr)
-		os.Exit(1)
+		common.GenerationErrorf(args.Config, "Source rule generation error: %v", srcGenErr)
 	}
 
 	for _, v := range binTargets.Values() {

@@ -198,7 +198,7 @@ func (runner *GazelleRunner) Generate(cmd GazelleCommand, mode GazelleMode, args
 	configs := runner.instantiateConfigs()
 	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(runner.workspaceDir, cmd, configs, langs, fixArgs)
 
-	if mode == Fix && runner.interactive {
+	if mode == Fix && runner.interactive && err == nil {
 		fmt.Printf("%v BUILD %s visited\n", visited, pluralize("file", visited))
 		fmt.Printf("%v BUILD %s updated\n", updated, pluralize("file", updated))
 	}

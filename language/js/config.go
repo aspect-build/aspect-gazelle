@@ -2,8 +2,6 @@ package gazelle
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"path"
 	"strings"
 
@@ -256,11 +254,10 @@ func (c *JsGazelleConfig) renderTargetName(baseName, packageName string) string 
 	return strings.ReplaceAll(baseName, TargetNameDirectoryVar, packageName)
 }
 
-func (c *JsGazelleConfig) SetVisibility(groupName string, visLabels []string) {
+func (c *JsGazelleConfig) SetVisibility(groupName string, visLabels []string) error {
 	target := c.GetSourceTarget(groupName)
 	if target == nil {
-		log.Fatal(fmt.Errorf("Target %s not found in %s", groupName, c.rel))
-		os.Exit(1)
+		return fmt.Errorf("Target %q not found in %q", groupName, c.rel)
 	}
 
 	target.visibility = make([]label.Label, 0, len(visLabels))
@@ -268,12 +265,13 @@ func (c *JsGazelleConfig) SetVisibility(groupName string, visLabels []string) {
 	for _, v := range visLabels {
 		l, labelErr := label.Parse(strings.TrimSpace(v))
 		if labelErr != nil {
-			log.Fatal(fmt.Errorf("invalid label for visibility: %s", l))
-			os.Exit(1)
+			return fmt.Errorf("invalid label %q for visibility: %w", v, labelErr)
 		}
 
 		target.visibility = append(target.visibility, l)
 	}
+
+	return nil
 }
 
 // SetGenerationEnabled sets whether the extension is enabled or not.
@@ -520,7 +518,7 @@ func (c *JsGazelleConfig) GetSourceTarget(targetName string) *TargetGroup {
 }
 
 // AddTargetGlob sets the glob used to find source files for the specified target
-func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool) {
+func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool) error {
 	// Update existing target with the same name
 	for _, target := range c.targets {
 		if target.name == targetName {
@@ -531,18 +529,15 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 					targetWord = "test"
 					overrideWord = "non-test"
 				}
-				log.Fatalf("Custom %s target %s:%s can not override %s target", targetWord, c.rel, targetName, overrideWord)
-				os.Exit(1)
+				return fmt.Errorf("Custom %s target %s:%s can not override %s target", targetWord, c.rel, targetName, overrideWord)
 			}
 
 			if !doublestar.ValidatePattern(glob) {
-				log.Fatalf("Invalid target (%s) glob: %v", target.name, glob)
-				os.Exit(1)
-				return
+				return fmt.Errorf("Invalid target (%s) glob: %v", target.name, glob)
 			}
 
 			target.customSources = append(target.customSources, glob)
-			return
+			return nil
 		}
 	}
 
@@ -552,4 +547,5 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 		customSources: []string{glob},
 		testonly:      isTestOnly,
 	})
+	return nil
 }

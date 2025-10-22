@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"os"
 	"path"
 	"strings"
 
@@ -250,8 +249,8 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 				result,
 			)
 			if srcGenErr != nil {
-				fmt.Fprintf(os.Stderr, "Source rule generation error: %v\n", srcGenErr)
-				os.Exit(1)
+				common.GenerationErrorf(args.Config, "Source rule generation error: %v", srcGenErr)
+				return
 			}
 
 			sourceRules.Put(group.name, srcRule)
@@ -285,9 +284,7 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 		return node.ParsePackageJsonImports(bytes.NewReader(content))
 	})
 	if err != nil {
-		msg := fmt.Sprintf("Failed to parse %q imports: %v", packageJsonPath, err)
-		fmt.Printf("%s\n", msg)
-		BazelLog.Fatal(msg)
+		common.MisconfiguredErrorf(args.Config, "Failed to parse %q imports: %v", packageJsonPath, err)
 		return
 	}
 
@@ -995,9 +992,7 @@ func (ts *typeScriptLang) addPnpmLockfile(c *config.Config, cfg *JsGazelleConfig
 		return pnpm.ParsePnpmLockFileDependencies(content)
 	})
 	if readErr != nil {
-		msg := fmt.Sprintf("failed to read lockfile %q: %v", lockfileRel, readErr)
-		fmt.Printf("%s\n", msg)
-		BazelLog.Fatal(msg)
+		common.MisconfiguredErrorf(c, "failed to read lockfile %q: %v", lockfileRel, readErr)
 		return
 	}
 

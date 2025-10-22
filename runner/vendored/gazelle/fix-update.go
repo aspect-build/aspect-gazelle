@@ -263,6 +263,15 @@ var genericLoads = []rule.LoadInfo{
 	},
 }
 
+// NOTE: additional aspect-gazelle context.Context
+func checkCancellation(c *config.Config) error {
+	ctx := c.Exts["aspect:context"].(context.Context)
+	if ctx.Err() != nil {
+		return context.Cause(ctx)
+	}
+	return nil
+}
+
 // NOTE: additional aspect-cli update result status
 type fixUpdateStatus struct {
 	visited int
@@ -335,6 +344,11 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 		}
 	}
 
+	// NOTE: additional aspect-gazelle context
+	ctx, cancelWithCause := context.WithCancelCause(ctx)
+	c.Exts["aspect:context"] = ctx
+	c.Exts["aspect:context.cancel"] = cancelWithCause
+
 	// Visit all directories in the repository.
 	var visits []visitRecord
 	uc := getUpdateConfig(c)
@@ -400,6 +414,11 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 			imports = append(imports, res.Imports...)
 			if c.IndexLibraries {
 				relsToVisit = append(relsToVisit, res.RelsToIndex...)
+			}
+
+			// NOTE: additional aspect-gazelle context
+			if err := checkCancellation(c); err != nil {
+				return walk.Walk2FuncResult{Err: err}
 			}
 		}
 		if f == nil && len(gen) == 0 {
@@ -535,6 +554,11 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 			from := label.New(c.RepoName, v.pkgRel, r.Name())
 			if rslv := mrslv.Resolver(r, v.pkgRel); rslv != nil {
 				rslv.Resolve(v.c, ruleIndex, rc, r, v.imports[i], from)
+
+				// NOTE: additional aspect-gazelle context
+				if err := checkCancellation(c); err != nil {
+					return err
+				}
 			}
 		}
 		merger.MergeFile(v.file, v.empty, v.rules, merger.PostResolve,

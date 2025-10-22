@@ -311,9 +311,8 @@ func (ts *typeScriptLang) Resolve(
 
 		err := ts.resolveImports(c, ix, deps, imports, from)
 		if err != nil {
-			msg := fmt.Sprintf("Resolution Error: %v", err)
-			fmt.Println(msg)
-			BazelLog.Fatalf(msg)
+			common.ImportErrorf(c, "Resolution Error: %v", err)
+			return
 		}
 
 		if r.Kind() == TsProjectKind {
@@ -335,9 +334,8 @@ func (ts *typeScriptLang) Resolve(
 		deps := common.NewLabelSet(from)
 		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from)
 		if err != nil {
-			msg := fmt.Sprintf("Resolution Error: %v", err)
-			fmt.Println(msg)
-			BazelLog.Fatalf(msg)
+			common.ImportErrorf(c, "Resolution Error: %v", err)
+			return
 		}
 
 		for dep := range deps.Labels() {
@@ -445,8 +443,7 @@ func (ts *typeScriptLang) resolveImports(
 
 		switch cfg.ValidateImportStatements() {
 		case ValidationError:
-			fmt.Fprintf(os.Stderr, "Failed to validate dependencies for target %q:%v\n", from, joinedErrs)
-			os.Exit(1)
+			common.ImportErrorf(c, "Failed to validate dependencies for target %q:%v\n", from, joinedErrs)
 		case ValidationWarn:
 			fmt.Fprintf(os.Stderr, "Warning: Failed to validate dependencies for target %q:%v\n", from, joinedErrs)
 		}

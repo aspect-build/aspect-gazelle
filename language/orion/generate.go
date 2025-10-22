@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
-	"os"
 	"path"
 	"slices"
 	"sort"
 	"strings"
 	"sync"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	ruleUtils "github.com/aspect-build/aspect-gazelle/common/rule"
@@ -251,8 +251,8 @@ func (host *GazelleHost) applyPluginAction(args gazelleLanguage.GenerateArgs, pl
 		target := action.(plugin.AddTargetAction).TargetDeclaration
 		colError := ruleUtils.CheckCollisionErrors(target.Name, target.Kind, host.sourceRuleKinds, args)
 		if colError != nil {
-			fmt.Fprintf(os.Stderr, "Source rule generation error: %v\n", colError)
-			os.Exit(1)
+			common.GenerationErrorf(args.Config, "Source rule generation error: %v", colError)
+			return
 		}
 
 		// Generate the gazelle Rule to be added/merged into the BUILD file.
@@ -430,6 +430,8 @@ func (host *GazelleHost) runSourceCodeQueries(queries plugin.NamedQueries, sourc
 		go func(queryType plugin.QueryType, queries plugin.NamedQueries) {
 			defer wg.Done()
 
+			// TODO: must distinguish between different query errors vs source parse errors
+			// and fail the entire gazelle execution if the developer-configured query is bad.
 			if err := queryRunner.RunQueries(queryType, f, sourceCode, queries, queryResultsChan); err != nil {
 				msg := fmt.Sprintf("Error running queries for %q: %v", f, err)
 				fmt.Printf("%s\n", msg)

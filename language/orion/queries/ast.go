@@ -37,7 +37,10 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 	// TODO: look into running queries in parallel on the same AST
 	for key, query := range queries {
 		params := query.Params.(plugin.AstQueryParams)
-		treeQuery := treeutils.GetQuery(lang, params.Query)
+		treeQuery, err := treeutils.GetQuery(lang, params.Query)
+		if err != nil {
+			return err
+		}
 
 		// TODO: delay collection from channel until first read?
 		// Then it must be cached for later reads...

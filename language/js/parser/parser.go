@@ -119,7 +119,10 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 		defer tree.Close()
 
 		// Query for more complex non-root node imports.
-		q := treeutils.GetQuery(lang, importsQuery)
+		q, err := treeutils.GetQuery(lang, importsQuery)
+		if err != nil {
+			log.Fatalf("Failed to create js 'importsQuery': %v", err)
+		}
 		for queryResult := range tree.Query(q) {
 			Log.Tracef("AST Query %q: %v", filePath, queryResult)
 
