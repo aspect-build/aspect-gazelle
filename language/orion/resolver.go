@@ -1,6 +1,7 @@
 package gazelle
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -184,6 +185,8 @@ func (re *GazelleHost) resolveImports(
 ) (*common.LabelSet, error) {
 	deps := common.NewLabelSet(from)
 
+	errs := []error{}
+
 	for _, imp := range imports {
 		resolutionType, dep, err := re.resolveImport(c, ix, pluginId, imp, from)
 		if err != nil {
@@ -201,8 +204,7 @@ func (re *GazelleHost) resolveImports(
 					imp.Id, imp.Provider, imp.From, pluginId,
 				)
 
-				// TODO: early-exit in strict mode
-				fmt.Printf("Resolution error %v\n", notFound)
+				errs = append(errs, notFound)
 				continue
 			}
 		}
@@ -216,7 +218,7 @@ func (re *GazelleHost) resolveImports(
 		}
 	}
 
-	return deps, nil
+	return deps, errors.Join(errs...)
 }
 
 func (host *GazelleHost) resolveImport(

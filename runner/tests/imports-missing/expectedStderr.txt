@@ -1,0 +1,7 @@
+aspect-gazelle: Error running gazelle: Resolution Error: Import "b" (provider "x") from "sub:x_lib" is an unknown dependency. Possible solutions:
+	1. Instruct Gazelle to resolve to a known dependency using a directive:
+		# aspect:resolve [src-lang] imports-missing import-string label
+
+Import "d" (provider "x") from "" is an unknown dependency. Possible solutions:
+	1. Instruct Gazelle to resolve to a known dependency using a directive:
+		# aspect:resolve [src-lang] imports-missing import-string label

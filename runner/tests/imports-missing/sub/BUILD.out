@@ -1,3 +1,11 @@
 load("@deps-test//my:rules.bzl", "x_lib")
 
-x_lib(name = "b")
+x_lib(
+    name = "a",
+    deps = [
+        "@predefined//:value1",
+        "@predefined//:value2",
+        "@predefined//:value3",
+        "@predefined//:value4",
+    ],
+)

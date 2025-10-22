@@ -1,6 +1,7 @@
 package gazelle
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -97,6 +98,8 @@ func (kt *kotlinLang) resolveImports(
 ) (*common.LabelSet, error) {
 	deps := common.NewLabelSet(from)
 
+	errs := []error{}
+
 	it := imports.Iterator()
 	for it.Next() {
 		mod := it.Value().(ImportStatement)
@@ -116,8 +119,7 @@ func (kt *kotlinLang) resolveImports(
 				mod.Imp, mod.SourcePath,
 			)
 
-			// TODO: early-exit in strict mode
-			fmt.Printf("Resolution error %v\n", notFound)
+			errs = append(errs, notFound)
 			continue
 		}
 
@@ -130,7 +132,7 @@ func (kt *kotlinLang) resolveImports(
 		}
 	}
 
-	return deps, nil
+	return deps, errors.Join(errs...)
 }
 
 func (kt *kotlinLang) resolveImport(
