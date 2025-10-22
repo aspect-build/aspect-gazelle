@@ -212,6 +212,8 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 		return fmt.Errorf("failed to connect to watchman: %w", err)
 	}
 
+	defer watch.Disconnect()
+
 	// Params for the underlying gazelle call
 	fixArgs := p.prepareGazelleArgs(mode, args)
 
