@@ -16,12 +16,12 @@ var envLanguages = []runner.GazelleLanguage{
 	// Kotlin not included in the prebuild because it interferes with normal operation
 	// and there is no directive to disable it.
 	// runner.Kotlin,
+	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
 	runner.Go,
 	runner.Protobuf,
 	runner.Bzl,
 	runner.Python,
 	runner.Orion,
-	runner.CC,
 	runner.JavaScript,
 }
 
