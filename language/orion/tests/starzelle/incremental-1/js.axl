@@ -42,7 +42,7 @@ def declare(ctx):
             )],
         )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "dummy-js",
     prepare = prepare,
     declare = declare,

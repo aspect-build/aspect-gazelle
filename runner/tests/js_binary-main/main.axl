@@ -15,7 +15,7 @@ def declare_main_js(ctx):
         )],
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "main_bin",
     prepare = lambda _: aspect.PrepareResult(
         sources = aspect.SourceGlobs("main.js"),
@@ -46,7 +46,7 @@ def run_main_js(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "main_js",
     prepare = lambda _: aspect.PrepareResult(
         sources = aspect.SourceGlobs("input*.txt"),

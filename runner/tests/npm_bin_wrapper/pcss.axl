@@ -29,7 +29,7 @@ def declare(ctx):
         },
     )
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "postcss",
     prepare = prepare,
     declare = declare,

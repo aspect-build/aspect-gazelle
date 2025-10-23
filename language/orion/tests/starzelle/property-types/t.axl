@@ -4,7 +4,7 @@ aspect.register_rule_kind("props_test", {
     "MergeableAttrs": ["s", "sa", "b", "n"],
 })
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "property-types",
     properties = {
         "s": aspect.Property(
