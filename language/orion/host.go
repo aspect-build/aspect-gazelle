@@ -96,10 +96,15 @@ func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
 func (h *GazelleHost) loadEnvStarzellePlugins() {
 	builtinPlugins := []string{}
 
-	// Load from cwd, or runfiles when running tests
+	// Load relative to cwd by default
 	builtinPluginDir, _ := os.Getwd()
+
 	if os.Getenv("BAZEL_TEST") != "" {
+		// Load from runfiles when running in bazel tests
 		builtinPluginDir = path.Join(os.Getenv("RUNFILES_DIR"), os.Getenv("TEST_WORKSPACE"))
+	} else if workspaceDir := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); workspaceDir != "" {
+		// Load from bazel workspace root when run via bazel
+		builtinPluginDir = workspaceDir
 	}
 
 	// Comma-separated list of plugin paths relative to the workspace root
