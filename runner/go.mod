@@ -8,7 +8,7 @@ replace github.com/aspect-build/aspect-gazelle/language/kotlin => ../language/ko
 
 replace github.com/aspect-build/aspect-gazelle/language/orion => ../language/orion
 
-go 1.24.5
+go 1.25.3
 
 require (
 	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
