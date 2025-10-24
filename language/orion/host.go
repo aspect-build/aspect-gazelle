@@ -10,7 +10,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/aspect-build/aspect-gazelle/common/bazel/workspace"
@@ -128,7 +128,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		}
 
 		// Sort to ensure a consistent order not dependent on the fs or glob ordering.
-		sort.Strings(builtinDirPlugins)
+		slices.Sort(builtinDirPlugins)
 
 		builtinPlugins = append(builtinPlugins, builtinDirPlugins...)
 	}

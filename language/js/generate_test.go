@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 	"reflect"
-	"sort"
+	"slices"
 	"testing"
 )
 
@@ -160,8 +160,8 @@ func assertImports(t *testing.T, p string, expected []string) {
 	actual := toImportPaths(p)
 
 	// Order doesn't matter so sort to ignore order
-	sort.Strings(actual)
-	sort.Strings(expected)
+	slices.Sort(actual)
+	slices.Sort(expected)
 
 	if !reflect.DeepEqual(actual, expected) {
 		t.Errorf("toImportPaths('%s'): \nactual:   %s\nexpected:  %s\n", p, actual, expected)

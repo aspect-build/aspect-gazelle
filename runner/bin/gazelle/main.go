@@ -96,7 +96,7 @@ func parseArgs() (runner.GazelleCommand, runner.GazelleMode, bool, []string) {
 
 func extractFlag(flag string, defaultValue bool, args []string) (bool, []string) {
 	if i := slices.Index(args, flag); i != -1 {
-		args = append(args[:i], args[i+1:]...)
+		args = slices.Delete(args, i, i+1)
 		return true, args
 	}
 
@@ -118,11 +118,11 @@ func extractArg(flag string, defaultValue string, args []string) (string, []stri
 			return defaultValue, args
 		}
 		value := args[i+1]
-		args = append(args[:i], args[i+2:]...)
+		args = slices.Delete(args, i, i+2)
 		return value, args
 	}
 
 	_, value, _ := strings.Cut(args[i], "=")
-	args = append(args[:i], args[i+1:]...)
+	args = slices.Delete(args, i, i+1)
 	return value, args
 }

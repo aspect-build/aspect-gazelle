@@ -8,7 +8,6 @@ import (
 	"maps"
 	"path"
 	"slices"
-	"sort"
 	"strings"
 	"sync"
 
@@ -380,7 +379,7 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 	for key := range queries {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	e := gob.NewEncoder(cacheDigest)
 	for _, key := range keys {

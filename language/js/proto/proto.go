@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -71,7 +71,7 @@ func GetProtoImports(filepath string) ([]string, error) {
 		}
 	}
 
-	sort.Strings(imports)
+	slices.Sort(imports)
 
 	return imports, nil
 }
