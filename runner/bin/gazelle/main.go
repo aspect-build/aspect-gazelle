@@ -122,7 +122,7 @@ func extractArg(flag string, defaultValue string, args []string) (string, []stri
 		return value, args
 	}
 
-	value := strings.SplitN(args[i], "=", 2)[1]
+	_, value, _ := strings.Cut(args[i], "=")
 	args = append(args[:i], args[i+1:]...)
 	return value, args
 }

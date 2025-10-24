@@ -210,9 +210,9 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			group := DefaultLibraryName
 			groupGlob := value
 
-			if i := strings.Index(value, " "); i != -1 {
-				group = value[:i]
-				groupGlob = strings.TrimSpace(value[i+1:])
+			if before, after, found := strings.Cut(value, " "); found {
+				group = before
+				groupGlob = strings.TrimSpace(after)
 			}
 
 			config.addTargetGlob(group, groupGlob, false)
@@ -220,9 +220,9 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			group := DefaultTestsName
 			groupGlob := value
 
-			if i := strings.Index(value, " "); i != -1 {
-				group = value[:i]
-				groupGlob = strings.TrimSpace(value[i+1:])
+			if before, after, found := strings.Cut(value, " "); found {
+				group = before
+				groupGlob = strings.TrimSpace(after)
 			}
 
 			config.addTargetGlob(group, groupGlob, true)
