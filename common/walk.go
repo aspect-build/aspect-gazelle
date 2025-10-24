@@ -56,7 +56,10 @@ func getSourceRegularSubFiles(base, rel string, d walk.DirInfo, files []string) 
 			sdRel = rel + "/" + sdRel
 		}
 
-		sdInfo, _ := walk.GetDirInfo(base + sdRel)
+		sdInfo, err := walk.GetDirInfo(base + sdRel)
+		if err != nil {
+			continue
+		}
 
 		// Recurse into subdirectories that do not have a BUILD file just like a
 		// bazel BUILD glob() would.
