@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/runner
 
-go 1.24.5
+go 1.26.1
 
 require (
 	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
@@ -28,6 +28,7 @@ require (
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bazel-contrib/rules_jvm v0.32.0 // indirect
+	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
