@@ -133,10 +133,9 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 
 			// A list of all non-empty labels
 			visLabels := make([]string, 0, 1)
-			for _, visLabel := range strings.Split(value, " ") {
-				visLabel = strings.TrimSpace(visLabel)
-				if visLabel != "" {
-					visLabels = append(visLabels, visLabel)
+			for visLabel := range strings.SplitSeq(value, " ") {
+				if trimmedVisLabel := strings.TrimSpace(visLabel); trimmedVisLabel != "" {
+					visLabels = append(visLabels, trimmedVisLabel)
 				}
 			}
 

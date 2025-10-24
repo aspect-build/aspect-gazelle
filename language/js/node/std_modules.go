@@ -15,7 +15,7 @@ var nativeModulesSet = createNativeModulesSet()
 func createNativeModulesSet() *treeset.Set {
 	set := treeset.NewWithStringComparator()
 
-	for _, m := range strings.Split(strings.TrimSpace(string(nativeModulesJson)), "\n") {
+	for m := range strings.SplitSeq(strings.TrimSpace(string(nativeModulesJson)), "\n") {
 		set.Add(m)
 	}
 
