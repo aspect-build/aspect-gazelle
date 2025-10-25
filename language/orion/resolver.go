@@ -43,6 +43,7 @@ func symbolToImportSpec(symbol plugin.Symbol) resolve.ImportSpec {
 }
 
 const extGeneratedRules = "__starzelle_generated_rules"
+const extGeneratedRulesPkg = "__starzelle_generated_rules_pkg"
 
 func (re *GazelleHost) importsGenerateRules(cfg *BUILDConfig, c *config.Config, f *rule.File) gazelleLanguage.GenerateResult {
 	BazelLog.Debugf("Imports.GenerateRules(%s): //%s", GazelleLanguageName, f.Pkg)
@@ -84,8 +85,9 @@ func (re *GazelleHost) Imports(c *config.Config, r *rule.Rule, f *rule.File) []r
 		//
 		// When running partial generations this means we must manually invoke GenerateRules() if it
 		// was not invoked by gazelle as part of the partial run.
-		if c.Exts[extGeneratedRules] == nil {
+		if c.Exts[extGeneratedRulesPkg] != cfg.rel {
 			c.Exts[extGeneratedRules] = re.importsGenerateRules(cfg, c, f)
+			c.Exts[extGeneratedRulesPkg] = cfg.rel
 		}
 
 		// Find this rule in the host-generated rules

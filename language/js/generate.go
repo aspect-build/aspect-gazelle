@@ -113,9 +113,12 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 }
 
 func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo) []string {
-	i := []string{
-		// Might be an npm package reference
-		cfg.PnpmLockDir(),
+	i := []string{}
+
+	if p := ts.pnpmProjects.GetProject(cfg.rel); p != nil {
+		for _, pkg := range p.GetLocalReferences() {
+			i = append(i, pkg)
+		}
 	}
 
 	for it := info.imports.Iterator(); it.Next(); {
