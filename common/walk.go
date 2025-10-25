@@ -4,6 +4,7 @@ import (
 	"log"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/bazelbuild/bazel-gazelle/walk"
 )
@@ -43,31 +44,57 @@ func GetSourceRegularFiles(rel string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(d.Subdirs) == 0 {
+		return d.RegularFiles, nil
+	}
+
+	// Use channels to collect results from parallel goroutines.
+	// Gazelle may populate the initial directory cache of the initially walked directories
+	// but incremental runs will not have walked lazy-indexed subdirectories.
+	resultChan := make(chan string, len(d.Subdirs))
+	wg := &sync.WaitGroup{}
 
 	if rel != "" {
 		rel = rel + "/"
 	}
-	return getSourceRegularSubFiles(rel, "", d, d.RegularFiles[:])
+	collectSourceRegularSubFiles(wg, rel, "", d, resultChan)
+
+	// Close the channel when all goroutines are done
+	go func() {
+		wg.Wait()
+		close(resultChan)
+	}()
+
+	// Collect results from all goroutines
+	files := d.RegularFiles[:]
+	for res := range resultChan {
+		files = append(files, res)
+	}
+	slices.Sort(files)
+	return files, nil
 }
 
-func getSourceRegularSubFiles(base, rel string, d walk.DirInfo, files []string) ([]string, error) {
+func collectSourceRegularSubFiles(wg *sync.WaitGroup, base, rel string, d walk.DirInfo, resultChan chan<- string) {
 	for _, sdRel := range d.Subdirs {
-		if rel != "" {
-			sdRel = rel + "/" + sdRel
-		}
+		wg.Add(1)
+		go func(sdRel string) {
+			defer wg.Done()
 
-		sdInfo, _ := walk.GetDirInfo(base + sdRel)
-
-		// Recurse into subdirectories that do not have a BUILD file just like a
-		// bazel BUILD glob() would.
-		if sdInfo.File == nil {
-			for _, f := range sdInfo.RegularFiles {
-				files = append(files, sdRel+"/"+f)
+			if rel != "" {
+				sdRel = rel + "/" + sdRel
 			}
 
-			files, _ = getSourceRegularSubFiles(base, sdRel, sdInfo, files)
-		}
-	}
+			sdInfo, _ := walk.GetDirInfo(base + sdRel)
 
-	return files, nil
+			// Recurse into subdirectories that do not have a BUILD file just like a
+			// bazel BUILD glob() would.
+			if sdInfo.File == nil {
+				for _, f := range sdInfo.RegularFiles {
+					resultChan <- sdRel + "/" + f
+				}
+
+				collectSourceRegularSubFiles(wg, base, sdRel, sdInfo, resultChan)
+			}
+		}(sdRel)
+	}
 }
