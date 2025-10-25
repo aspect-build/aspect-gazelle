@@ -1,8 +1,8 @@
 package starlark
 
 import (
+	"fmt"
 	"log"
-	"reflect"
 
 	"go.starlark.net/starlark"
 )
@@ -37,7 +37,7 @@ func Write(v interface{}) starlark.Value {
 		return WriteMap(v, Write)
 	}
 
-	log.Panicf("Failed to write value %v of type %q", v, reflect.TypeOf(v))
+	log.Panicf("Failed to write value %v of type %T", v, v)
 	return nil
 }
 
@@ -65,57 +65,77 @@ func WriteStringMap(m map[string]string) starlark.Value {
 	return WriteMap(m, WriteString)
 }
 
-func ReadBool(v starlark.Value) bool {
-	return v.(starlark.Bool).Truth() == starlark.True
-}
-func ReadString(v starlark.Value) string {
-	return v.(starlark.String).GoString()
+func ReadBool(v starlark.Value) (bool, error) {
+	bo, ok := v.(starlark.Bool)
+	if !ok {
+		return false, fmt.Errorf("expected bool, got %T", v)
+	}
+	return bo.Truth() == starlark.True, nil
 }
 
-func ReadList[V any](v starlark.Value, f func(v starlark.Value) V) []V {
-	l := v.(*starlark.List)
+func ReadString(v starlark.Value) (string, error) {
+	s, ok := v.(starlark.String)
+	if !ok {
+		return "", fmt.Errorf("expected string, got %T", v)
+	}
+	return s.GoString(), nil
+}
+
+func ReadList[V any](v starlark.Value, f func(v starlark.Value) (V, error)) ([]V, error) {
+	l, isList := v.(*starlark.List)
+	if !isList {
+		return nil, fmt.Errorf("expected list, got %T", v)
+	}
 	len := l.Len()
 	a := make([]V, 0, len)
 	for i := range len {
-		a = append(a, f(l.Index(i)))
+		v, err := f(l.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, v)
 	}
-	return a
+	return a, nil
 }
 
-func ReadTuple[V any](t starlark.Tuple, f func(v starlark.Value) V) []V {
+func ReadTuple[V any](t starlark.Tuple, f func(v starlark.Value) (V, error)) ([]V, error) {
 	len := t.Len()
 	a := make([]V, 0, len)
 	for i := range len {
-		a = append(a, f(t.Index(i)))
+		v, err := f(t.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, v)
 	}
-	return a
+	return a, nil
 }
 
-func ReadStringList(l starlark.Value) []string {
+func ReadStringList(l starlark.Value) ([]string, error) {
 	return ReadList(l, ReadString)
 }
 
-func ReadStringTuple(l starlark.Tuple) []string {
+func ReadStringTuple(l starlark.Tuple) ([]string, error) {
 	return ReadTuple(l, ReadString)
 }
 
-func Read(v starlark.Value) interface{} {
+func Read(v starlark.Value) (interface{}, error) {
 	return ReadRecurse(v, Read)
 }
 
-func ReadRecurse(v starlark.Value, read func(v starlark.Value) interface{}) interface{} {
+func ReadRecurse(v starlark.Value, read func(v starlark.Value) (interface{}, error)) (interface{}, error) {
 	switch v := v.(type) {
 	case starlark.NoneType:
-		return nil
+		return nil, nil
 	case starlark.Bool:
-		return v.Truth() == starlark.True
+		return v.Truth() == starlark.True, nil
 	case starlark.String:
-		return v.GoString()
+		return v.GoString(), nil
 	case starlark.Int:
 		i, _ := v.Int64()
-		return i
+		return i, nil
 	case starlark.Float:
-		return float64(v)
+		return float64(v), nil
 	case *starlark.List:
 		return ReadList(v, read)
 	case *starlark.Dict:
@@ -128,33 +148,40 @@ func ReadRecurse(v starlark.Value, read func(v starlark.Value) interface{}) inte
 		return readIndexable(v, read)
 	}
 
-	log.Panicf("Failed to read starlark value %T", v)
-	return nil
+	return nil, fmt.Errorf("failed to read starlark value %T", v)
 }
 
-func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) interface{}) []interface{} {
+func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) (interface{}, error)) (interface{}, error) {
 	iter := v.Iterate()
 	defer iter.Done()
 
 	a := make([]interface{}, 0, len)
 	var x starlark.Value
 	for iter.Next(&x) {
-		a = append(a, read(x))
+		val, err := read(x)
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, val)
 	}
 
-	return a
+	return a, nil
 }
 
-func readIndexable(v starlark.Indexable, read func(v starlark.Value) interface{}) []interface{} {
+func readIndexable(v starlark.Indexable, read func(v starlark.Value) (interface{}, error)) ([]interface{}, error) {
 	len := v.Len()
 	a := make([]interface{}, 0, len)
 	for i := range len {
-		a = append(a, read(v.Index(i)))
+		val, err := read(v.Index(i))
+		if err != nil {
+			return nil, err
+		}
+		a = append(a, val)
 	}
-	return a
+	return a, nil
 }
 
-func ReadMap[K any](v starlark.Value, f func(k string, v starlark.Value) K) map[string]K {
+func ReadMap[K any](v starlark.Value, f func(k string, v starlark.Value) (K, error)) (map[string]K, error) {
 	d := v.(*starlark.Dict)
 	m := make(map[string]K, d.Len())
 
@@ -163,15 +190,22 @@ func ReadMap[K any](v starlark.Value, f func(k string, v starlark.Value) K) map[
 
 	var kv starlark.Value
 	for iter.Next(&kv) {
-		k := ReadString(kv)
+		k, err := ReadString(kv)
+		if err != nil {
+			return nil, err
+		}
 		v, _, _ := d.Get(kv)
-		m[k] = f(k, v)
+		mv, err := f(k, v)
+		if err != nil {
+			return nil, err
+		}
+		m[k] = mv
 	}
 
-	return m
+	return m, nil
 }
 
-func ReadMap2[K any](v starlark.Value, f func(v starlark.Value) K) map[string]K {
+func ReadMap2[K any](v starlark.Value, f func(v starlark.Value) (K, error)) (map[string]K, error) {
 	d := v.(*starlark.Dict)
 	m := make(map[string]K, d.Len())
 
@@ -180,46 +214,32 @@ func ReadMap2[K any](v starlark.Value, f func(v starlark.Value) K) map[string]K 
 
 	var kv starlark.Value
 	for iter.Next(&kv) {
-		k := ReadString(kv)
+		k, err := ReadString(kv)
+		if err != nil {
+			return nil, err
+		}
 		v, _, _ := d.Get(kv)
-		m[k] = f(v)
+		mv, err := f(v)
+		if err != nil {
+			return nil, err
+		}
+		m[k] = mv
 	}
 
-	return m
+	return m, nil
 }
 
-func ReadMapEntry[K any](v starlark.Value, key string, f func(v starlark.Value) K) K {
+func ReadMapEntry[K any](v starlark.Value, key string, f func(v starlark.Value) (K, error), defaultValue K) (K, error) {
 	m := v.(*starlark.Dict)
 	val, exists, err := (*m).Get(starlark.String(key))
 
 	if err != nil {
-		log.Panicf("Failed to read map entry %q: %v", key, err)
+		return defaultValue, fmt.Errorf("failed to read map entry '%s': %v", key, err)
 	}
 
 	if !exists {
-		log.Panicf("Map entry %q does not exist in %v", key, v)
+		return defaultValue, nil
 	}
 
 	return f(val)
 }
-
-func ReadOptionalMapEntry[K any](v starlark.Value, key string, f func(v starlark.Value) K, defaultValue K) K {
-	m := v.(*starlark.Dict)
-	val, exists, err := (*m).Get(starlark.String(key))
-
-	if err != nil {
-		log.Panicf("Failed to read map entry '%s': %v", key, err)
-	}
-
-	if !exists {
-		return defaultValue
-	}
-
-	return f(val)
-}
-
-func ReadMapStringEntry(m starlark.Value, key string) string {
-	return ReadMapEntry(m, key, ReadString)
-}
-
-// Looping: efficient utils for iterators, sequences etc

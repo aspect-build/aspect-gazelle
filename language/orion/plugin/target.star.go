@@ -103,26 +103,23 @@ func (te TargetSymbol) AttrNames() []string {
 
 // ---------------- utils
 
-func readTargetImport(v starlark.Value) TargetImport {
-	return v.(TargetImport)
+func readSymbol(v starlark.Value) (Symbol, error) {
+	s, ok := v.(Symbol)
+	if !ok {
+		return Symbol{}, fmt.Errorf("expected Symbol, got %T", v)
+	}
+	return s, nil
 }
 
-func readSymbol(v starlark.Value) Symbol {
-	return v.(Symbol)
-}
-
-func readLabel(v starlark.Value) Label {
-	return v.(Label)
-}
-
-func readTargetAttributeValue(v starlark.Value) interface{} {
+func readTargetAttributeValue(v starlark.Value) (interface{}, error) {
+	// Types that are both starlark.Value and plugin.*
 	switch v := v.(type) {
 	case TargetImport:
-		return readTargetImport(v)
+		return v, nil
 	case Label:
-		return readLabel(v)
+		return v, nil
 	case TargetSource:
-		return v.Path
+		return v, nil
 	}
 
 	return starUtils.ReadRecurse(v, readTargetAttributeValue)

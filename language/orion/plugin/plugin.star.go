@@ -251,12 +251,18 @@ func addTarget(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 
 	var attrs map[string]interface{}
 	if starAttrs != nil {
-		attrs = starUtils.ReadMap2(starAttrs, readTargetAttributeValue)
+		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttributeValue)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var symbols []Symbol
 	if starSymbols != nil {
-		symbols = starUtils.ReadList(starSymbols, readSymbol)
+		symbols, err = starUtils.ReadList(starSymbols, readSymbol)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ai := fn.Receiver().(*declareTargetActionsImpl)

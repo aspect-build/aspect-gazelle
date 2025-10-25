@@ -163,14 +163,14 @@ func (h *GazelleHost) LoadPlugin(pluginDir, pluginPath string) {
 
 	err := starzelle.LoadProxy(h, pluginDir, pluginPath)
 	if err != nil {
-		BazelLog.Infof("Failed to load orion plugin %q/%q: %v\n", pluginDir, pluginPath, err)
+		BazelLog.Infof("Failed to load orion plugin %v\n", err)
 
 		// Try to remove the `parentDir` from the error message to align paths
 		// with the user's workspace relative paths, and to remove sandbox paths
 		// when run in tests.
 		errStr := strings.ReplaceAll(err.Error(), pluginDir+"/", "")
 
-		fmt.Printf("Failed to load orion plugin %q: %v\n", pluginPath, errStr)
+		fmt.Printf("Failed to load orion plugin %v\n", errStr)
 		return
 	}
 }

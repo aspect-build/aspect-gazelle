@@ -12,7 +12,11 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Expected None")
 		}
 
-		if Read(starlark.None) != nil {
+		v, err := Read(starlark.None)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if v != nil {
 			t.Errorf("Expected nil")
 		}
 	})
@@ -22,7 +26,11 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Expected true")
 		}
 
-		if Read(starlark.Bool(true)) != true {
+		v, err := Read(starlark.Bool(true))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if v != true {
 			t.Errorf("Expected true")
 		}
 	})
@@ -32,7 +40,11 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Expected hello")
 		}
 
-		if Read(starlark.String("hello")) != "hello" {
+		v, err := Read(starlark.String("hello"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if v != "hello" {
 			t.Errorf("Expected hello")
 		}
 	})
@@ -42,7 +54,11 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Expected 123")
 		}
 
-		if Read(starlark.MakeInt(123)) != int64(123) {
+		v, err := Read(starlark.MakeInt(123))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if v != int64(123) {
 			t.Errorf("Expected 123")
 		}
 	})
@@ -52,7 +68,11 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Expected 123.45")
 		}
 
-		if Read(starlark.Float(123.45)) != 123.45 {
+		v, err := Read(starlark.Float(123.45))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		if v != 123.45 {
 			t.Errorf("Expected 123.45")
 		}
 	})
@@ -102,8 +122,12 @@ func TestReadWrite(t *testing.T) {
 
 	t.Run("List <=> []interface{}", func(t *testing.T) {
 		l := starlark.NewList([]starlark.Value{starlark.MakeInt(1), starlark.String("hello"), starlark.Bool(true)})
-		a := Read(l).([]interface{})
+		av, err := Read(l)
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
 
+		a := av.([]interface{})
 		if len(a) != l.Len() {
 			t.Errorf("Expected equal length")
 		}

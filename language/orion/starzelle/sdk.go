@@ -8,9 +8,7 @@ package starzelle
 
 import (
 	"fmt"
-	"reflect"
 
-	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 	starUtils "github.com/aspect-build/aspect-gazelle/language/orion/starlark/utils"
 	"github.com/bmatcuk/doublestar/v4"
@@ -36,7 +34,7 @@ func registerConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args st
 		return nil, err
 	}
 
-	t.Local(proxyStateKey).(*starzelleState).addPlugin(
+	err = t.Local(proxyStateKey).(*starzelleState).addPlugin(
 		t,
 		pluginId,
 		properties,
@@ -45,7 +43,7 @@ func registerConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args st
 		declare,
 	)
 
-	return starlark.None, nil
+	return starlark.None, err
 }
 
 func registerRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -63,34 +61,37 @@ func registerRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		return nil, err
 	}
 
-	t.Local(proxyStateKey).(*starzelleState).addKind(t, kind, attributes)
-	return starlark.None, nil
+	err = t.Local(proxyStateKey).(*starzelleState).addKind(t, kind, attributes)
+	return starlark.None, err
 }
 
-func readQueryFilters(v starlark.Value) []string {
+func readQueryFilters(v starlark.Value) ([]string, error) {
 	if v == nil {
-		return nil
+		return nil, nil
 	}
 
 	if filterString, ok := v.(starlark.String); ok {
-		return []string{readQueryFilter(filterString)}
+		s, err := readGlobPattern(filterString)
+		if err != nil {
+			return nil, err
+		}
+		return []string{s}, nil
 	}
 
-	return starUtils.ReadList(v, readQueryFilter)
+	return starUtils.ReadList(v, readGlobPattern)
 }
 
-func readQueryFilter(v starlark.Value) string {
-	return readGlobPatternFatal(v, "query filter")
-}
-
-func readGlobPatternFatal(v starlark.Value, what string) string {
-	s := v.(starlark.String).GoString()
-
-	if !doublestar.ValidatePattern(s) {
-		BazelLog.Fatalf("Invalid %s: %v", what, s)
+func readGlobPattern(v starlark.Value) (string, error) {
+	s, isString := v.(starlark.String)
+	if !isString {
+		return "", fmt.Errorf("invalid glob pattern type: %T", v)
 	}
 
-	return s
+	if !doublestar.ValidatePattern(s.GoString()) {
+		return "", fmt.Errorf("invalid glob pattern: %q", v)
+	}
+
+	return s.GoString(), nil
 }
 
 func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -110,8 +111,13 @@ func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		return nil, err
 	}
 
+	filters, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.QueryDefinition{
-		Filter:    readQueryFilters(filterValue),
+		Filter:    filters,
 		QueryType: plugin.QueryTypeAst,
 		Params: plugin.AstQueryParams{
 			Grammar: grammarValue.GoString(),
@@ -135,8 +141,13 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		return nil, err
 	}
 
+	filters, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.QueryDefinition{
-		Filter:    readQueryFilters(filterValue),
+		Filter:    filters,
 		QueryType: plugin.QueryTypeRegex,
 		Params:    expression.GoString(),
 	}, nil
@@ -155,8 +166,13 @@ func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		return nil, err
 	}
 
+	filters, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.QueryDefinition{
-		Filter:    readQueryFilters(filterValue),
+		Filter:    filters,
 		QueryType: plugin.QueryTypeRaw,
 	}, nil
 }
@@ -176,8 +192,13 @@ func newJsonQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 
+	filters, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.QueryDefinition{
-		Filter:    readQueryFilters(filterValue),
+		Filter:    filters,
 		QueryType: plugin.QueryTypeJson,
 		Params:    queryValue.GoString(),
 	}, nil
@@ -198,33 +219,40 @@ func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 
+	filters, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.QueryDefinition{
-		Filter:    readQueryFilters(filterValue),
+		Filter:    filters,
 		QueryType: plugin.QueryTypeYaml,
 		Params:    queryValue.GoString(),
 	}, nil
 }
 
 func newSourceExtensions(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return plugin.SourceExtensionsFilter{
-		Extensions: starUtils.ReadStringTuple(args),
-	}, nil
+	exts, err := starUtils.ReadStringTuple(args)
+	if err != nil {
+		return nil, err
+	}
+	return plugin.SourceExtensionsFilter{Extensions: exts}, nil
 }
 
 func newSourceGlobs(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return plugin.SourceGlobFilter{
-		Globs: starUtils.ReadTuple(args, readSourceGlob),
-	}, nil
-}
-
-func readSourceGlob(v starlark.Value) string {
-	return readGlobPatternFatal(v, "source glob")
+	globs, err := starUtils.ReadTuple(args, readGlobPattern)
+	if err != nil {
+		return nil, err
+	}
+	return plugin.SourceGlobFilter{Globs: globs}, nil
 }
 
 func newSourceFiles(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	return plugin.SourceFileFilter{
-		Files: starUtils.ReadStringTuple(args),
-	}, nil
+	files, err := starUtils.ReadStringTuple(args)
+	if err != nil {
+		return nil, err
+	}
+	return plugin.SourceFileFilter{Files: files}, nil
 }
 
 func newPrepareResult(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -253,7 +281,7 @@ func newPrepareResult(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 
 			qd, isQd := v.(plugin.QueryDefinition)
 			if !isQd {
-				BazelLog.Fatalf("'queries' %v (%s) is not a QueryDefinition", v, reflect.TypeOf(v))
+				return nil, fmt.Errorf("'queries' %v (%T) is not a QueryDefinition", v, v)
 			}
 
 			queries[k.(starlark.String).GoString()] = qd
@@ -264,10 +292,17 @@ func newPrepareResult(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	if sourcesValue != nil {
 		// Allow source values as a flat list or a map of lists
 		if sourceDict, isDict := (sourcesValue).(*starlark.Dict); isDict {
-			sources = starUtils.ReadMap(sourceDict, readSourceFilterEntry)
+			sources, err = starUtils.ReadMap2(sourceDict, readSourceFilterEntry)
+			if err != nil {
+				return nil, err
+			}
 		} else {
+			g, err := readSourceFilterEntry(sourcesValue)
+			if err != nil {
+				return nil, err
+			}
 			sources = map[string][]plugin.SourceFilter{
-				plugin.DeclareTargetsContextDefaultGroup: readSourceFilterEntry(plugin.DeclareTargetsContextDefaultGroup, sourcesValue),
+				plugin.DeclareTargetsContextDefaultGroup: g,
 			}
 		}
 	}
@@ -278,22 +313,24 @@ func newPrepareResult(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 	}, nil
 }
 
-func readSourceFilterEntry(k string, v starlark.Value) []plugin.SourceFilter {
+func readSourceFilterEntry(v starlark.Value) ([]plugin.SourceFilter, error) {
 	if list, isList := v.(*starlark.List); isList {
 		return starUtils.ReadList(list, readSourceFilter)
 	} else {
-		return []plugin.SourceFilter{readSourceFilter(v)}
+		v, err := readSourceFilter(v)
+		if err != nil {
+			return nil, err
+		}
+		return []plugin.SourceFilter{v}, nil
 	}
 }
 
-func readSourceFilter(v starlark.Value) plugin.SourceFilter {
+func readSourceFilter(v starlark.Value) (plugin.SourceFilter, error) {
 	f, isF := v.(plugin.SourceFilter)
-
 	if !isF {
-		BazelLog.Fatalf("'sources' %v is not a SourceFilter", f)
+		return nil, fmt.Errorf("'sources' %v (%T) is not a SourceFilter", f, f)
 	}
-
-	return f
+	return f, nil
 }
 
 func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -314,9 +351,7 @@ func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 	}
 
 	if id.GoString() == "" || provider.GoString() == "" {
-		msg := "Import id and provider cannot be empty\n"
-		fmt.Print(msg)
-		BazelLog.Fatal(msg)
+		return nil, fmt.Errorf("import id and provider cannot be empty")
 	}
 
 	return plugin.TargetImport{
@@ -386,9 +421,14 @@ func newProperty(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		return nil, err
 	}
 
+	defaultValue, err := starUtils.Read(propDefault)
+	if err != nil {
+		return nil, err
+	}
+
 	return plugin.Property{
 		PropertyType: propType.GoString(),
-		Default:      starUtils.Read(propDefault),
+		Default:      defaultValue,
 	}, nil
 }
 

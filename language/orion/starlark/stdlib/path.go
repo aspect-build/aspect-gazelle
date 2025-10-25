@@ -1,6 +1,7 @@
 package starlark
 
 import (
+	"fmt"
 	"path"
 
 	utils "github.com/aspect-build/aspect-gazelle/language/orion/starlark/utils"
@@ -36,7 +37,11 @@ func path_ext(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwar
 }
 
 func path_join(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, _ []starlark.Tuple) (starlark.Value, error) {
-	return starlark.String(path.Join(utils.ReadStringTuple(args)...)), nil
+	parts, err := utils.ReadStringTuple(args)
+	if err != nil {
+		return nil, fmt.Errorf("path.join: %w", err)
+	}
+	return starlark.String(path.Join(parts...)), nil
 }
 
 var Path = utils.CreateModule("path", map[string]utils.ModuleFunction{

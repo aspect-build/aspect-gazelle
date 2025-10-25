@@ -5,6 +5,7 @@ package starzelle
  */
 
 import (
+	"errors"
 	"fmt"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -50,15 +51,24 @@ func LoadProxy(host plugin.PluginHost, pluginDir, pluginPath string) error {
 	return nil
 }
 
-func (s *starzelleState) addKind(_ *starlark.Thread, name starlark.String, attributes *starlark.Dict) {
-	s.host.AddKind(readRuleKind(name, attributes))
+func (s *starzelleState) addKind(_ *starlark.Thread, name starlark.String, attributes *starlark.Dict) error {
+	pluginKind, err := readRuleKind(name, attributes)
+	if err != nil {
+		return fmt.Errorf("failed to read rule kind %q: %w", name.GoString(), err)
+	}
+	s.host.AddKind(pluginKind)
+	return nil
 }
 
-func (s *starzelleState) addPlugin(t *starlark.Thread, pluginId starlark.String, properties *starlark.Dict, prepare, analyze, declare *starlark.Function) {
+func (s *starzelleState) addPlugin(t *starlark.Thread, pluginId starlark.String, properties *starlark.Dict, prepare, analyze, declare *starlark.Function) error {
 	var pluginProperties map[string]plugin.Property
+	var err error
 
 	if properties != nil {
-		pluginProperties = starUtils.ReadMap(properties, readProperty)
+		pluginProperties, err = starUtils.ReadMap(properties, readProperty)
+		if err != nil {
+			return fmt.Errorf("failed to read plugin properties for %q: %w", pluginId.GoString(), err)
+		}
 	}
 
 	// A thread is created for each plugin to run in.
@@ -77,6 +87,8 @@ func (s *starzelleState) addPlugin(t *starlark.Thread, pluginId starlark.String,
 		analyze:    analyze,
 		declare:    declare,
 	})
+
+	return nil
 }
 
 // A plugin implementation loaded via starlark and proxying
@@ -168,27 +180,34 @@ func (p starzellePluginProxy) DeclareTargets(ctx plugin.DeclareTargetsContext) p
 	}
 }
 
-func readRuleKind(n starlark.String, v starlark.Value) plugin.RuleKind {
+func readRuleKind(n starlark.String, v starlark.Value) (plugin.RuleKind, error) {
+	from, err1 := starUtils.ReadMapEntry(v, "From", starUtils.ReadString, "")
+	matchAny, err2 := starUtils.ReadMapEntry(v, "MatchAny", starUtils.ReadBool, false)
+	matchAttrs, err3 := starUtils.ReadMapEntry(v, "MatchAttrs", starUtils.ReadStringList, starUtils.EmptyStrings)
+	nonEmptyAttrs, err4 := starUtils.ReadMapEntry(v, "NonEmptyAttrs", starUtils.ReadStringList, starUtils.EmptyStrings)
+	mergeableAttrs, err5 := starUtils.ReadMapEntry(v, "MergeableAttrs", starUtils.ReadStringList, starUtils.EmptyStrings)
+	resolveAttrs, err6 := starUtils.ReadMapEntry(v, "ResolveAttrs", starUtils.ReadStringList, starUtils.EmptyStrings)
+
+	err := errors.Join(err1, err2, err3, err4, err5, err6)
+
 	return plugin.RuleKind{
 		Name: n.GoString(),
-		From: starUtils.ReadMapStringEntry(v, "From"),
+		From: from,
 		KindInfo: plugin.KindInfo{
-			MatchAny:       starUtils.ReadOptionalMapEntry(v, "MatchAny", starUtils.ReadBool, false),
-			MatchAttrs:     starUtils.ReadOptionalMapEntry(v, "MatchAttrs", starUtils.ReadStringList, starUtils.EmptyStrings),
-			NonEmptyAttrs:  starUtils.ReadOptionalMapEntry(v, "NonEmptyAttrs", starUtils.ReadStringList, starUtils.EmptyStrings),
-			MergeableAttrs: starUtils.ReadOptionalMapEntry(v, "MergeableAttrs", starUtils.ReadStringList, starUtils.EmptyStrings),
-			ResolveAttrs:   starUtils.ReadOptionalMapEntry(v, "ResolveAttrs", starUtils.ReadStringList, starUtils.EmptyStrings),
+			MatchAny:       matchAny,
+			MatchAttrs:     matchAttrs,
+			NonEmptyAttrs:  nonEmptyAttrs,
+			MergeableAttrs: mergeableAttrs,
+			ResolveAttrs:   resolveAttrs,
 		},
-	}
+	}, err
 }
 
-func readProperty(k string, v starlark.Value) plugin.Property {
+func readProperty(k string, v starlark.Value) (plugin.Property, error) {
 	p, isProp := v.(plugin.Property)
 
 	if !isProp {
-		msg := fmt.Sprintf("Property %s value %v is not a Property", k, v)
-		fmt.Println(msg)
-		BazelLog.Fatalf(msg)
+		return plugin.Property{}, fmt.Errorf("property %s value %v is not a Property", k, v)
 	}
 
 	if p.Name != "" && p.Name != k {
@@ -196,5 +215,5 @@ func readProperty(k string, v starlark.Value) plugin.Property {
 	}
 
 	p.Name = k
-	return p
+	return p, nil
 }
