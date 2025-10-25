@@ -58,7 +58,7 @@ func GetProtoImports(filepath string) ([]string, error) {
 		return nil, err
 	}
 
-	imports := make([]string, 0)
+	imports := []string{}
 
 	for _, match := range protoRe.FindAllSubmatch(content, -1) {
 		switch {

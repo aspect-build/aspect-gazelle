@@ -263,7 +263,7 @@ func (h *GazelleHost) ApparentLoads(moduleToApparentName func(string) string) []
 				loads[fromStr] = &rule.LoadInfo{
 					Name:    fromStr,
 					Symbols: make([]string, 0, 1),
-					After:   make([]string, 0),
+					After:   []string{},
 				}
 			}
 

@@ -59,7 +59,7 @@ const importsQuery = `
 func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, []error) {
 	var result = &ParseResult{
 		File:    filePath,
-		Imports: make([]string, 0),
+		Imports: []string{},
 	}
 
 	errs := make([]error, 0)

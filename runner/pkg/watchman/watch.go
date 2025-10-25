@@ -207,7 +207,7 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 		return nil, fmt.Errorf("query error response: %s", resp["error"])
 	}
 
-	files := make([]string, 0)
+	files := []string{}
 
 	if resp["files"] != nil {
 		rf := resp["files"].([]interface{})
@@ -416,7 +416,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, dropWithinState string)
 				return
 			}
 
-			files := make([]string, 0)
+			files := []string{}
 
 			if resp["files"] != nil {
 				rf := resp["files"].([]interface{})

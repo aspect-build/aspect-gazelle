@@ -30,7 +30,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 		return nil, err
 	}
 
-	imports := make([]string, 0)
+	imports := []string{}
 
 	if c.Main != "" {
 		imports = append(imports, path.Clean(c.Main))

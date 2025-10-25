@@ -192,7 +192,7 @@ func TestGitIgnore(t *testing.T) {
 // Util method to invoke GitIgnore.AddIgnore() with the trimmed string
 // value to allow tests to be written with multiline strings including indentation.
 func addIgnoreFileContent(parentPatterns []gitignore.Pattern, rel, ignoreContents string) (isGitIgnored, []gitignore.Pattern) {
-	ignoreLines := make([]string, 0)
+	ignoreLines := []string{}
 	for line := range strings.SplitSeq(ignoreContents, "\n") {
 		if trimmdLine := strings.TrimSpace(line); trimmdLine != "" {
 			ignoreLines = append(ignoreLines, trimmdLine)
