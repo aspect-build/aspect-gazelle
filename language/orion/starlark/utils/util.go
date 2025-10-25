@@ -76,7 +76,7 @@ func ReadList[V any](v starlark.Value, f func(v starlark.Value) V) []V {
 	l := v.(*starlark.List)
 	len := l.Len()
 	a := make([]V, 0, len)
-	for i := 0; i < len; i++ {
+	for i := range len {
 		a = append(a, f(l.Index(i)))
 	}
 	return a
@@ -85,7 +85,7 @@ func ReadList[V any](v starlark.Value, f func(v starlark.Value) V) []V {
 func ReadTuple[V any](t starlark.Tuple, f func(v starlark.Value) V) []V {
 	len := t.Len()
 	a := make([]V, 0, len)
-	for i := 0; i < len; i++ {
+	for i := range len {
 		a = append(a, f(t.Index(i)))
 	}
 	return a
@@ -148,7 +148,7 @@ func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) inte
 func readIndexable(v starlark.Indexable, read func(v starlark.Value) interface{}) []interface{} {
 	len := v.Len()
 	a := make([]interface{}, 0, len)
-	for i := 0; i < len; i++ {
+	for i := range len {
 		a = append(a, read(v.Index(i)))
 	}
 	return a
