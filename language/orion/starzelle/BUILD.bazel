@@ -12,8 +12,8 @@ go_library(
         "//plugin",
         "//starlark",
         "//starlark/utils",
+        "@aspect_gazelle//common",
         "@aspect_gazelle//common/logger",
-        "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@net_starlark_go//starlark",
     ],
 )

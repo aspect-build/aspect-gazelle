@@ -406,7 +406,7 @@ func (r SourceExtensionsFilter) AttrNames() []string {
 	return []string{"extensions"}
 }
 
-// ---------------- SourceFileFilter
+// ---------------- SourceGlobFilter
 
 var _ starlark.Value = (*SourceGlobFilter)(nil)
 var _ starlark.HasAttrs = (*SourceGlobFilter)(nil)

@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	"github.com/bmatcuk/doublestar/v4"
+	common "github.com/aspect-build/aspect-gazelle/common"
 )
 
 // A set of queries keyed by name.
@@ -28,6 +28,8 @@ type QueryDefinition struct {
 	Filter    []string
 	QueryType QueryType
 	Params    interface{}
+
+	FilterExpr common.GlobExpr
 }
 
 func (q QueryDefinition) Match(f string) bool {
@@ -35,12 +37,7 @@ func (q QueryDefinition) Match(f string) bool {
 		return true
 	}
 
-	for _, filter := range q.Filter {
-		if doublestar.MatchUnvalidated(filter, f) {
-			return true
-		}
-	}
-	return false
+	return q.FilterExpr(f)
 }
 
 // TODO: better naming?  QueryMapping?

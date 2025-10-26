@@ -2,9 +2,10 @@ package plugin
 
 import (
 	"encoding/gob"
+	"slices"
 	"strings"
 
-	"github.com/bmatcuk/doublestar/v4"
+	common "github.com/aspect-build/aspect-gazelle/common"
 )
 
 type PluginId = string
@@ -121,19 +122,33 @@ type SourceFilter interface {
 	Match(p string) bool
 }
 
+func NewSourceGlobFilter(in []string) (SourceFilter, error) {
+	expr, err := common.ParseGlobExpressions(in)
+	if err != nil {
+		return nil, err
+	}
+
+	return &SourceGlobFilter{
+		Globs: in,
+		expr:  expr,
+	}, nil
+}
+func NewSourceExtensionsFilter(exts []string) SourceFilter {
+	return &SourceExtensionsFilter{Extensions: exts}
+}
+func NewSourceFileFilter(files []string) SourceFilter {
+	return &SourceFileFilter{Files: files}
+}
+
 var _ SourceFilter = (*SourceGlobFilter)(nil)
 
 type SourceGlobFilter struct {
 	Globs []string
+	expr  common.GlobExpr
 }
 
 func (f SourceGlobFilter) Match(p string) bool {
-	for _, glob := range f.Globs {
-		if doublestar.MatchUnvalidated(glob, p) {
-			return true
-		}
-	}
-	return false
+	return f.expr(p)
 }
 
 var _ SourceFilter = (*SourceExtensionsFilter)(nil)
@@ -158,12 +173,7 @@ type SourceFileFilter struct {
 }
 
 func (sf SourceFileFilter) Match(p string) bool {
-	for _, f := range sf.Files {
-		if p == f {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(sf.Files, p)
 }
 
 type Label struct {

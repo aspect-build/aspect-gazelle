@@ -364,8 +364,6 @@ func convertPluginAttribute(pkg string, val interface{}) ([]interface{}, []plugi
 
 func init() {
 	// Ensure types used in cache key computation are known to the gob encoder
-	gob.Register(plugin.NamedQueries{})
-	gob.Register(plugin.QueryDefinition{})
 	gob.Register(plugin.QueryType(""))
 	gob.Register(plugin.AstQueryParams{})
 	gob.Register(plugin.RegexQueryParams(""))
@@ -386,8 +384,17 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 		if err := e.Encode(key); err != nil {
 			BazelLog.Fatalf("Failed to encode query key %q: %v", key, err)
 		}
-		if err := e.Encode(queries[key]); err != nil {
-			BazelLog.Fatalf("Failed to encode query value %q: %v", queries[key], err)
+		q := queries[key]
+		if err := e.Encode(q.QueryType); err != nil {
+			BazelLog.Fatalf("Failed to encode query type value %q: %v", q, err)
+		}
+		if err := e.Encode(q.Filter); err != nil {
+			BazelLog.Fatalf("Failed to encode query filter value %q: %v", q, err)
+		}
+		if q.Params != nil {
+			if err := e.Encode(q.Params); err != nil {
+				BazelLog.Fatalf("Failed to encode query params value %q: %v", q, err)
+			}
 		}
 	}
 

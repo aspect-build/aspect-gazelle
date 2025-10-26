@@ -5,9 +5,8 @@ import (
 	"path"
 	"strings"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/bazelbuild/bazel-gazelle/label"
-	"github.com/bmatcuk/doublestar/v4"
-	"github.com/emirpasic/gods/maps/linkedhashmap"
 )
 
 // Directives. Keep in sync with documentation in /docs/cli/help/directives.md
@@ -153,6 +152,11 @@ const (
 	PackageTargetKind_Library PackageTargetKind = JsLibraryKind
 )
 
+type jsResolve struct {
+	importGlob common.GlobExpr
+	label      *label.Label
+}
+
 // JsGazelleConfig represents a config extension for a specific Bazel package.
 type JsGazelleConfig struct {
 	rel    string
@@ -173,8 +177,8 @@ type JsGazelleConfig struct {
 	tsconfigName         string
 	tsconfigIgnoredProps []string
 
-	ignoreDependencies       []string
-	resolves                 *linkedhashmap.Map
+	ignoreDependencies       []common.GlobExpr
+	resolves                 []jsResolve
 	validateImportStatements ValidationMode
 	targets                  []*TargetGroup
 
@@ -198,9 +202,9 @@ func newRootConfig() *JsGazelleConfig {
 		pnpmLockDir:                "",
 		pnpmLockPath:               "pnpm-lock.yaml",
 		tsconfigName:               "tsconfig.json",
-		ignoreDependencies:         []string{},
+		ignoreDependencies:         []common.GlobExpr{},
 		tsconfigIgnoredProps:       []string{},
-		resolves:                   linkedhashmap.New(),
+		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,
 		npmLinkAllTargetName:       DefaultNpmLinkAllTargetName,
 		npmPackageNamingConvention: DefaultNpmPackageTargetName,
@@ -231,8 +235,8 @@ func (c *JsGazelleConfig) NewChild(childPath string) *JsGazelleConfig {
 	cCopy := *c
 	cCopy.rel = childPath
 	cCopy.parent = c
-	cCopy.ignoreDependencies = []string{}
-	cCopy.resolves = linkedhashmap.New()
+	cCopy.ignoreDependencies = []common.GlobExpr{}
+	cCopy.resolves = []jsResolve{}
 
 	// Copy the targets, any modifications will be local.
 	cCopy.targets = make([]*TargetGroup, 0, len(c.targets))
@@ -358,12 +362,13 @@ func (c *JsGazelleConfig) IsTsConfigIgnored(propName string) bool {
 // a given package. Adding an ignored dependency to a package also makes it
 // ignored on a subpackage.
 func (c *JsGazelleConfig) AddIgnoredImport(impGlob string) {
-	if !doublestar.ValidatePattern(impGlob) {
+	ge, err := common.ParseGlobExpression(impGlob)
+	if err != nil {
 		fmt.Println("Invalid js ignore import glob: ", impGlob)
 		return
 	}
 
-	c.ignoreDependencies = append(c.ignoreDependencies, impGlob)
+	c.ignoreDependencies = append(c.ignoreDependencies, ge)
 }
 
 // Checks if a import is ignored in the given package or
@@ -372,7 +377,7 @@ func (c *JsGazelleConfig) IsImportIgnored(impt string) bool {
 	config := c
 	for config != nil {
 		for _, glob := range config.ignoreDependencies {
-			if doublestar.MatchUnvalidated(glob, impt) {
+			if glob(impt) {
 				return true
 			}
 		}
@@ -384,21 +389,21 @@ func (c *JsGazelleConfig) IsImportIgnored(impt string) bool {
 }
 
 func (c *JsGazelleConfig) AddResolve(imprt string, label *label.Label) {
-	if !doublestar.ValidatePattern(imprt) {
+	expr, err := common.ParseGlobExpression(imprt)
+	if err != nil {
 		fmt.Println("Invalid js resolve glob: ", imprt)
 		return
 	}
 
-	c.resolves.Put(imprt, label)
+	c.resolves = append(c.resolves, jsResolve{importGlob: expr, label: label})
 }
 
 func (c *JsGazelleConfig) GetResolution(imprt string) *label.Label {
 	config := c
 	for config != nil {
-		for it := config.resolves.Iterator(); it.Next(); {
-			glob := it.Key().(string)
-			if doublestar.MatchUnvalidated(glob, imprt) {
-				return it.Value().(*label.Label)
+		for _, resolve := range config.resolves {
+			if resolve.importGlob(imprt) {
+				return resolve.label
 			}
 		}
 		config = config.parent
@@ -490,9 +495,10 @@ func (c *JsGazelleConfig) GetFileSourceTarget(filePath, rootDir string) *TargetG
 		}
 
 		for _, globTmpl := range sources {
-			glob := path.Clean(strings.Replace(globTmpl, rootDirVar, rootDir, 1))
+			globExpr := path.Clean(strings.Replace(globTmpl, rootDirVar, rootDir, 1))
+			glob, _ := common.ParseGlobExpression(globExpr)
 
-			if doublestar.MatchUnvalidated(glob, filePath) {
+			if glob(filePath) {
 				return target
 			}
 		}
@@ -532,7 +538,7 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 				return fmt.Errorf("Custom %s target %s:%s can not override %s target", targetWord, c.rel, targetName, overrideWord)
 			}
 
-			if !doublestar.ValidatePattern(glob) {
+			if _, err := common.ParseGlobExpression(glob); err != nil {
 				return fmt.Errorf("Invalid target (%s) glob: %v", target.name, glob)
 			}
 

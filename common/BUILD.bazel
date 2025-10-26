@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "directives.go",
         "error.go",
+        "glob.go",
         "regex.go",
         "set.go",
         "walk.go",
@@ -15,6 +16,7 @@ go_library(
     deps = [
         "//common/logger",
         "@com_github_bazelbuild_buildtools//build",
+        "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods//sets/treeset",
         "@gazelle//config",
         "@gazelle//label",
@@ -25,10 +27,14 @@ go_library(
 
 go_test(
     name = "common_test",
-    srcs = ["set_test.go"],
+    srcs = [
+        "glob_test.go",
+        "set_test.go",
+    ],
     embed = [":common"],
     deps = [
         "@com_github_bazelbuild_buildtools//build",
+        "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@gazelle//label",
     ],
 )

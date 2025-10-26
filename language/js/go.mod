@@ -8,7 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/bazelbuild/bazel-gazelle v0.46.0-rc2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52
-	github.com/bmatcuk/doublestar/v4 v4.9.1
+	github.com/bmatcuk/doublestar/v4 v4.9.1 // indirect
 	github.com/emirpasic/gods v1.18.1
 	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // NOTE: upgrade causes issues with invalid json
 	golang.org/x/mod v0.29.0 // indirect

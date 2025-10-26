@@ -16,8 +16,8 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//starlark/utils",
+        "@aspect_gazelle//common",
         "@com_github_bazelbuild_buildtools//build",
-        "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@gazelle//rule",
         "@net_starlark_go//starlark",
     ],

@@ -47,8 +47,6 @@ go_library(
         "@aspect_gazelle//common/logger",
         "@aspect_gazelle//common/rule",
         "@com_github_bazelbuild_buildtools//build",
-        "@com_github_bmatcuk_doublestar_v4//:doublestar",
-        "@com_github_emirpasic_gods//maps/linkedhashmap",
         "@com_github_emirpasic_gods//maps/treemap",
         "@com_github_emirpasic_gods//sets/treeset",
         "@gazelle//config",
