@@ -42,7 +42,7 @@ func (*typeScriptLang) Name() string { return LanguageName }
 // Determine what rule (r) outputs which can be imported.
 // For TypeScript this is all the import-paths pointing to files within the rule.
 func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
-	BazelLog.Debugf("Imports(%s): //%s:%s", LanguageName, f.Pkg, r.Name())
+	BazelLog.Tracef("Imports(%s): //%s:%s", LanguageName, f.Pkg, r.Name())
 
 	switch r.Kind() {
 	case TsProtoLibraryKind:
@@ -63,12 +63,16 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 
 	infoAttr := r.PrivateAttr("ts_project_info")
 	if infoAttr != nil && infoAttr.(*TsProjectInfo).sources != nil {
+		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
+
 		srcsSet := infoAttr.(*TsProjectInfo).sources
 		srcs = make([]string, 0, srcsSet.Size())
 		for it := srcsSet.Iterator(); it.Next(); {
 			srcs = append(srcs, it.Value().(string))
 		}
 	} else {
+		BazelLog.Debugf("Imports(%s): //%s:%s (non-generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
+
 		sourceFiles, err := common.GetSourceRegularFiles(f.Pkg)
 		if err != nil {
 			BazelLog.Errorf("Failed to fetch source files %s:%s - %v", f.Pkg, r.Name(), err)
@@ -124,6 +128,8 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 }
 
 func (ts *typeScriptLang) tsconfigImports(r *rule.Rule, f *rule.File) []resolve.ImportSpec {
+	BazelLog.Debugf("Imports(%s): //%s:%s (%s)", LanguageName, f.Pkg, r.Name(), r.Kind())
+
 	// Only the tsconfig file itself is exposed.
 	// The output is the same as the ts_config(src) input.
 	return []resolve.ImportSpec{
@@ -142,6 +148,8 @@ func (ts *typeScriptLang) protoLibraryImports(r *rule.Rule, f *rule.File) []reso
 	if protoSrcsAttr == nil {
 		return nil
 	}
+
+	BazelLog.Debugf("Imports(%s): //%s:%s (%s)", LanguageName, f.Pkg, r.Name(), r.Kind())
 
 	protoSrcs := protoSrcsAttr.([]string)
 	dtsOutputs := []string{}
