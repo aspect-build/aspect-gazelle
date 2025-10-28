@@ -1,0 +1,17 @@
+diff --git a/walk/walk.go b/walk/walk.go
+index 0e59bcf..b8d774c 100644
+--- a/walk/walk.go
++++ b/walk/walk.go
+@@ -373,6 +373,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
+ 		relsToVisitSeen: make(map[string]struct{}),
+ 	}
+ 
++	// PATCH(caching): additional aspect-gazelle caching of walker
++	if c.Exts["aspect:walkCache:load"] != nil {
++		walkCacheLoad := c.Exts["aspect:walkCache:load"].(func(m interface{}))
++		walkCacheLoad(&w.cache.entryMap)
++	}
++
+ 	// Asynchronously populate the walker cache in the background.
+ 	go w.populateCache()
+ 

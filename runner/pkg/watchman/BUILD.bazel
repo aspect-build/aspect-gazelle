@@ -26,6 +26,7 @@ go_test(
     ],
     embed = [":watchman"],
     tags = ["manual"],  # TODO: we need watchman in our runners.
+    deps = ["@gazelle//config"],
 )
 
 # At least make sure watch tests can build despite being tagged as manual

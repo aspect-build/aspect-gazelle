@@ -3,6 +3,8 @@ package watchman
 import (
 	"os"
 	"testing"
+
+	"github.com/bazelbuild/bazel-gazelle/config"
 )
 
 func TestLoadOrStoreFile(t *testing.T) {
@@ -22,7 +24,7 @@ func TestLoadOrStoreFile(t *testing.T) {
 	defer w.Stop()
 	defer w.Close()
 
-	c := newWatchmanCache(w, getTempFile(t))
+	c := newWatchmanCache(config.New(), w, getTempFile(t))
 
 	computes := 0
 	compute := func(path string, content []byte) (any, error) {
@@ -73,7 +75,7 @@ func TestLoadOrStoreFileSymlink(t *testing.T) {
 	defer w.Stop()
 	defer w.Close()
 
-	c := newWatchmanCache(w, getTempFile(t))
+	c := newWatchmanCache(config.New(), w, getTempFile(t))
 
 	computes := 0
 	compute := func(path string, content []byte) (any, error) {

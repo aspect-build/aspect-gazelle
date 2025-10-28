@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 
 	"github.com/aspect-build/aspect-gazelle/common/cache"
@@ -34,6 +35,10 @@ type watchmanCache struct {
 	old           map[string]map[string]any
 	new           *sync.Map
 	lastClockSpec string
+
+	// A reference to the walk cache used in the last gazelle invocation
+	// to allow restoration in the next invocation.
+	walkCache *sync.Map
 }
 
 var _ cache.Cache = (*watchmanCache)(nil)
@@ -53,10 +58,14 @@ func NewWatchmanCache(c *config.Config) cache.Cache {
 		log.Fatalf("failed to start the watcher: %v", err)
 	}
 
-	return newWatchmanCache(w, diskCachePath)
+	return newWatchmanCache(c, w, diskCachePath)
 }
 
-func newWatchmanCache(w *WatchmanWatcher, diskCachePath string) *watchmanCache {
+// The walk cache of a previous invocation of gazelle.
+// Must be a global var that persists across multiple gazelle invocations.
+var previousWalkCache *sync.Map
+
+func newWatchmanCache(c *config.Config, w *WatchmanWatcher, diskCachePath string) *watchmanCache {
 	wc := &watchmanCache{
 		w:    w,
 		file: diskCachePath,
@@ -65,6 +74,7 @@ func newWatchmanCache(w *WatchmanWatcher, diskCachePath string) *watchmanCache {
 
 		symlinks: &sync.Map{},
 	}
+	wc.populateWalkCache(c)
 	wc.read()
 
 	runtime.SetFinalizer(wc, closeWatchmanCache)
@@ -76,6 +86,45 @@ func closeWatchmanCache(c *watchmanCache) {
 	c.w.Close()
 }
 
+func (c *watchmanCache) populateWalkCache(cfg *config.Config) {
+	// If a walk cache was provided also provide the loader to copy the cached entries
+	// into any fresh walk cache. This must be invoked from a patched gazelle walk.
+	cfg.Exts["aspect:walkCache:load"] = func(m interface{}) {
+		cc := 0
+
+		newWalkCache := m.(*sync.Map)
+		if c.walkCache != nil {
+			c.walkCache.Range(func(key, value any) bool {
+				cc++
+				newWalkCache.Store(key, value)
+				return true
+			})
+		}
+
+		BazelLog.Debugf("Loaded %d walk cache entries into new walk cache\n", cc)
+
+		// Keep a reference to the walk cache for the new gazelle walk invocation
+		// in case of subsequent gazelle invocations.
+		previousWalkCache = newWalkCache
+	}
+}
+
+func invalidateWalkCache(m *sync.Map, staleD string) {
+	if staleD == "." || staleD == "" {
+		m.Clear()
+		return
+	}
+
+	m.Range(func(key, value any) bool {
+		d := key.(string)
+		// Delete the stale directory and any children that may inherit the state
+		if staleD == d || len(d) > len(staleD) && strings.HasPrefix(d, staleD) && d[len(staleD)] == '/' {
+			m.Delete(key)
+		}
+		return true
+	})
+}
+
 func (c *watchmanCache) read() {
 	cacheReader, err := os.Open(c.file)
 	if err != nil {
@@ -83,6 +132,7 @@ func (c *watchmanCache) read() {
 		return
 	}
 	defer cacheReader.Close()
+	defer func() { previousWalkCache = nil }()
 
 	var v cacheState
 
@@ -111,14 +161,20 @@ func (c *watchmanCache) read() {
 		return
 	}
 
-	// Discard entries which have changed since the last cache write.
 	for _, p := range cs.Paths {
+		// Discard entries which have changed since the last cache write.
 		delete(v.Entries, p)
+
+		// Discard any walk cache entries for the removed/changed path and its parents.
+		if previousWalkCache != nil {
+			invalidateWalkCache(previousWalkCache, path.Dir(p))
+		}
 	}
 
 	// Persist the still valid entries as the "old" cache state
 	c.old = v.Entries
 	c.lastClockSpec = cs.ClockSpec
+	c.walkCache = previousWalkCache
 
 	// Persist the fact that all persisted paths are not symlinks.
 	// Only new paths with no cache entries will require a stat call.
