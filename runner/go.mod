@@ -13,7 +13,7 @@ go 1.24.5
 require (
 	github.com/EngFlow/gazelle_cc v0.1.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20251012075144-43a5acf8cedf
-	github.com/bazelbuild/bazel-gazelle v0.45.0 // NOTE: keep in sync with MODULE.bazel
+	github.com/bazelbuild/bazel-gazelle v0.46.0-rc2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0

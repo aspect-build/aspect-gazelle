@@ -38,15 +38,15 @@ bazel_dep(name = "gazelle_cc", version = "0.1.0")  # must match go.mod
 # Override the gazelle version used locally to pre-release and apply aspect patches
 archive_override(
     module_name = "gazelle",
-    integrity = "sha256-PVedDoJ8oJ5feBKNhef2Y2ziooEYcMB3FuAvNNh1qJI=",
+    integrity = "sha256-7OFD5iTGfqKOaFkiuMIwl2ph2gXVUSpaCxWHnY/lwOw=",
     patch_strip = 1,
     patches = [
         "//patches:bazelbuild_bazel-gazelle_aspect-cli.patch",
         "//patches:bazelbuild_bazel-gazelle_aspect-watchman.patch",
         "//pkg/git:gazelle-gitignore.patch",
     ],
-    strip_prefix = "bazel-gazelle-2de7b829fef136795c68d9d3b8644a379693cf55",
-    urls = ["https://github.com/bazel-contrib/bazel-gazelle/archive/2de7b829fef136795c68d9d3b8644a379693cf55.tar.gz"],
+    strip_prefix = "bazel-gazelle-47b5773efc64569526e4cafe53cf74d8993dfda9",
+    urls = ["https://github.com/bazel-contrib/bazel-gazelle/archive/47b5773efc64569526e4cafe53cf74d8993dfda9.tar.gz"],
 )
 
 # Go modules

@@ -6,7 +6,7 @@ replace github.com/aspect-build/aspect-gazelle/common => ../../common
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/bazelbuild/bazel-gazelle v0.45.0 // NOTE: keep in sync with MODULE.bazel
+	github.com/bazelbuild/bazel-gazelle v0.46.0-rc2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52
 	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/emirpasic/gods v1.18.1
