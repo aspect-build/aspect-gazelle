@@ -2,6 +2,7 @@ package ibp
 
 import (
 	"fmt"
+	"iter"
 	"slices"
 
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
@@ -10,7 +11,7 @@ import (
 type IncrementalClient interface {
 	Connect() error
 	Disconnect() error
-	AwaitCycle() <-chan CycleSourcesMessage
+	AwaitCycle() iter.Seq[CycleSourcesMessage]
 }
 
 type incClient struct {
@@ -83,11 +84,8 @@ func (c *incClient) Disconnect() error {
 	return err
 }
 
-func (c *incClient) AwaitCycle() <-chan CycleSourcesMessage {
-	ch := make(chan CycleSourcesMessage)
-
-	go func() {
-		defer close(ch)
+func (c *incClient) AwaitCycle() iter.Seq[CycleSourcesMessage] {
+	return func(yield func(CycleSourcesMessage) bool) {
 		for {
 			msg, err := c.socket.Recv()
 			if err != nil {
@@ -109,7 +107,7 @@ func (c *incClient) AwaitCycle() <-chan CycleSourcesMessage {
 					CycleId: cycleEvent.CycleId,
 				})
 
-				ch <- cycleEvent
+				r := yield(cycleEvent)
 
 				c.socket.Send(CycleMessage{
 					Message: Message{
@@ -117,14 +115,16 @@ func (c *incClient) AwaitCycle() <-chan CycleSourcesMessage {
 					},
 					CycleId: cycleEvent.CycleId,
 				})
+
+				if !r {
+					return
+				}
 			} else {
 				fmt.Printf("Expected CYCLE, received: %v\n", msg)
 				continue
 			}
 		}
-	}()
-
-	return ch
+	}
 }
 
 func convertWireCycle(msg map[string]interface{}) (CycleSourcesMessage, error) {
