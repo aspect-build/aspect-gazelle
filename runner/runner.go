@@ -241,7 +241,7 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 	// Subscribe to further changes
 	for cs, err := range watch.AwaitCycle() {
 		if err != nil {
-			fmt.Printf("ERROR: watch cyle error: %v\n", err)
+			fmt.Printf("ERROR: watch cycle error: %v\n", err)
 			return err
 		}
 
