@@ -396,6 +396,9 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 				BazelLog.Fatalf("Failed to encode query params value %q: %v", q, err)
 			}
 		}
+		// Note: q.FilterExpr is intentionally excluded from the cache key computation
+		// as it is a function (GlobExpr) and cannot be serialized with gob encoding.
+		// The Filter field (string patterns) is sufficient for cache key purposes.
 	}
 
 	return hex.EncodeToString(cacheDigest.Sum(nil))
