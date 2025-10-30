@@ -178,7 +178,7 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE without version: %v", negResp)
 	}
 	if ProtocolVersion(negResp["version"].(float64)) != PROTOCOL_VERSION {
-		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected %d", negResp["version"], PROTOCOL_VERSION)
+		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected %v", negResp["version"], PROTOCOL_VERSION)
 	}
 
 	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
