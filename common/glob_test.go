@@ -28,14 +28,15 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 		"src/foo/**/*.go": {"src/main.go", "src/foo/main.go", "src/foo/bar/main.go", "foo/src/main.go", "main.go", "src/foo/src/main.go"},
 
 		// With prefix and suffix that are equal
-		"foo/**/foo": {"foo", "foo/foo", "foo/bar/foo", "foo/foo/foo"},
+		"foo/**/foo":          {"foo", "foo/foo", "foo/bar/foo", "foo/bar/NOTfoo", "foo/foo/foo"},
+		"src/**/important.ts": {"important.ts", "NOTimportant.ts", "NOT.important.ts", "important.NOT.ts", "src/important.ts", "src/NOTimportant.ts", "src/NOT.important.ts", "src/important.NOT.ts"},
 
 		// Body with doublestars
 		"**/foo/**": {"foo/bar", "a/foo/baz", "a/b/c/foo/d/e", "foo", "a/b/c/foo", "foo/a/b/c"},
 
 		// Starting doublestars
-		"**/WORKSPACE":       {"WORKSPACE", "WORKSPACE.bazel", "a/WORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel"},
-		"**/WORKSPACE.bazel": {"WORKSPACE", "WORKSPACE.bazel", "a/WORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel"},
+		"**/WORKSPACE":       {"WORKSPACE", "notWORKSPACE", "notWORKSPACE.bazel", "WORKSPACE.bazel", "a/WORKSPACE", "a/notWORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel", "a/notWORKSPACE.bazel"},
+		"**/WORKSPACE.bazel": {"WORKSPACE", "notWORKSPACE", "notWORKSPACE.bazel", "WORKSPACE.bazel", "a/WORKSPACE", "a/notWORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel", "a/notWORKSPACE.bazel"},
 		"**/@foo/bar":        {"@foo/bar/baz", "@foo/bar", "foo/bar", "a/@foo/bar"},
 		"**/*.go":            {"main.go", "src/main.go", "src/deep/nested/file.go"},
 		"**/*_test.go":       {"src/test_file.go", "src/path/test_file.go", "deep/nested/test_file.go"},
@@ -57,7 +58,8 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 	}
 
 	for testPattern, testCases := range tests {
-		expr, err := ParseGlobExpression(testPattern)
+		expr := parseGlobExpression(testPattern)
+		expr2, err := parseGlobExpressions([]string{testPattern})
 
 		// Verify doublestar agrees on validity
 		if (err == nil) != doublestar.ValidatePattern(testPattern) {
@@ -68,6 +70,10 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 		for _, c := range testCases {
 			if expr(c) != doublestar.MatchUnvalidated(testPattern, c) {
 				t.Errorf("pattern %q did not align with doublestar with case %q", testPattern, c)
+			}
+
+			if expr(c) != expr2(c) {
+				t.Errorf("pattern %q did not align between ParseGlobExpression(s) with case %q", testPattern, c)
 			}
 		}
 	}

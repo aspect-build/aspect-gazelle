@@ -15,7 +15,7 @@ type GlobExpr func(string) bool
 var nonGlobRe = regexp.MustCompile(`^[\w./@-]+$`)
 
 // Doublestar globs that can be simplified to only a prefix and suffix
-var prePostGlobRe = regexp.MustCompile(`^([\w./@-]*)\*\*(?:/\*?)?([\w./@-]+)$`)
+var prePostGlobRe = regexp.MustCompile(`^([\w./@-]*)\*\*(/\*?)?([\w./@-]+)$`)
 
 // Globs with a prefix or postfix that can be checked before invoking the regex
 var preGlobRe = regexp.MustCompile(`^([\w./@-]+).*$`)
@@ -47,10 +47,14 @@ func parseGlobExpression(exp string) GlobExpr {
 
 	if extGlob := prePostGlobRe.FindStringSubmatch(exp); len(extGlob) > 0 {
 		// Globs that can be expressed as pre + ** + ext
-		pre, ext := extGlob[1], extGlob[2]
+		pre, slashStar, ext := extGlob[1], extGlob[2], extGlob[3]
 		minLen := len(pre) + len(ext)
+		hasStar := slashStar == "/*"
 		return func(p string) bool {
-			return len(p) >= minLen && strings.HasPrefix(p, pre) && strings.HasSuffix(p, ext)
+			if len(p) < minLen || !strings.HasPrefix(p, pre) {
+				return false
+			}
+			return strings.HasSuffix(p, ext) && (hasStar || p == ext || p[len(p)-len(ext)-1] == '/')
 		}
 	}
 
@@ -101,7 +105,7 @@ func ParseGlobExpressions(exps []string) (GlobExpr, error) {
 
 func parseGlobExpressions(exps []string) (GlobExpr, error) {
 	exacts := make(map[string]struct{})
-	prePosts := make(map[string][]string)
+	prePosts := make(map[string][][]string)
 	preGlobs := make(map[string][]string)
 	postGlobs := make(map[string][]string)
 	globs := make([]string, 0)
@@ -115,8 +119,8 @@ func parseGlobExpressions(exps []string) (GlobExpr, error) {
 			exacts[exp] = struct{}{}
 		} else if extGlob := prePostGlobRe.FindStringSubmatch(exp); len(extGlob) > 0 {
 			// Globs that can be expressed as pre + ** + ext
-			pre, ext := extGlob[1], extGlob[2]
-			prePosts[pre] = append(prePosts[pre], ext)
+			pre, slashStar, ext := extGlob[1], extGlob[2], extGlob[3]
+			prePosts[pre] = append(prePosts[pre], []string{slashStar, ext})
 		} else if preGlob := preGlobRe.FindStringSubmatch(exp); len(preGlob) > 0 {
 			pre := preGlob[1]
 			preGlobs[pre] = append(preGlobs[pre], exp)
@@ -139,10 +143,14 @@ func parseGlobExpressions(exps []string) (GlobExpr, error) {
 
 	if len(prePosts) > 0 {
 		exprFuncs = append(exprFuncs, func(p string) bool {
+			lenP := len(p)
 			for pre, exts := range prePosts {
 				if strings.HasPrefix(p, pre) {
-					for _, ext := range exts {
-						if len(p) >= len(pre)+len(ext) && strings.HasSuffix(p, ext) {
+					for _, extData := range exts {
+						hasStar := extData[0] == "/*"
+						ext := extData[1]
+
+						if lenP >= len(pre)+len(ext) && strings.HasSuffix(p, ext) && (hasStar || p == ext || p[lenP-len(ext)-1] == '/') {
 							return true
 						}
 					}
