@@ -12,14 +12,14 @@ import (
 type GlobExpr func(string) bool
 
 // Expressions that are not even globs
-var nonGlobRe = regexp.MustCompile(`^[\w\.\-/@]+$`)
+var nonGlobRe = regexp.MustCompile(`^[\w./@-]+$`)
 
 // Doublestar globs that can be simplified to only a prefix and suffix
-var prePostGlobRe = regexp.MustCompile(`^([\w\.\-/@]*)\*\*(?:/\*?)?([\w\.\-/@]+)$`)
+var prePostGlobRe = regexp.MustCompile(`^([\w./@-]*)\*\*(?:/\*?)?([\w./@-]+)$`)
 
 // Globs with a prefix or postfix that can be checked before invoking the regex
-var preGlobRe = regexp.MustCompile(`^([\w\.\-/@]+).*$`)
-var postGlobRe = regexp.MustCompile(`^.*?([\w\.\-/@]+)$`)
+var preGlobRe = regexp.MustCompile(`^([\w./@-]+).*$`)
+var postGlobRe = regexp.MustCompile(`^.*?([\w./@-]+)$`)
 
 var parsedExpCache sync.Map
 
