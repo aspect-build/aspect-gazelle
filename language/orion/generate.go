@@ -385,6 +385,9 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 			BazelLog.Fatalf("Failed to encode query key %q: %v", key, err)
 		}
 		q := queries[key]
+		// Note: FilterExpr is intentionally excluded from the cache key computation
+		// as it is a function (GlobExpr) and cannot be serialized with gob encoding.
+		// The Filter field (string patterns) is sufficient for cache key purposes.
 		if err := e.Encode(q.QueryType); err != nil {
 			BazelLog.Fatalf("Failed to encode query type value %q: %v", q, err)
 		}
