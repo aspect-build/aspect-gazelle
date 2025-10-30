@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"sync/atomic"
 
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
@@ -14,8 +15,14 @@ import (
 type ProtocolVersion int
 
 const (
-	PROTOCOL_VERSION ProtocolVersion = 0
+	LEGACY_VERSION_0 ProtocolVersion = 0
+	VERSION_1                        = 1
+	LATEST_VERSION                   = VERSION_1
 )
+
+func (v ProtocolVersion) HasExplicitSubscribe() bool {
+	return v >= 1
+}
 
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
@@ -57,6 +64,22 @@ type capMessage struct {
 	Caps map[string]bool `json:"caps"`
 }
 
+type WatchType string
+
+const (
+	WatchTypeRunfiles WatchType = "runfiles"
+	WatchTypeSources  WatchType = "sources"
+)
+
+type WatchOptions struct {
+	Type WatchType
+}
+
+type SubscribeMessage struct {
+	Message
+	WatchType WatchType `json:"watch_type"`
+}
+
 type exitMessage struct {
 	Message
 	Description string `json:"description"`
@@ -81,7 +104,10 @@ type CycleSourcesMessage struct {
 }
 
 // The versions supported by this host implementation of the protocol.
-var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
+var abazelSupportedProtocolVersions = []ProtocolVersion{
+	LEGACY_VERSION_0,
+	VERSION_1,
+}
 
 type aspectBazelSocket = socket.Server[interface{}, map[string]any]
 
@@ -176,8 +202,8 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 	if negResp["version"] == nil {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE without version: %v", negResp)
 	}
-	if ProtocolVersion(negResp["version"].(float64)) != PROTOCOL_VERSION {
-		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected %v", negResp["version"], PROTOCOL_VERSION)
+	if !slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(negResp["version"].(float64))) {
+		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected one of %v", negResp["version"], abazelSupportedProtocolVersions)
 	}
 
 	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
