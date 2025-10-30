@@ -193,7 +193,6 @@ func parseGlobExpressions(exps []string) (GlobExpr, error) {
 		})
 	}
 
-	exprFuncs = exprFuncs[0:len(exprFuncs):len(exprFuncs)]
 	return func(p string) bool {
 		for _, expr := range exprFuncs {
 			if expr(p) {
