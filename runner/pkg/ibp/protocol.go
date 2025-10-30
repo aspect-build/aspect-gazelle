@@ -11,7 +11,12 @@ import (
 	"github.com/fatih/color"
 )
 
-const PROTOCOL_VERSION = 0
+type ProtocolVersion int
+
+const (
+	PROTOCOL_VERSION ProtocolVersion = 0
+)
+
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
 type IncrementalBazel interface {
@@ -25,7 +30,7 @@ type IncrementalBazel interface {
 	Close() error
 	HasConnection() bool
 
-	WaitForConnection() <-chan int
+	WaitForConnection() <-chan ProtocolVersion
 
 	// The path/address a client can connect to.
 	Address() string
@@ -40,11 +45,11 @@ type Message struct {
 
 type negotiateMessage struct {
 	Message
-	Versions []int `json:"versions"`
+	Versions []ProtocolVersion `json:"versions"`
 }
 type negotiateResponseMessage struct {
 	Message
-	Version int `json:"version"`
+	Version ProtocolVersion `json:"version"`
 }
 
 type capMessage struct {
@@ -77,7 +82,7 @@ type CycleSourcesMessage struct {
 }
 
 // The versions supported by this host implementation of the protocol.
-var abazelSupportedProtocolVersions = []int{PROTOCOL_VERSION}
+var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
 
 type aspectBazelSocket = socket.Server[interface{}, map[string]any]
 
@@ -85,7 +90,7 @@ type aspectBazelProtocol struct {
 	socket     aspectBazelSocket
 	socketPath string
 
-	connectedCh chan int
+	connectedCh chan ProtocolVersion
 
 	// cycle_id is used to track the current cycle number.
 	cycle_id atomic.Int32
@@ -99,11 +104,11 @@ func NewServer() IncrementalBazel {
 		socketPath: socketPath,
 		socket:     socket.NewJsonServer[interface{}, map[string]interface{}](),
 
-		connectedCh: make(chan int, 1),
+		connectedCh: make(chan ProtocolVersion, 1),
 	}
 }
 
-func (p *aspectBazelProtocol) WaitForConnection() <-chan int {
+func (p *aspectBazelProtocol) WaitForConnection() <-chan ProtocolVersion {
 	return p.connectedCh
 }
 
@@ -172,11 +177,11 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 	if negResp["version"] == nil {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE without version: %v", negResp)
 	}
-	if negResp["version"].(float64) != PROTOCOL_VERSION {
+	if ProtocolVersion(negResp["version"].(float64)) != PROTOCOL_VERSION {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected %d", negResp["version"], PROTOCOL_VERSION)
 	}
 
-	p.connectedCh <- int(negResp["version"].(float64))
+	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
 
 	return nil
 }
