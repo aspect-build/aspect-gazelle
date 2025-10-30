@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/socket",
+        "@aspect_gazelle//common/logger",
         "@com_github_fatih_color//:color",
     ],
 )

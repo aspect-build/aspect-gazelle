@@ -239,7 +239,12 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 	defer t.End()
 
 	// Subscribe to further changes
-	for cs := range watch.AwaitCycle() {
+	for cs, err := range watch.AwaitCycle() {
+		if err != nil {
+			fmt.Printf("ERROR: watch cyle error: %v\n", err)
+			return err
+		}
+
 		_, t := p.tracer.Start(ctx, "GazelleRunner.Watch.Trigger")
 
 		// The directories that have changed which gazelle should update.

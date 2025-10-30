@@ -5,13 +5,14 @@ import (
 	"iter"
 	"slices"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
 )
 
 type IncrementalClient interface {
 	Connect() error
 	Disconnect() error
-	AwaitCycle() iter.Seq[CycleSourcesMessage]
+	AwaitCycle() iter.Seq2[*CycleSourcesMessage, error]
 }
 
 type incClient struct {
@@ -84,12 +85,13 @@ func (c *incClient) Disconnect() error {
 	return err
 }
 
-func (c *incClient) AwaitCycle() iter.Seq[CycleSourcesMessage] {
-	return func(yield func(CycleSourcesMessage) bool) {
+func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
+	return func(yield func(*CycleSourcesMessage, error) bool) {
 		for {
 			msg, err := c.socket.Recv()
 			if err != nil {
 				fmt.Printf("Error receiving message: %v\n", err)
+				yield(nil, err)
 				return
 			}
 
@@ -100,21 +102,28 @@ func (c *incClient) AwaitCycle() iter.Seq[CycleSourcesMessage] {
 					continue
 				}
 
-				c.socket.Send(CycleMessage{
+				err := c.socket.Send(CycleMessage{
 					Message: Message{
 						Kind: "CYCLE_STARTED",
 					},
 					CycleId: cycleEvent.CycleId,
 				})
+				if err != nil {
+					yield(nil, err)
+					return
+				}
 
-				r := yield(cycleEvent)
+				r := yield(&cycleEvent, nil)
 
-				c.socket.Send(CycleMessage{
+				err = c.socket.Send(CycleMessage{
 					Message: Message{
 						Kind: "CYCLE_COMPLETED",
 					},
 					CycleId: cycleEvent.CycleId,
 				})
+				if err != nil {
+					BazelLog.Warnf("Failed to send CYCLE_COMPLETED for cycle_id=%d: %v\n", cycleEvent.CycleId, err)
+				}
 
 				if !r {
 					return
