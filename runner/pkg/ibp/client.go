@@ -150,9 +150,13 @@ func convertWireCycle(msg map[string]interface{}) (CycleSourcesMessage, error) {
 
 	sources := make(SourceInfoMap, len(msg["sources"].(map[string]interface{})))
 	for k, v := range msg["sources"].(map[string]interface{}) {
-		sources[k] = &SourceInfo{
-			IsSymlink: readOptionalBool(v.(map[string]interface{}), "is_symlink"),
-			IsSource:  readOptionalBool(v.(map[string]interface{}), "is_source"),
+		if v == nil {
+			sources[k] = nil
+		} else {
+			sources[k] = &SourceInfo{
+				IsSymlink: readOptionalBool(v.(map[string]interface{}), "is_symlink"),
+				IsSource:  readOptionalBool(v.(map[string]interface{}), "is_source"),
+			}
 		}
 	}
 
