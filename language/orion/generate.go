@@ -90,10 +90,7 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 			p := path.Join(args.Rel, sourceFile)
 			queryResults, err := host.runSourceQueries(queryCache, queries, args.Config.RepoRoot, p)
 			if err != nil {
-				msg := fmt.Sprintf("Querying source file %q: %v", p, err)
-				fmt.Printf("%s\n", msg)
-				BazelLog.Error(msg)
-				return nil
+				return fmt.Errorf("Querying source file %q: %v", p, err)
 			}
 
 			sourceFileQueryResultsLock.Lock()
@@ -104,7 +101,8 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	}
 
 	if err := eg.Wait(); err != nil {
-		BazelLog.Errorf("Collect plugin sources error: %v", err)
+		common.GenerationErrorf(args.Config, "Plugin source query error: %v", err)
+		return gazelleLanguage.GenerateResult{}
 	}
 
 	// Build the TargetSource for each file for each plugin.
@@ -155,7 +153,8 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	}
 
 	if err := eg.Wait(); err != nil {
-		BazelLog.Errorf("Plugin source analysis error: %v", err)
+		common.GenerationErrorf(args.Config, "Plugin source analysis error: %v", err)
+		return gazelleLanguage.GenerateResult{}
 	}
 
 	// Stage 4:
@@ -198,7 +197,8 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	}
 
 	if err := eg.Wait(); err != nil {
-		BazelLog.Errorf("Unknown GenerateRules(%s) error: %v", GazelleLanguageName, err)
+		common.GenerationErrorf(args.Config, "Plugin target generation error: %v", err)
+		return gazelleLanguage.GenerateResult{}
 	}
 
 	// Stage 5:
@@ -431,26 +431,20 @@ func (host *GazelleHost) runSourceCodeQueries(queries plugin.NamedQueries, sourc
 	}
 
 	queryResultsChan := make(chan *plugin.QueryProcessorResult)
-	wg := sync.WaitGroup{}
+	eg := errgroup.Group{}
 
 	for queryType, queries := range queriesByType {
-		wg.Add(1)
-
-		go func(queryType plugin.QueryType, queries plugin.NamedQueries) {
-			defer wg.Done()
-
-			// TODO: must distinguish between different query errors vs source parse errors
-			// and fail the entire gazelle execution if the developer-configured query is bad.
-			if err := queryRunner.RunQueries(queryType, f, sourceCode, queries, queryResultsChan); err != nil {
-				msg := fmt.Sprintf("Error running queries for %q: %v", f, err)
-				fmt.Printf("%s\n", msg)
-				BazelLog.Error(msg)
-			}
-		}(queryType, queries)
+		// Capture loop variables for goroutine
+		queryType := queryType
+		queries := queries
+		eg.Go(func() error {
+			return queryRunner.RunQueries(queryType, f, sourceCode, queries, queryResultsChan)
+		})
 	}
 
+	var err error
 	go func() {
-		wg.Wait()
+		err = eg.Wait()
 		close(queryResultsChan)
 	}()
 
@@ -460,7 +454,7 @@ func (host *GazelleHost) runSourceCodeQueries(queries plugin.NamedQueries, sourc
 		queryResults[result.Key] = result.Result
 	}
 
-	return queryResults, nil
+	return queryResults, err
 }
 
 // Collect source files managed by this BUILD and batch them by plugins interested in them.

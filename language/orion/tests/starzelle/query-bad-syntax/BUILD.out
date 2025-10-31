@@ -1,0 +1,16 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+# Previous generated and valid, should not be modified due to AXL syntax error
+
+x_lib(
+    name = "a_lib",
+    srcs = ["a.js"],
+    deps = [
+        ":b_lib",
+    ],
+)
+
+x_lib(
+    name = "b_lib",
+    srcs = ["b.js"],
+)
