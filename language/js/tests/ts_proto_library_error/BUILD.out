@@ -1,0 +1,13 @@
+load("@aspect_rules_ts//ts:proto.bzl", "ts_proto_library")
+load("@rules_proto//proto:defs.bzl", "proto_library")
+
+proto_library(
+    name = "lib_proto",
+    srcs = ["lib.proto"],
+    visibility = ["//visibility:public"],
+)
+
+ts_proto_library(
+    name = "lib_proto_ts",
+    proto = ":lib_proto",
+)

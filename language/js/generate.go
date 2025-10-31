@@ -456,9 +456,14 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 	// Persist the proto_library(srcs)
 	tsProtoLibrary.SetPrivateAttr("proto_library_srcs", sourceFiles)
 
-	imports := newTsProjectInfo()
+	protoImports, err := ts.collectProtoImports(cfg, args, sourceFiles)
+	if err != nil {
+		common.GenerationErrorf(args.Config, "Proto import collection error: %v", err)
+		return
+	}
 
-	for _, impt := range ts.collectProtoImports(cfg, args, sourceFiles) {
+	imports := newTsProjectInfo()
+	for _, impt := range protoImports {
 		imports.AddImport(impt)
 	}
 
@@ -501,7 +506,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	// Parse source files, do not parse generated files that are not source files.
 	for result := range ts.parseFiles(cfg, args, sourceFiles) {
 		if result.Error != nil {
-			fmt.Printf("%s:\n%s\n\n", result.SourcePath, result.Error)
+			return nil, result.Error
 		}
 
 		for _, sourceImport := range result.Imports {
@@ -764,16 +769,13 @@ type parseResult struct {
 	Error      error
 }
 
-func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) []ImportStatement {
+func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) ([]ImportStatement, error) {
 	results := make([]ImportStatement, 0)
 
 	for _, sourceFile := range sourceFiles {
 		imports, err := proto.GetProtoImports(path.Join(args.Dir, sourceFile))
 		if err != nil {
-			msg := fmt.Sprintf("Error parsing .proto file %q: %v", sourceFile, err)
-			BazelLog.Error(msg)
-			fmt.Printf("%s:\n", msg)
-			continue
+			return nil, fmt.Errorf("Error parsing .proto file %q: %v", sourceFile, err)
 		}
 
 		for _, imp := range imports {
@@ -802,7 +804,7 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 		}
 	}
 
-	return results
+	return results, nil
 }
 
 func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles *treeset.Set) chan parseResult {
