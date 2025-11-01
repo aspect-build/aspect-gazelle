@@ -238,8 +238,8 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 	))
 	defer t.End()
 
-	// Subscribe to further changes
-	for cs, err := range watch.AwaitCycle() {
+	// Subscribe to further changes to all sources
+	for cs, err := range watch.Subscribe(ibp.WatchOptions{Type: ibp.WatchTypeSources}) {
 		if err != nil {
 			fmt.Printf("ERROR: watch cycle error: %v\n", err)
 			return err
