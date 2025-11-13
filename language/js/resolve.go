@@ -221,7 +221,6 @@ func (ts *typeScriptLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 
 	switch r.Kind() {
 	case TsProjectKind, TsProjectTestKind:
-	case TsProjectKind:
 		srcs := r.AttrStrings("srcs")
 		tsEmbeds := make([]label.Label, 0, len(srcs))
 
