@@ -7,6 +7,7 @@ import (
 
 const (
 	TsProjectKind         = "ts_project"
+	TsProjectTestKind     = "ts_project_test"
 	TsProtoLibraryKind    = "ts_proto_library"
 	JsLibraryKind         = "js_library"
 	JsBinaryKind          = "js_binary"
@@ -21,7 +22,7 @@ const (
 	NpmRepositoryName     = "npm"
 )
 
-var sourceRuleKinds = treeset.NewWithStringComparator(TsProjectKind, JsLibraryKind, TsProtoLibraryKind)
+var sourceRuleKinds = treeset.NewWithStringComparator(TsProjectKind, TsProjectTestKind, JsLibraryKind, TsProtoLibraryKind)
 
 // Kinds returns a map that maps rule names (kinds) and information on how to
 // match and merge attributes that may be found in rules of those kinds.
@@ -57,6 +58,19 @@ var tsKinds = map[string]rule.KindInfo{
 			"preserve_jsx":          true,
 			"out_dir":               true,
 			"root_dir":              true,
+		},
+		ResolveAttrs: map[string]bool{
+			"deps": true,
+		},
+	},
+	TsProjectTestKind: {
+		MatchAny: false,
+		NonEmptyAttrs: map[string]bool{
+			"srcs": true,
+		},
+		SubstituteAttrs: map[string]bool{},
+		MergeableAttrs: map[string]bool{
+			"srcs": true,
 		},
 		ResolveAttrs: map[string]bool{
 			"deps": true,
@@ -159,6 +173,7 @@ func (h *typeScriptLang) ApparentLoads(moduleToApparentName func(string) string)
 			Name: "@" + tsModName + "//ts:defs.bzl",
 			Symbols: []string{
 				TsProjectKind,
++				TsProjectTestKind,
 				TsConfigKind,
 			},
 		},

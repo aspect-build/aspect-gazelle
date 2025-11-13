@@ -561,6 +561,9 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	existing := ruleUtils.GetFileRuleByName(args, targetName)
 
 	ruleKind := TsProjectKind
+	if group.testonly {
+		ruleKind = TsProjectTestKind
+	}
 	if !hasTranspiledSources(info.sources) {
 		ruleKind = JsLibraryKind
 	}
