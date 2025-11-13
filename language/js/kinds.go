@@ -173,7 +173,7 @@ func (h *typeScriptLang) ApparentLoads(moduleToApparentName func(string) string)
 			Name: "@" + tsModName + "//ts:defs.bzl",
 			Symbols: []string{
 				TsProjectKind,
-+				TsProjectTestKind,
+				TsProjectTestKind,
 				TsConfigKind,
 			},
 		},
