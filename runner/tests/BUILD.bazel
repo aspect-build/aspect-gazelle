@@ -8,7 +8,7 @@ load("@aspect_gazelle//:gazelle.bzl", "gazelle_generation_test")
         name = "%s_test" % t,
         dir = t,
         env = {
-            "ENABLE_LANGUAGES": "js,starlark,go,proto,python,cc",
+            "ENABLE_LANGUAGES": "js,starlark,go,proto,python,cc,visibility_extension",
             "ORION_EXTENSIONS_DIR": "%s/%s" % (
                 package_name(),
                 t,

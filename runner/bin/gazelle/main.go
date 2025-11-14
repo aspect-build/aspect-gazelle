@@ -18,6 +18,7 @@ var envLanguages = []runner.GazelleLanguage{
 	// runner.Kotlin,
 	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
 	runner.Go,
+	runner.DefaultVisibility,
 	runner.Protobuf,
 	runner.Bzl,
 	runner.Python,

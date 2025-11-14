@@ -1,0 +1,1 @@
+workspace(name = "aspect_gazelle_runner_tests_golang")
