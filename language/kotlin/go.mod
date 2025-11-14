@@ -7,7 +7,7 @@ replace github.com/aspect-build/aspect-gazelle/common => ../../common
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251007231102-88e4ec95608b
 	github.com/bazel-contrib/rules_jvm v0.30.0
-	github.com/bazelbuild/bazel-gazelle v0.46.0
+	github.com/bazelbuild/bazel-gazelle v0.47.0
 	github.com/emirpasic/gods v1.18.1
 	github.com/rs/zerolog v1.34.0
 )
