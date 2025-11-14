@@ -70,6 +70,7 @@ go_library(
         "@aspect_gazelle_orion",
         "@gazelle//config",
         "@gazelle//language",
+        "@gazelle//language/bazel/visibility",
         "@gazelle//language/go",
         "@gazelle//language/proto",
         "@gazelle_cc//language/cc",

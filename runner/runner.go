@@ -37,6 +37,7 @@ import (
 	python "github.com/bazel-contrib/rules_python/gazelle/python"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/language"
+	"github.com/bazelbuild/bazel-gazelle/language/bazel/visibility"
 	golang "github.com/bazelbuild/bazel-gazelle/language/go"
 	"github.com/bazelbuild/bazel-gazelle/language/proto"
 	"go.opentelemetry.io/otel"
@@ -61,14 +62,15 @@ type GazelleRunner struct {
 type GazelleLanguage = string
 
 const (
-	JavaScript GazelleLanguage = js.LanguageName
-	Orion                      = orion.GazelleLanguageName
-	Kotlin                     = kotlin.LanguageName
-	Go                         = "go"
-	Protobuf                   = "proto"
-	Bzl                        = "starlark"
-	Python                     = "python"
-	CC                         = "cc"
+	JavaScript        GazelleLanguage = js.LanguageName
+	Orion                             = orion.GazelleLanguageName
+	Kotlin                            = kotlin.LanguageName
+	Go                                = "go"
+	DefaultVisibility                 = "visibility_extension"
+	Protobuf                          = "proto"
+	Bzl                               = "starlark"
+	Python                            = "python"
+	CC                                = "cc"
 )
 
 // Gazelle command
@@ -135,6 +137,8 @@ func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 		})
 	case Go:
 		c.AddLanguageFactory(lang, golang.NewLanguage)
+	case DefaultVisibility:
+		c.AddLanguageFactory(lang, visibility.NewLanguage)
 	case Protobuf:
 		c.AddLanguageFactory(lang, proto.NewLanguage)
 	case Bzl:
