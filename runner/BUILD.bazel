@@ -68,6 +68,7 @@ go_library(
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",
+        "@contrib_rules_jvm//java/gazelle",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//language/bazel/visibility",
