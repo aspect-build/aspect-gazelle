@@ -9,20 +9,23 @@ import (
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
 )
 
-type IncrementalClient interface {
+type WatchClient interface {
 	Connect() error
 	Disconnect() error
-	AwaitCycle() iter.Seq2[*CycleSourcesMessage, error]
+	Subscribe(options WatchOptions) iter.Seq2[*CycleSourcesMessage, error]
 }
 
 type incClient struct {
 	socketPath string
 	socket     socket.Socket[interface{}, map[string]interface{}]
+
+	// The negotiated protocol version
+	version ProtocolVersion
 }
 
-var _ IncrementalClient = (*incClient)(nil)
+var _ WatchClient = (*incClient)(nil)
 
-func NewClient(host string) IncrementalClient {
+func NewClient(host string) WatchClient {
 	return &incClient{
 		socketPath: host,
 	}
@@ -56,20 +59,37 @@ func (c *incClient) negotiate() error {
 	if negReq["versions"] == nil {
 		return fmt.Errorf("Received NEGOTIATE without versions: %v", negReq)
 	}
-	if !slices.Contains(negReq["versions"].([]interface{}), (interface{})(float64(PROTOCOL_VERSION))) {
-		return fmt.Errorf("Received NEGOTIATE with unsupported versions %v, expected %d", negReq["versions"], PROTOCOL_VERSION)
+	rawVersions, isArray := negReq["versions"].([]interface{})
+	if !isArray {
+		return fmt.Errorf("Invalid versions, expected []int, received type: %T", negReq["versions"])
+	}
+
+	negotiatedVersion, err := negotiateVersion(rawVersions)
+	if err != nil {
+		return err
 	}
 
 	err = c.socket.Send(negotiateResponseMessage{
 		Message: Message{
 			Kind: "NEGOTIATE_RESPONSE",
 		},
-		Version: PROTOCOL_VERSION,
+		Version: negotiatedVersion,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to negotiate protocol version: %w", err)
 	}
+
+	c.version = negotiatedVersion
 	return nil
+}
+
+func negotiateVersion(acceptedVersions []interface{}) (ProtocolVersion, error) {
+	for _, v := range slices.Backward(acceptedVersions) {
+		if slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(v.(float64))) {
+			return ProtocolVersion(v.(float64)), nil
+		}
+	}
+	return -1, fmt.Errorf("unsupported versions %v, expected one of %v", acceptedVersions, abazelSupportedProtocolVersions)
 }
 
 func (c *incClient) Disconnect() error {
@@ -85,8 +105,33 @@ func (c *incClient) Disconnect() error {
 	return err
 }
 
-func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
+func (c *incClient) Subscribe(options WatchOptions) iter.Seq2[*CycleSourcesMessage, error] {
 	return func(yield func(*CycleSourcesMessage, error) bool) {
+		// Version 1+ require the initial SUBSCRIBE to start the subscription
+		if c.version >= VERSION_1 {
+			err := c.socket.Send(SubscribeMessage{
+				Message: Message{
+					Kind: "SUBSCRIBE",
+				},
+				WatchType: options.Type,
+			})
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+
+			msg, err := c.socket.Recv()
+			if err != nil {
+				yield(nil, err)
+				return
+			}
+
+			if msg["kind"] != "SUBSCRIBE_RESPONSE" {
+				yield(nil, fmt.Errorf("expected SUBSCRIBE_RESPONSE, got %v", msg))
+				return
+			}
+		}
+
 		for {
 			msg, err := c.socket.Recv()
 			if err != nil {
