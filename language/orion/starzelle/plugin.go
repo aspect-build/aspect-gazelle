@@ -74,7 +74,7 @@ func (s *starzelleState) addPlugin(t *starlark.Thread, pluginId starlark.String,
 	// A thread is created for each plugin to run in.
 	pluginThread := &starlark.Thread{
 		Name:  fmt.Sprintf("%s-%s", t.Name, pluginId.GoString()),
-		Load:  t.Load,
+		Load:  loadNoMore,
 		Print: t.Print,
 	}
 
@@ -89,6 +89,10 @@ func (s *starzelleState) addPlugin(t *starlark.Thread, pluginId starlark.String,
 	})
 
 	return nil
+}
+
+func loadNoMore(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+	return nil, fmt.Errorf("%v trying to load module %q", thread.Name, module)
 }
 
 // A plugin implementation loaded via starlark and proxying
