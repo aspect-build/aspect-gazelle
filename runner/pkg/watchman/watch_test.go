@@ -83,7 +83,7 @@ func TestSubscribe(t *testing.T) {
 
 	changeset := make(chan ChangeSet)
 	go func() {
-		for cs := range w.Subscribe(context.TODO(), "") {
+		for cs := range w.Subscribe(context.TODO()) {
 			t.Log(cs)
 			if len(cs.Paths) == 0 {
 				break
