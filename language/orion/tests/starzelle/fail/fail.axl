@@ -1,0 +1,6 @@
+aspect.orion_extension(
+    id = "errors",
+    prepare = lambda _: fail("no prepare for you!"),
+    analyze = lambda _: None,
+    declare = lambda _: None,
+)
