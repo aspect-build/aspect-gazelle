@@ -50,7 +50,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/a8m/envsubst v1.4.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
-	github.com/bazel-contrib/rules_jvm v0.30.0 // indirect
+	github.com/bazel-contrib/rules_jvm v0.31.1 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
