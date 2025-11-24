@@ -95,6 +95,11 @@ func loadNoMore(thread *starlark.Thread, module string) (starlark.StringDict, er
 	return nil, fmt.Errorf("%v trying to load module %q", thread.Name, module)
 }
 
+func isFatal(err error) bool {
+	_, isEvalError := err.(*starlark.EvalError)
+	return isEvalError
+}
+
 // A plugin implementation loaded via starlark and proxying
 // to starlark functions.
 var _ plugin.Plugin = (*starzellePluginProxy)(nil)
@@ -125,8 +130,12 @@ func (p starzellePluginProxy) Prepare(ctx plugin.PrepareContext) plugin.PrepareR
 	v, err := starlark.Call(p.t, p.prepare, starlark.Tuple{ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:Prepare()", p.name), err)
-		BazelLog.Error(errStr)
 		fmt.Print(errStr)
+		if isFatal(err) {
+			BazelLog.Fatal(errStr)
+		} else {
+			BazelLog.Error(errStr)
+		}
 		return EmptyPrepareResult
 	}
 
@@ -156,8 +165,12 @@ func (p starzellePluginProxy) Analyze(ctx plugin.AnalyzeContext) error {
 	_, err := starlark.Call(p.t, p.analyze, starlark.Tuple{&ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:Analyze()", p.name), err)
-		BazelLog.Error(errStr)
 		fmt.Print(errStr)
+		if isFatal(err) {
+			BazelLog.Fatal(errStr)
+		} else {
+			BazelLog.Error(errStr)
+		}
 		return nil
 	}
 	return nil
@@ -171,8 +184,12 @@ func (p starzellePluginProxy) DeclareTargets(ctx plugin.DeclareTargetsContext) p
 	_, err := starlark.Call(p.t, p.declare, starlark.Tuple{ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:DeclareTargets()", p.name), err)
-		BazelLog.Error(errStr)
 		fmt.Print(errStr)
+		if isFatal(err) {
+			BazelLog.Fatal(errStr)
+		} else {
+			BazelLog.Error(errStr)
+		}
 		return EmptyDeclareTargetsResult
 	}
 
