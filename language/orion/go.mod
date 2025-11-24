@@ -9,7 +9,7 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa
 	github.com/emirpasic/gods v1.18.1
 	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209
-	github.com/mikefarah/yq/v4 v4.48.1
+	github.com/mikefarah/yq/v4 v4.49.1
 	go.starlark.net v0.0.0-20251109183026-be02852a5e1f
 	golang.org/x/sync v0.18.0
 )
@@ -28,14 +28,13 @@ require (
 	github.com/goccy/go-yaml v1.18.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.3 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/sys v0.38.0 // indirect
