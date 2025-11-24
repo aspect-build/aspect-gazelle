@@ -1,11 +1,11 @@
-github.com/bazel-contrib/rules_jvm v0.30.0 h1:GSKDLgH7hi5dpOwmdhE3SJEQzVtsv31i2IvSUWIkP5Q=
-github.com/bazel-contrib/rules_jvm v0.30.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
+github.com/bazel-contrib/rules_jvm v0.31.1 h1:zPab68gOMiiQHw7GI+cvnEvqPiJpxAcT/1mdl6daYoM=
+github.com/bazel-contrib/rules_jvm v0.31.1/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
 github.com/bazelbuild/bazel-gazelle v0.47.0 h1:g3Rr1ZbkC1Pk20aOgBITxSD/efS1WbaSty5jC786Z3Q=
 github.com/bazelbuild/bazel-gazelle v0.47.0/go.mod h1:8Ozf20jhv+in87nCUHdmUPPcVGTfKg/gotZ/hce3T+w=
-github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52 h1:njQAmjTv/YHRm/0Lfv9DXHFZ4MdT2IA/RKHTnqZkgDw=
-github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52/go.mod h1:PLNUetjLa77TCCziPsz0EI8a6CUxgC+1jgmWv0H25tg=
-github.com/bazelbuild/rules_go v0.56.1 h1:YOyW1J8kdvJl1AzlWrR+qikC6EPiFVbT4l1gjTBfXT0=
-github.com/bazelbuild/rules_go v0.56.1/go.mod h1:T90Gpyq4HDFlsrvtQa2CBdHNJ2P4rAu/uUTmQbanzf0=
+github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa h1:IaOUNCNilQPM8o/igIpxzN34lfjPVYsZMiVFmMyKp/0=
+github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa/go.mod h1:PLNUetjLa77TCCziPsz0EI8a6CUxgC+1jgmWv0H25tg=
+github.com/bazelbuild/rules_go v0.59.0 h1:RLhOwYIqeMgBpKelHEWTfIPjA37so3oa/rX+/qqq/P4=
+github.com/bazelbuild/rules_go v0.59.0/go.mod h1:Pn30cb4M513fe2rQ6GiJ3q8QyrRsgC7zhuDvi50Lw4Y=
 github.com/bmatcuk/doublestar/v4 v4.9.1 h1:X8jg9rRZmJd4yRy7ZeNDRnM+T3ZfHv15JiBJ/avrEXE=
 github.com/bmatcuk/doublestar/v4 v4.9.1/go.mod h1:xBQ8jztBU6kakFMg+8WGxn0c6z1fTSPVIjEY1Wr7jzc=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=

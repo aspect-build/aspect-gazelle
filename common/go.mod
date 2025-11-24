@@ -4,7 +4,7 @@ go 1.24.5
 
 require (
 	github.com/bazelbuild/bazel-gazelle v0.47.0
-	github.com/bazelbuild/buildtools v0.0.0-20250930140053-2eb4fccefb52
+	github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa
 	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/emirpasic/gods v1.18.1
 	github.com/onsi/gomega v1.38.2
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/bazelbuild/rules_go v0.56.1 // indirect
+	github.com/bazelbuild/rules_go v0.59.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
