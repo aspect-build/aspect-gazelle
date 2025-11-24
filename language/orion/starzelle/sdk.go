@@ -289,8 +289,10 @@ func newPrepareResult(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tup
 		return nil, err
 	}
 
-	queries := make(plugin.NamedQueries)
+	var queries plugin.NamedQueries
 	if queriesValue != nil {
+		queries = make(plugin.NamedQueries, queriesValue.Len())
+
 		iter := queriesValue.Iterate()
 		defer iter.Done()
 
