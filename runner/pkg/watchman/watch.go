@@ -47,12 +47,38 @@ type ChangeSet struct {
 	IsFreshInstance bool
 }
 
+type SubscribeOptions interface {
+	apply(o map[string]any)
+}
+
+type DropState struct {
+	// See: https://facebook.github.io/watchman/docs/cmd/subscribe#drop
+	DropWithinState string
+}
+
+var _ SubscribeOptions = (*DropState)(nil)
+
+func (d DropState) apply(o map[string]any) {
+	o["drop"] = []string{d.DropWithinState}
+}
+
+type DeferState struct {
+	// See: https://facebook.github.io/watchman/docs/cmd/subscribe#defer
+	DeferWithinState string
+}
+
+var _ SubscribeOptions = (*DeferState)(nil)
+
+func (d DeferState) apply(o map[string]any) {
+	o["defer"] = []string{d.DeferWithinState}
+}
+
 // Watcher is an interface that abstracts the underlying filesystem watching mechanism
 type Watcher interface {
 	Start() error
 	Stop() error
 	GetDiff(clockspec string) (*ChangeSet, error)
-	Subscribe(ctx context.Context, dropWithinState string) iter.Seq2[*ChangeSet, error]
+	Subscribe(ctx context.Context, options ...SubscribeOptions) iter.Seq2[*ChangeSet, error]
 	Close() error
 }
 
@@ -325,9 +351,8 @@ func (w *WatchmanWatcher) Close() error {
 // the initial state of the workspace. In the future we might report current
 // state of the filesystem instead of an empty changeset.
 //
-// When dropWithinState argument is non-empty, any change during state transition will be dropped.
-// See: https://facebook.github.io/watchman/docs/cmd/subscribe#advanced-settling
-func (w *WatchmanWatcher) Subscribe(ctx context.Context, dropWithinState string) iter.Seq2[*ChangeSet, error] {
+// See DropState, DeferState for options you can pass to modify subscription behavior.
+func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOptions) iter.Seq2[*ChangeSet, error] {
 	return func(yield func(*ChangeSet, error) bool) {
 		if w.socket == nil {
 			yield(nil, fmt.Errorf("watcher not started, call Start() first"))
@@ -355,8 +380,8 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, dropWithinState string)
 
 		subscriptionName := fmt.Sprintf("aspect-cli-%d.%d", os.Getpid(), w.subscriberId.Add(1))
 		queryParams := w.makeQueryParams(w.lastClockSpec)
-		if dropWithinState != "" {
-			queryParams["drop"] = []string{dropWithinState}
+		for _, option := range options {
+			option.apply(queryParams)
 		}
 
 		err = sock.Send([]interface{}{"subscribe", w.watchedRoot, subscriptionName, queryParams})
