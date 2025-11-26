@@ -66,9 +66,17 @@ func main() {
 			log.Fatalf("Error running gazelle watcher: %v", err)
 		}
 	} else {
-		_, err := c.Generate(cmd, mode, args)
+		hasChanges, err := c.Generate(cmd, mode, args)
 		if err != nil {
 			log.Fatalf("Error running gazelle: %v", err)
+		}
+
+		// Exit with code 1 if changes exit and not auto-fixed
+		// See:
+		//	- https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/cmd/gazelle/main.go#L73-L74
+		//  - https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/cmd/gazelle/diff.go#L106
+		if hasChanges && mode != runner.Fix {
+			os.Exit(1)
 		}
 	}
 }
