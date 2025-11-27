@@ -95,16 +95,22 @@ func parseArgs() (runner.GazelleCommand, runner.GazelleMode, bool, []string) {
 	}
 
 	// The optional --mode flag
-	mode, args := extractArg("--mode", runner.Fix, args)
+	mode, args := extractArg("mode", runner.Fix, args)
 
 	// The optional --progress flag
-	progress, args := extractFlag("--progress", false, args)
+	progress, args := extractFlag("progress", false, args)
 
 	return cmd, mode, progress, args
 }
 
 func extractFlag(flag string, defaultValue bool, args []string) (bool, []string) {
-	if i := slices.Index(args, flag); i != -1 {
+	if i := slices.Index(args, "--"+flag); i != -1 {
+		args = slices.Delete(args, i, i+1)
+		return true, args
+	}
+
+	// Also support single-dash flags to align with golang FlagSet and gazelle
+	if i := slices.Index(args, "-"+flag); i != -1 {
 		args = slices.Delete(args, i, i+1)
 		return true, args
 	}
@@ -113,17 +119,22 @@ func extractFlag(flag string, defaultValue bool, args []string) (bool, []string)
 }
 
 func extractArg(flag string, defaultValue string, args []string) (string, []string) {
+	// Also support single-dash flags to align with golang FlagSet and gazelle
+	f1 := "-" + flag
+	f2 := "--" + flag
+
 	i := slices.IndexFunc(args, func(s string) bool {
-		return s == flag || strings.HasPrefix(s, flag+"=")
+		return s == f1 || s == f2 || strings.HasPrefix(s, f1+"=") || strings.HasPrefix(s, f2+"=")
 	})
 
 	if i == -1 {
 		return defaultValue, args
 	}
 
-	if args[i] == flag {
-		if len(args) == i {
-			log.Fatalf("ERROR: %s flag requires an argument", flag)
+	usedFlag, value, hasEqual := strings.Cut(args[i], "=")
+	if !hasEqual {
+		if len(args) <= i+1 {
+			log.Fatalf("ERROR: %s flag requires an argument", usedFlag)
 			return defaultValue, args
 		}
 		value := args[i+1]
@@ -131,7 +142,6 @@ func extractArg(flag string, defaultValue string, args []string) (string, []stri
 		return value, args
 	}
 
-	_, value, _ := strings.Cut(args[i], "=")
 	args = slices.Delete(args, i, i+1)
 	return value, args
 }
