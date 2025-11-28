@@ -1,3 +1,7 @@
 ########################
 # Import bazelrc presets
 import %workspace%/../tools/preset.bazelrc
+
+# Required to enable the java embedded server
+# See https://github.com/bazel-contrib/rules_jvm/commit/639446ee2ba5f90dbd86f8c0983d3647f7c803e3
+common --@contrib_rules_jvm//java/gazelle:embed_server=True
