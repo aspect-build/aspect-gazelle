@@ -36,7 +36,29 @@ func init() {
 		if (os.Getenv("ORION_EXTENSIONS") != "" || os.Getenv("ORION_EXTENSIONS_DIR") != "") && !slices.Contains(envLanguages, runner.Orion) {
 			envLanguages = append(envLanguages, runner.Orion)
 		}
+
+		// Ensure proto runs first so that *_proto_library rules can be generated.
+		// Languages like Go, JS, and Python look at OtherGen to find proto_library rules.
+		// See: https://github.com/aspect-build/aspect-gazelle/issues/131
+		envLanguages = ensureProtoFirst(envLanguages)
 	}
+}
+
+// ensureProtoFirst moves proto to the first position if present.
+// This is necessary because languages like Go, JS, and Python generate
+// *_proto_library rules based on proto_library rules found in OtherGen.
+func ensureProtoFirst(langs []string) []string {
+	protoIdx := slices.Index(langs, runner.Protobuf)
+	if protoIdx <= 0 {
+		// Proto not in the list or already first
+		return langs
+	}
+
+	// Move proto to the front
+	result := slices.Clone(langs)
+	result = slices.Delete(result, protoIdx, protoIdx+1)
+	result = slices.Insert(result, 0, runner.Protobuf)
+	return result
 }
 
 /**
