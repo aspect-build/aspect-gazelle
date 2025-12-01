@@ -30,7 +30,7 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | Enable the JavaScript directives. |
 | `# gazelle:js_tsconfig enabled\|disabled`               | `enabled`                   |
 | Enable generation of `ts_config` rules.<br />This value is inherited by sub-directories and applied relative to each BUILD.<br />The `ts_project(tsconfig)` attribute is *NOT* set and must be done manually if necessary |
-| `# gazelle:js_proto enabled\|disabled`                  | 'enabled'                   |
+| `# gazelle:js_proto enabled\|disabled`                  | `enabled`                   |
 | Enable generation of `ts_proto_library` targets.                                      |
 | `# gazelle:js_npm_package enabled\|disabled\|referenced`| `referenced`                |
 | Enable generation of `npm_package` targets.<br />DEPRECATED: `referenced` will only generate `npm_package` targets for packages that are referenced by other projects. |
