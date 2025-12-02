@@ -123,6 +123,8 @@ cloud.google.com/go/workflows v1.13.3/go.mod h1:Xi7wggEt/ljoEcyk+CB/Oa1AHBCk0T1f
 dario.cat/mergo v1.0.0 h1:AGCNq9Evsj31mOgNPcLyXc+4PNABt905YmuqPYYpBWk=
 dario.cat/mergo v1.0.0/go.mod h1:uNxQE+84aUszobStD9th8a29P2fMDhsBdgRYvZOxGmk=
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/EngFlow/gazelle_cc v0.4.0 h1:ghqGNrI2OyoObz07YT+uyK8XAISy02dj3YAJtisBc3o=
+github.com/EngFlow/gazelle_cc v0.4.0/go.mod h1:0rLZ19XawZMYjrKCGFjEX3pG3Iv2n1m2M9ztJ7vA+JE=
 github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.25.0/go.mod h1:obipzmGjfSjam60XLwGfqUkJsfiheAl+TUjG+4yzyPM=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
