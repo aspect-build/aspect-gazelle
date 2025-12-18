@@ -14,4 +14,8 @@ ts_proto_library(
     name = "proto_multiple_proto_ts",
     node_modules = "//:node_modules",
     proto = ":proto_multiple_proto",
+    proto_srcs = [
+        "bar.proto",
+        "foo.proto",
+    ],
 )

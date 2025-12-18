@@ -454,7 +454,7 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 	sourceFiles := protoLibrary.AttrStrings("srcs")
 
 	// Persist the proto_library(srcs)
-	tsProtoLibrary.SetPrivateAttr("proto_library_srcs", sourceFiles)
+	tsProtoLibrary.SetAttr("proto_srcs", sourceFiles)
 
 	protoImports, err := ts.collectProtoImports(cfg, args, sourceFiles)
 	if err != nil {

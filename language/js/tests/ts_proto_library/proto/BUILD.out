@@ -12,4 +12,5 @@ ts_proto_library(
     gen_connect_es = True,
     node_modules = "//:node_modules",
     proto = ":connectrpc_eliza_v1_proto",
+    proto_srcs = ["eliza.proto"],
 )

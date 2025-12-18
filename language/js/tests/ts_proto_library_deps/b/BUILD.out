@@ -11,5 +11,6 @@ proto_library(
 ts_proto_library(
     name = "b_proto_ts",
     proto = ":b_proto",
+    proto_srcs = ["lib.proto"],
     deps = ["//a:a_proto_ts"],
 )
