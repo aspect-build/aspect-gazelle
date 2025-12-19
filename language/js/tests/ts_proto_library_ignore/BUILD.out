@@ -13,4 +13,5 @@ proto_library(
 ts_proto_library(
     name = "lib_proto_ts",
     proto = ":lib_proto",
+    proto_srcs = ["lib.proto"],
 )

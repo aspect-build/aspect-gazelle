@@ -16,6 +16,7 @@ ts_proto_library(
         "lib.proto": ["MyService"],
     },
     proto = ":lib_proto",
+    proto_srcs = ["lib.proto"],
 )
 
 ts_project(

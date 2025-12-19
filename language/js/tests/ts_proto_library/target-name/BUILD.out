@@ -13,4 +13,5 @@ ts_proto_library(
     name = "ts__foo_proto",
     node_modules = "//:node_modules",
     proto = ":foo_proto",
+    proto_srcs = ["foo.proto"],
 )
