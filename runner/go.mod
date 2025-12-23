@@ -44,6 +44,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20251115024249-7cad566bc683
+	github.com/bufbuild/rules_buf v0.5.2
 )
 
 require (

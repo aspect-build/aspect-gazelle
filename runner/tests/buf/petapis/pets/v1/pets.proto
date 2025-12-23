@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+package pets.v1;
+
+message Pet {}
