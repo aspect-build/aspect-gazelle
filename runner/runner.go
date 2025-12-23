@@ -26,6 +26,7 @@ import (
 
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
+	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	js "github.com/aspect-build/aspect-gazelle/language/js"
 	kotlin "github.com/aspect-build/aspect-gazelle/language/kotlin"
 	orion "github.com/aspect-build/aspect-gazelle/language/orion"
@@ -68,6 +69,7 @@ const (
 	Go                                = "go"
 	DefaultVisibility                 = "visibility_extension"
 	Protobuf                          = "proto"
+	Buf                               = "buf"
 	Bzl                               = "starlark"
 	Python                            = "python"
 	CC                                = "cc"
@@ -135,6 +137,8 @@ func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 		c.AddLanguageFactory(lang, func() language.Language {
 			return orion.NewLanguage()
 		})
+	case Buf:
+		c.AddLanguageFactory(lang, buf.NewLanguage)
 	case Go:
 		c.AddLanguageFactory(lang, golang.NewLanguage)
 	case DefaultVisibility:
