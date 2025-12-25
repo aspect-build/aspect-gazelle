@@ -50,6 +50,8 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 		return ts.tsconfigImports(r, f)
 	case TsProjectKind:
 		fallthrough
+	case TsProjectTestKind:
+		fallthrough
 	case JsLibraryKind:
 		return ts.sourceFileImports(c, r, f)
 	}
@@ -217,7 +219,7 @@ func (ts *typeScriptLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 	BazelLog.Debugf("Embeds(%s): '//%s:%s'", LanguageName, from.Pkg, r.Name())
 
 	switch r.Kind() {
-	case TsProjectKind:
+	case TsProjectKind, TsProjectTestKind:
 		srcs := r.AttrStrings("srcs")
 		tsEmbeds := make([]label.Label, 0, len(srcs))
 
@@ -296,7 +298,7 @@ func (ts *typeScriptLang) Resolve(
 
 	// TsProject imports are resolved as deps
 	switch r.Kind() {
-	case TsProjectKind, JsLibraryKind, TsConfigKind, TsProtoLibraryKind:
+	case TsProjectKind, TsProjectTestKind, JsLibraryKind, TsConfigKind, TsProtoLibraryKind:
 		deps := common.NewLabelSet(from)
 
 		// Support this target representing a project or a package
