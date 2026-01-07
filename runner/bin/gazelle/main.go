@@ -13,13 +13,15 @@ import (
 )
 
 var envLanguages = []runner.GazelleLanguage{
-	// Kotlin not included in the prebuild because it interferes with normal operation
-	// and there is no directive to disable it.
-	// runner.Kotlin,
-	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
-	runner.Go,
+	// The gazelle defaults, including initial ordering: https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/def.bzl#L59-L63
 	runner.DefaultVisibility,
 	runner.Protobuf,
+	runner.Go,
+
+	// Additional aspect-runner defaults.
+	// Kotlin not included in the prebuild because it interferes with normal operation
+	// and there is no directive to disable it.
+	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
 	runner.Bzl,
 	runner.Python,
 	runner.Orion,
