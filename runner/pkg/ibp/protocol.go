@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"sync/atomic"
 
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
@@ -176,8 +177,8 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 	if negResp["version"] == nil {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE without version: %v", negResp)
 	}
-	if ProtocolVersion(negResp["version"].(float64)) != PROTOCOL_VERSION {
-		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected %v", negResp["version"], PROTOCOL_VERSION)
+	if !slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(negResp["version"].(float64))) {
+		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected one of %v", negResp["version"], abazelSupportedProtocolVersions)
 	}
 
 	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
