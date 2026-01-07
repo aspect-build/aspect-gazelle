@@ -26,7 +26,6 @@ import (
 
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
-	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	js "github.com/aspect-build/aspect-gazelle/language/js"
 	kotlin "github.com/aspect-build/aspect-gazelle/language/kotlin"
 	orion "github.com/aspect-build/aspect-gazelle/language/orion"
@@ -41,6 +40,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language/bazel/visibility"
 	golang "github.com/bazelbuild/bazel-gazelle/language/go"
 	"github.com/bazelbuild/bazel-gazelle/language/proto"
+	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	"go.opentelemetry.io/otel"
 	traceAttr "go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -216,7 +216,7 @@ func (runner *GazelleRunner) Generate(cmd GazelleCommand, mode GazelleMode, args
 
 func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode GazelleMode, args []string) error {
 	watch := ibp.NewClient(watchAddress)
-	if err := watch.Connect(); err != nil {
+	if err := watch.Connect(ibp.WatchCapability_WatchSources); err != nil {
 		return fmt.Errorf("failed to connect to watchman: %w", err)
 	}
 

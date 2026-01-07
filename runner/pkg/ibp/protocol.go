@@ -15,7 +15,19 @@ import (
 type ProtocolVersion int
 
 const (
-	PROTOCOL_VERSION ProtocolVersion = 0
+	LEGACY_VERSION_0 ProtocolVersion = 0
+	VERSION_1                        = 1
+	LATEST_VERSION                   = VERSION_1
+)
+
+func (v ProtocolVersion) HasCapMessage() bool {
+	return v >= 1
+}
+
+type WatchCapability string
+
+const (
+	WatchCapability_WatchSources WatchCapability = "watch_sources"
 )
 
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
@@ -55,7 +67,7 @@ type negotiateResponseMessage struct {
 
 type capMessage struct {
 	Message
-	Caps map[string]bool `json:"caps"`
+	Caps []WatchCapability `json:"caps"`
 }
 
 type exitMessage struct {
@@ -82,7 +94,10 @@ type CycleSourcesMessage struct {
 }
 
 // The versions supported by this host implementation of the protocol.
-var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
+var abazelSupportedProtocolVersions = []ProtocolVersion{
+	LEGACY_VERSION_0,
+	VERSION_1,
+}
 
 type aspectBazelSocket = socket.Server[interface{}, map[string]any]
 
