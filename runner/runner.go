@@ -212,7 +212,7 @@ func (runner *GazelleRunner) Generate(cmd GazelleCommand, mode GazelleMode, args
 
 func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode GazelleMode, args []string) error {
 	watch := ibp.NewClient(watchAddress)
-	if err := watch.Connect(); err != nil {
+	if err := watch.Connect(nil); err != nil {
 		return fmt.Errorf("failed to connect to watchman: %w", err)
 	}
 

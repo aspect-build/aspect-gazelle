@@ -15,8 +15,17 @@ import (
 type ProtocolVersion int
 
 const (
-	PROTOCOL_VERSION ProtocolVersion = 0
+	LEGACY_VERSION_0 ProtocolVersion = 0
+	VERSION_1        ProtocolVersion = 1
+	LATEST_VERSION   ProtocolVersion = VERSION_1
 )
+
+func (v ProtocolVersion) HasCapMessage() bool {
+	// Only "version 0" did not have the CAPS message
+	return v > 0
+}
+
+type WatchCapability string
 
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
@@ -55,7 +64,7 @@ type negotiateResponseMessage struct {
 
 type capMessage struct {
 	Message
-	Caps map[string]bool `json:"caps"`
+	Caps map[WatchCapability]any `json:"caps"`
 }
 
 type exitMessage struct {
@@ -82,7 +91,14 @@ type CycleSourcesMessage struct {
 }
 
 // The versions supported by this host implementation of the protocol.
-var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
+// Listed in PRIORITY ORDER, i.e. the first version is the most preferred version to use.
+var abazelSupportedProtocolVersions = []ProtocolVersion{
+	// Latest+preferred version
+	VERSION_1,
+
+	// Fallback for older clients...
+	LEGACY_VERSION_0,
+}
 
 type aspectBazelSocket = socket.Server[any, map[string]any]
 
@@ -90,7 +106,12 @@ type aspectBazelProtocol struct {
 	socket     aspectBazelSocket
 	socketPath string
 
+	// connectedCh is used to signal when a connection has been established and the protocol version that was negotiated.
 	connectedCh chan ProtocolVersion
+
+	// Available once connectedCh emits a version
+	connectedVersion ProtocolVersion
+	caps             map[WatchCapability]any
 
 	// cycle_id is used to track the current cycle number.
 	cycle_id atomic.Int32
@@ -104,7 +125,8 @@ func NewServer() IncrementalBazel {
 		socketPath: socketPath,
 		socket:     socket.NewJsonServer[any, map[string]any](),
 
-		connectedCh: make(chan ProtocolVersion, 1),
+		connectedCh:      make(chan ProtocolVersion, 1),
+		connectedVersion: -1, // Invalid version to indicate not connected
 	}
 }
 
@@ -181,7 +203,43 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected one of %v", negResp["version"], abazelSupportedProtocolVersions)
 	}
 
-	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
+	version := ProtocolVersion(negResp["version"].(float64))
+
+	if version.HasCapMessage() {
+		if err := p.negotiateCapabilities(version); err != nil {
+			return fmt.Errorf("Failed to negotiate capabilities: %v", err)
+		}
+	}
+
+	p.connectedVersion = version
+	p.connectedCh <- version
+
+	return nil
+}
+
+func (p *aspectBazelProtocol) negotiateCapabilities(version ProtocolVersion) error {
+	capsResp, err := p.socket.Recv()
+	if err != nil {
+		return fmt.Errorf("Error receiving CAPS request: %v", err)
+	}
+	if capsResp["kind"] != "CAPS" {
+		return fmt.Errorf("Expected CAPS, got %v", capsResp)
+	}
+
+	caps, err := readCapsRequestMap(capsResp["caps"], version)
+	if err != nil {
+		return fmt.Errorf("Failed to read capabilities: %v", err)
+	}
+
+	m := capMessage{
+		Message: Message{Kind: "CAPS_RESPONSE"},
+		Caps:    caps,
+	}
+	if err := p.socket.Send(m); err != nil {
+		return fmt.Errorf("Failed to send CAPS_RESPONSE: %v", err)
+	}
+
+	p.caps = caps
 
 	return nil
 }
@@ -264,4 +322,34 @@ func (p *aspectBazelProtocol) Exit(err error) error {
 		Description: d,
 	}
 	return p.socket.Send(c)
+}
+
+func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
+	caps := map[WatchCapability]any{
+		// Defaults based on ProtocolVersion
+	}
+
+	if rawCaps == nil {
+		return caps, nil
+	}
+
+	enabledCapsRaw, ok := rawCaps.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("Invalid caps, expected map[WatchCapability]interface{}, received type: %T", rawCaps)
+	}
+
+	for cap, val := range enabledCapsRaw {
+		switch cap {
+		default:
+			// Unknown capabilities are not processed, may still be accessed by the sdk user.
+			caps[WatchCapability(cap)] = val
+		}
+	}
+
+	return caps, nil
+}
+
+func readCapsResponseMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
+	// Today the caps response map is the same as the request, simple deserialization+validation
+	return readCapsRequestMap(rawCaps, version)
 }
