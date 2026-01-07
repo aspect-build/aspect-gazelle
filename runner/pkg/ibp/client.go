@@ -18,6 +18,9 @@ type IncrementalClient interface {
 type incClient struct {
 	socketPath string
 	socket     socket.Socket[interface{}, map[string]interface{}]
+
+	// The negotiated protocol version
+	version ProtocolVersion
 }
 
 var _ IncrementalClient = (*incClient)(nil)
@@ -56,20 +59,37 @@ func (c *incClient) negotiate() error {
 	if negReq["versions"] == nil {
 		return fmt.Errorf("Received NEGOTIATE without versions: %v", negReq)
 	}
-	if !slices.Contains(negReq["versions"].([]interface{}), (interface{})(float64(PROTOCOL_VERSION))) {
-		return fmt.Errorf("Received NEGOTIATE with unsupported versions %v, expected %d", negReq["versions"], PROTOCOL_VERSION)
+	rawVersions, isArray := negReq["versions"].([]interface{})
+	if !isArray {
+		return fmt.Errorf("Invalid versions, expected []int, received type: %T", negReq["versions"])
+	}
+
+	negotiatedVersion, err := negotiateVersion(rawVersions)
+	if err != nil {
+		return err
 	}
 
 	err = c.socket.Send(negotiateResponseMessage{
 		Message: Message{
 			Kind: "NEGOTIATE_RESPONSE",
 		},
-		Version: PROTOCOL_VERSION,
+		Version: negotiatedVersion,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to negotiate protocol version: %w", err)
 	}
+
+	c.version = negotiatedVersion
 	return nil
+}
+
+func negotiateVersion(acceptedVersions []interface{}) (ProtocolVersion, error) {
+	for _, v := range acceptedVersions {
+		if slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(v.(float64))) {
+			return ProtocolVersion(v.(float64)), nil
+		}
+	}
+	return -1, fmt.Errorf("unsupported versions %v, expected one of %v", acceptedVersions, abazelSupportedProtocolVersions)
 }
 
 func (c *incClient) Disconnect() error {
