@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "tsconfig_tsbuildinfo_configdir",
+    srcs = ["main.ts"],
+    declaration_dir = "types",
+    incremental = True,
+    out_dir = "dist",
+    ts_build_info_file = "lib-types/.tsbuildinfo",
+    tsconfig = ":tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
