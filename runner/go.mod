@@ -14,7 +14,7 @@ require (
 	github.com/EngFlow/gazelle_cc v0.4.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20251012075144-43a5acf8cedf
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa
+	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
 	github.com/go-git/go-git/v5 v5.16.4
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0

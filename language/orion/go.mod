@@ -6,7 +6,7 @@ replace github.com/aspect-build/aspect-gazelle/common => ../../common
 
 require (
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20251112105957-8e68360eeafa
+	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
 	github.com/emirpasic/gods v1.18.1
 	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209
 	github.com/mikefarah/yq/v4 v4.49.1
