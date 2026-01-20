@@ -7,7 +7,7 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
 	github.com/bmatcuk/doublestar/v4 v4.9.2
 	github.com/emirpasic/gods v1.18.1
-	github.com/onsi/gomega v1.38.2
+	github.com/onsi/gomega v1.39.0
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
 )

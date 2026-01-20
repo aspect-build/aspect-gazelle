@@ -90,8 +90,8 @@ github.com/mikefarah/yq/v4 v4.49.1 h1:eHiNue/Sp7Kk2IZZDhjLWWDjjN4TsShndF0z+OxI6Q
 github.com/mikefarah/yq/v4 v4.49.1/go.mod h1:iHgYxHyqA6VqQfre+TocMnqnk7e2+pNzAHusH8y95Wk=
 github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 h1:A8w3/wSixa6RqN8bLYQ9mayk+d8xxq6jQCmlKs/jCRo=
 github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313/go.mod h1:6qRblG2m4u2fk3x59GT4awRlwvZbnZ3P1RmFZrDjVwk=
-github.com/onsi/gomega v1.38.2 h1:eZCjf2xjZAqe+LeWvKb5weQ+NcPwX84kqJ0cZNxok2A=
-github.com/onsi/gomega v1.38.2/go.mod h1:W2MJcYxRGV63b418Ai34Ud0hEdTVXq9NW9+Sx6uXf3k=
+github.com/onsi/gomega v1.39.0 h1:y2ROC3hKFmQZJNFeGAMeHZKkjBL65mIZcvrLQBF9k6Q=
+github.com/onsi/gomega v1.39.0/go.mod h1:ZCU1pkQcXDO5Sl9/VVEGlDyp+zm0m1cmeG5TOzLgdh4=
 github.com/pelletier/go-toml/v2 v2.2.4 h1:mye9XuhQ6gvn5h28+VilKrrPoQVanw5PMw/TB0t5Ec4=
 github.com/pelletier/go-toml/v2 v2.2.4/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=

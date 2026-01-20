@@ -5,6 +5,7 @@ go 1.24.5
 replace github.com/aspect-build/aspect-gazelle/common => ../../common
 
 require (
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
 	github.com/emirpasic/gods v1.18.1
@@ -13,8 +14,6 @@ require (
 	go.starlark.net v0.0.0-20251109183026-be02852a5e1f
 	golang.org/x/sync v0.19.0
 )
-
-require github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
 
 require (
 	github.com/a8m/envsubst v1.4.3 // indirect
