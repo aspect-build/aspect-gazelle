@@ -11,7 +11,7 @@ replace github.com/aspect-build/aspect-gazelle/language/orion => ../language/ori
 go 1.24.5
 
 require (
-	github.com/EngFlow/gazelle_cc v0.4.0 // NOTE: keep in sync with MODULE.bazel
+	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20251115024249-7cad566bc683
