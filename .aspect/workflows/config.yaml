@@ -18,6 +18,10 @@ workspaces:
     tasks:
       - buildifier:
           without: true
+  runner/e2e/bin:
+    tasks:
+      - buildifier:
+          without: true
 tasks:
   - buildifier:
   - gazelle:

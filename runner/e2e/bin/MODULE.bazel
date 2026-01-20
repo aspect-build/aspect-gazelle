@@ -1,0 +1,31 @@
+bazel_dep(name = "gazelle", version = "0.47.0")
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "aspect_gazelle_runner")
+local_path_override(
+    module_name = "aspect_gazelle_runner",
+    path = "../../",
+)
+
+bazel_dep(name = "aspect_gazelle", version = "0.0.0")
+local_path_override(
+    module_name = "aspect_gazelle",
+    path = "../../../",
+)
+
+bazel_dep(name = "aspect_gazelle_js")
+local_path_override(
+    module_name = "aspect_gazelle_js",
+    path = "../../../language/js",
+)
+
+bazel_dep(name = "aspect_gazelle_kotlin")
+local_path_override(
+    module_name = "aspect_gazelle_kotlin",
+    path = "../../../language/kotlin",
+)
+
+bazel_dep(name = "aspect_gazelle_orion")
+local_path_override(
+    module_name = "aspect_gazelle_orion",
+    path = "../../../language/orion",
+)
