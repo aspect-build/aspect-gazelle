@@ -22,6 +22,7 @@ require (
 	github.com/bufbuild/rules_buf v0.5.2
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.16.4
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	go.opentelemetry.io/otel v1.38.0
 	go.opentelemetry.io/otel/trace v1.38.0
 	golang.org/x/term v0.39.0
@@ -55,7 +56,6 @@ require (
 	github.com/mikefarah/yq/v4 v4.49.1 // indirect
 	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
