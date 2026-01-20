@@ -11,7 +11,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209
 	github.com/mikefarah/yq/v4 v4.49.1
-	go.starlark.net v0.0.0-20251109183026-be02852a5e1f
+	go.starlark.net v0.0.0-20260102030733-3fee463870c9
 	golang.org/x/sync v0.19.0
 )
 
