@@ -1,6 +1,6 @@
 "LLVM configuration"
 
-bazel_dep(name = "toolchains_llvm", version = "1.3.0")
+bazel_dep(name = "toolchains_llvm", version = "1.3.0", dev_dependency = True)
 single_version_override(
     module_name = "toolchains_llvm",
     patch_strip = 1,
@@ -9,7 +9,7 @@ single_version_override(
     ],
 )
 
-llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
+llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm", dev_dependency = True)
 llvm.toolchain(
     name = "llvm_toolchain",
     llvm_versions = {
@@ -66,6 +66,7 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    dev_dependency = True,
     sha256 = "cf2fefded0449f06d3cf634bfa94ffed60dbe47f2a14d2900b00eb9bcfb104b8",
     urls = ["https://commondatastorage.googleapis.com/chrome-linux-sysroot/toolchain/80fc74e431f37f590d0c85f16a9d8709088929e8/debian_bullseye_arm64_sysroot.tar.xz"],
 )
@@ -79,6 +80,7 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    dev_dependency = True,
     sha256 = "04b94ba1098b71f8543cb0ba6c36a6ea2890d4d417b04a08b907d96b38a48574",
     urls = ["https://commondatastorage.googleapis.com/chrome-linux-sysroot/toolchain/f5f68713249b52b35db9e08f67184cac392369ab/debian_bullseye_amd64_sysroot.tar.xz"],
 )
@@ -95,6 +97,7 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
+    dev_dependency = True,
     # The ruby header has an infinite symlink that we need to remove.
     patch_cmds = ["rm System/Library/Frameworks/Ruby.framework/Versions/Current/Headers/ruby/ruby"],
     sha256 = "71ae00a90be7a8c382179014969cec30d50e6e627570af283fbe52132958daaf",
@@ -135,9 +138,12 @@ platforms = [
     for tgt_cpu in target_cpus
 ]
 
-[register_toolchains("//platforms/toolchains:{}_{}_{}_{}_llvm".format(
-    p["exe_os"],
-    p["exe_cpu"],
-    p["tgt_os"],
-    p["tgt_cpu"],
-)) for p in platforms]
+[register_toolchains(
+    "//platforms/toolchains:{}_{}_{}_{}_llvm".format(
+        p["exe_os"],
+        p["exe_cpu"],
+        p["tgt_os"],
+        p["tgt_cpu"],
+    ),
+    dev_dependency = True,
+) for p in platforms]
