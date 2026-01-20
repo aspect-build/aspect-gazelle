@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"iter"
+	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -104,7 +105,7 @@ type WatchmanWatcher struct {
 	watchedRelPath string
 }
 
-func (w *WatchmanWatcher) makeQueryParams(clockspec string) map[string]interface{} {
+func (w *WatchmanWatcher) makeQueryParams(clockspec string, includeHash bool) map[string]interface{} {
 	bazelignoreDirs, err := bazel.LoadBazelIgnore(w.workspaceDir)
 	if err != nil {
 		fmt.Printf("failed to load bazelignore: %v", err)
@@ -117,8 +118,15 @@ func (w *WatchmanWatcher) makeQueryParams(clockspec string) map[string]interface
 		})
 	}
 
+	var fields []string
+	if includeHash {
+		fields = []string{"name", "content.sha1hex"}
+	} else {
+		fields = []string{"name"}
+	}
+
 	var queryParams = map[string]interface{}{
-		"fields": []string{"name"},
+		"fields": fields,
 		// Avoid an unnecessarily long response on the first query by omitting the list of potentially
 		// changed (thus at that point, all) files.
 		// See ChangeSet.IsFreshInstance for more information.
@@ -218,7 +226,7 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 	if clockspec == "" {
 		clockspec = w.lastClockSpec
 	}
-	if err := w.send("query", w.watchedRoot, w.makeQueryParams(clockspec)); err != nil {
+	if err := w.send("query", w.watchedRoot, w.makeQueryParams(clockspec, false)); err != nil {
 		return nil, fmt.Errorf("failed to send query command: %w", err)
 	}
 
@@ -379,7 +387,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 		}()
 
 		subscriptionName := fmt.Sprintf("aspect-cli-%d.%d", os.Getpid(), w.subscriberId.Add(1))
-		queryParams := w.makeQueryParams(w.lastClockSpec)
+		queryParams := w.makeQueryParams(w.lastClockSpec, true)
 		for _, option := range options {
 			option.apply(queryParams)
 		}
@@ -409,6 +417,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 		// BEST EFFORT: if the subscriber panics, try to unsubscribe from watchman
 		defer sock.Send([]interface{}{"unsubscribe", w.watchedRoot, subscriptionName})
 
+		var prevDiffHashes map[string]string
 		for {
 			resp, err := sock.Recv()
 			if err != nil {
@@ -441,20 +450,50 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 				return
 			}
 
-			files := []string{}
+			paths := []string{}
+			clockSpec := resp["clock"].(string)
 
 			if resp["files"] != nil {
 				rf := resp["files"].([]interface{})
-				files = make([]string, len(rf))
+				diffHashes := make(map[string]string, len(rf))
+				paths = make([]string, len(rf))
 				for i, f := range rf {
-					files[i] = f.(string)
+					fileEntry := f.(map[string]interface{})
+					fileName := fileEntry["name"].(string)
+					paths[i] = fileName
+
+					sha1hex, hasSha1 := fileEntry["content.sha1hex"]
+					if hasSha1 {
+						sha1hex, hasSha1 = sha1hex.(string)
+					}
+
+					if !hasSha1 {
+						// No known sha1 or error calculating the sha1, use the
+						// clock spec as a proxy for file content change
+						diffHashes[fileName] = clockSpec
+					} else {
+						diffHashes[fileName] = sha1hex.(string)
+					}
 				}
+
+				if maps.Equal(diffHashes, prevDiffHashes) {
+					// Check for sequential duplicate change events from watchman and ignore them.
+					// Watchman can sometimes send duplicate events for the same change depending
+					// on the platform, filesystem and things such as which tool made the fs change.
+					//
+					// For example it has been reported that the coreutils `cp` command on macOS
+					// can trigger duplicate events for the same file copy operation while other forms
+					// of file copy do not.
+					continue
+				}
+
+				prevDiffHashes = diffHashes
 			}
 
 			cs := ChangeSet{
-				Paths:     files,
+				Paths:     paths,
 				Root:      path.Join(resp["root"].(string), w.watchedRelPath),
-				ClockSpec: resp["clock"].(string),
+				ClockSpec: clockSpec,
 			}
 			if !yield(&cs, nil) {
 				return
