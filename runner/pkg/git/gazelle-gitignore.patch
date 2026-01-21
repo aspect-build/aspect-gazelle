@@ -55,7 +55,7 @@ index 53dcabe..a678127 100644
  		}
  	}
 diff --git a/walk/dirinfo.go b/walk/dirinfo.go
-index d240e02..26106ec 100644
+index d2f989b..a20f9ac 100644
 --- a/walk/dirinfo.go
 +++ b/walk/dirinfo.go
 @@ -69,6 +69,19 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
@@ -64,11 +64,11 @@ index d240e02..26106ec 100644
  	info.config = configureForWalk(parentConfig, rel, info.File)
 +
 +	// PATCH(gitignore) ---
-+	if gitignoreProcessor, ok := w.rootConfig.Exts["__aspect:gitignoreProcessor"].(func(string, string, interface{}) (func(string, bool) bool, interface{})); ok && gitignoreProcessor != nil {
++	if w.gitignoreProcessor != nil {
 +		// Process any new .gitignore files
 +		for _, entry := range entries {
 +			if entry.Name() == ".gitignore" {
-+				info.config.isGitIgnoredExt, info.config.gitIgnoreData = gitignoreProcessor(w.rootConfig.RepoRoot, filepath.Join(rel, entry.Name()), parentConfig.gitIgnoreData)
++				info.config.isGitIgnoredExt, info.config.gitIgnoreData = w.gitignoreProcessor(w.rootConfig.RepoRoot, filepath.Join(rel, entry.Name()), parentConfig.gitIgnoreData)
 +				break
 +			}
 +		}
@@ -92,3 +92,31 @@ index d240e02..26106ec 100644
  		if e.IsDir() && !info.config.isExcludedDir(entryRel) {
  			info.Subdirs = append(info.Subdirs, e.Name())
  		} else if !e.IsDir() && !info.config.isExcludedFile(entryRel) {
+diff --git a/walk/walk.go b/walk/walk.go
+index 0e59bcf..7adedea 100644
+--- a/walk/walk.go
++++ b/walk/walk.go
+@@ -310,6 +310,10 @@ type walker struct {
+ 	// If the Config.Strict flag is set in the root configuration, we return
+ 	// quickly after the first error.
+ 	errs []error
++
++	// PATCH(gitignore) ---
++	gitignoreProcessor func(string, string, interface{}) (func(string, bool) bool, interface{})
++	// END-PATCH(gitignore) ---
+ }
+ 
+ type visitInfo struct {
+@@ -373,6 +377,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
+ 		relsToVisitSeen: make(map[string]struct{}),
+ 	}
+ 
++	// PATCH(gitignore) ---
++	if ext, hasExt := c.Exts["__aspect:gitignoreProcessor"]; hasExt {
++		w.gitignoreProcessor = ext.(func(string, string, interface{}) (func(string, bool) bool, interface{}))
++	}
++	// END-PATCH(gitignore) ---
++
+ 	// Asynchronously populate the walker cache in the background.
+ 	go w.populateCache()
+ 

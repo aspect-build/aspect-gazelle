@@ -1,16 +1,84 @@
+diff --git a/walk/cache.go b/walk/cache.go
+index e2fbba5..8cdb61c 100644
+--- a/walk/cache.go
++++ b/walk/cache.go
+@@ -3,6 +3,7 @@ package walk
+ import (
+ 	"fmt"
+ 	"path"
++	"strings"
+ 	"sync"
+ 
+ 	"github.com/bazelbuild/bazel-gazelle/pathtools"
+@@ -81,6 +82,11 @@ func setGlobalWalker(w *walker) func() {
+ 	if globalWalker != nil {
+ 		panic("globalWalker already set")
+ 	}
++
++	// PATCH(watch) ---
++	globalWalkerCache = w.cache
++	// END PATCH(watch) ---
++
+ 	globalWalker = w
+ 	return func() { globalWalker = nil }
+ }
+@@ -132,3 +138,39 @@ func GetDirInfo(rel string) (DirInfo, error) {
+ 
+ 	return di, err
+ }
++
++// PATCH(watch) ---
++var globalWalkerCache *cache
++
++// A global util to invalidate parts of the active cache.
++func Invalidate(rel string, descendents bool) {
++	if globalWalker != nil {
++		// Currently within an active Walk().
++		globalWalker.cache.invalidate(rel, descendents)
++	} else if globalWalkerCache != nil {
++		// Currently not within an active Walk() but have a cache stored.
++		globalWalkerCache.invalidate(rel, descendents)
++	}
++}
++
++func (c *cache) load(f *cache) {
++	f.entryMap.Range(func(key any, value any) bool {
++		c.entryMap.Store(key, value)
++		return true
++	})
++}
++
++func (c *cache) invalidate(rel string, descendents bool) {
++	_, found := c.entryMap.LoadAndDelete(rel)
++	if found && descendents {
++		relSlash := rel + "/"
++		c.entryMap.Range(func(key, value any) bool {
++			if strings.HasPrefix(key.(string), relSlash) {
++				c.entryMap.Delete(key)
++			}
++			return true
++		})
++	}
++}
++
++// END PATCH(watch) ---
 diff --git a/walk/walk.go b/walk/walk.go
-index 0e59bcf..b8d774c 100644
+index 7adedea..be04255 100644
 --- a/walk/walk.go
 +++ b/walk/walk.go
-@@ -373,6 +373,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
- 		relsToVisitSeen: make(map[string]struct{}),
+@@ -383,6 +383,16 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
  	}
+ 	// END-PATCH(gitignore) ---
  
-+	// PATCH(caching): additional aspect-gazelle caching of walker
-+	if c.Exts["aspect:walkCache:load"] != nil {
-+		walkCacheLoad := c.Exts["aspect:walkCache:load"].(func(m interface{}))
-+		walkCacheLoad(&w.cache.entryMap)
++	// PATCH(watch) ---
++	if globalWalkerCache != nil {
++		// Restore any cache entries from previous runs.
++		w.cache.load(globalWalkerCache)
++
++		// Keep a reference to the latest cache for potential future runs.
++		globalWalkerCache = w.cache
 +	}
++	// END-PATCH(watch) ---
 +
  	// Asynchronously populate the walker cache in the background.
  	go w.populateCache()
