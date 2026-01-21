@@ -122,6 +122,10 @@ common --incompatible_default_to_explicit_init_py
 common --incompatible_disallow_empty_glob
 # Docs: https://registry.build/flag/bazel@7.7.1?filter=incompatible_disallow_empty_glob
 
+# Accept multiple --modify_execution_info flags, rather than the last flag overwriting earlier ones.
+common --incompatible_modify_execution_info_additive
+# Docs: https://registry.build/flag/bazel@7.7.1?filter=incompatible_modify_execution_info_additive
+
 # Make builds more reproducible by using a static value for PATH and not inheriting LD_LIBRARY_PATH.
 # Use `--action_env=ENV_VARIABLE` if you want to inherit specific variables from the environment where Bazel runs.
 # Note that doing so can prevent cross-user caching if a shared cache is used.
