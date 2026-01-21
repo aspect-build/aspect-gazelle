@@ -1,0 +1,17 @@
+load("@aspect_rules_js//js:defs.bzl", "js_binary")
+
+js_binary(
+    name = "std_modules_launcher",
+    entry_point = "std_modules.js",
+    visibility = ["//visibility:private"],
+)
+
+genrule(
+    name = "gen_std_modules_go",
+    outs = ["std_modules.list"],
+    cmd = "BAZEL_BINDIR=$(BINDIR) $(location :std_modules_launcher) > $@",
+    tools = [":std_modules_launcher"],
+    visibility = ["//node:__subpackages__"],
+)
+
+# exports_files(["std_modules.list"])

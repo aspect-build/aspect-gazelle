@@ -1,4 +1,4 @@
-load("@aspect_rules_js//js:defs.bzl", "js_binary")
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
 load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
@@ -18,20 +18,6 @@ go_library(
     ],
 )
 
-js_binary(
-    name = "std_modules_launcher",
-    entry_point = "std_modules.js",
-    visibility = ["//visibility:private"],
-)
-
-genrule(
-    name = "gen_std_modules_go",
-    outs = ["std_modules.list"],
-    cmd = "BAZEL_BINDIR=$(BINDIR) $(location :std_modules_launcher) > $@",
-    tools = [":std_modules_launcher"],
-    visibility = ["//visibility:private"],
-)
-
 go_test(
     name = "node_test",
     srcs = [
@@ -39,4 +25,12 @@ go_test(
         "paths_test.go",
     ],
     embed = [":node"],
+)
+
+write_source_files(
+    name = "std_modules_list",
+    files = {
+        "std_modules.list": "//node/std_modules:std_modules.list",
+    },
+    visibility = ["//node:__subpackages__"],
 )
