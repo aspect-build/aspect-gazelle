@@ -9,15 +9,8 @@ import (
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/bazelbuild/bazel-gazelle/walk"
 	gitignore "github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
-
-// TODO: remove and align with gazelle after https://github.com/aspect-build/aspect-cli/issues/755
-
-func SetupGitIgnore() {
-	walk.SetGitIgnoreProcessor(processGitignoreFile)
-}
 
 type isGitIgnored func(p string, isDir bool) bool
 

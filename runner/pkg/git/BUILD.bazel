@@ -5,13 +5,17 @@ exports_files(["gazelle-gitignore.patch"])
 
 go_library(
     name = "git",
-    srcs = ["gitignore.go"],
+    srcs = [
+        "configurer.go",
+        "gitignore.go",
+    ],
     importpath = "github.com/aspect-build/aspect-gazelle/runner/pkg/git",
     visibility = ["//visibility:public"],
     deps = [
         "@aspect_gazelle//common/logger",
         "@com_github_go_git_go_git_v5//plumbing/format/gitignore",
-        "@gazelle//walk",
+        "@gazelle//config",
+        "@gazelle//rule",
     ],
 )
 
