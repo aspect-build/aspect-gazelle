@@ -1,0 +1,25 @@
+# A minmimal MODULE + BUILD to simulate loading the gazelle binary from aspect-gazelle/runner.
+# This will load the module
+
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@gazelle//:def.bzl", "gazelle")
+
+gazelle(
+    name = "gazelle",
+    extra_args = ["-index=lazy"],
+    gazelle = "@aspect_gazelle_runner//:gazelle_prebuilt_bin",
+)
+
+gazelle(
+    name = "gazelle.check",
+    gazelle = "@aspect_gazelle_runner//:gazelle_prebuilt_bin",
+    mode = "diff",
+)
+
+build_test(
+    name = "watchman_test_build_test",
+    targets = [
+        ":gazelle",
+        ":gazelle.check",
+    ],
+)
