@@ -26,7 +26,6 @@ import (
 
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
-	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	js "github.com/aspect-build/aspect-gazelle/language/js"
 	kotlin "github.com/aspect-build/aspect-gazelle/language/kotlin"
 	orion "github.com/aspect-build/aspect-gazelle/language/orion"
@@ -41,6 +40,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language/bazel/visibility"
 	golang "github.com/bazelbuild/bazel-gazelle/language/go"
 	"github.com/bazelbuild/bazel-gazelle/language/proto"
+	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	"go.opentelemetry.io/otel"
 	traceAttr "go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
@@ -91,11 +91,6 @@ const (
 	Print             = "print"
 	Diff              = "diff"
 )
-
-// Setup gitignore within Gazelle.
-func init() {
-	git.SetupGitIgnore()
-}
 
 func New(workspaceDir string, showProgress bool) *GazelleRunner {
 	c := &GazelleRunner{
@@ -183,6 +178,7 @@ func (runner *GazelleRunner) instantiateLanguages() []language.Language {
 func (runner *GazelleRunner) instantiateConfigs() []config.Configurer {
 	configs := []config.Configurer{
 		cache.NewConfigurer(),
+		git.NewConfigurer(),
 	}
 	return configs
 }
