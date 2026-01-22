@@ -97,6 +97,27 @@ const importsQuery = `
 	)
 `
 
+// Additional queries for Jsx/Tsx files to capture assets in jsx elements.
+const importsQueryJsx = importsQuery + `
+	(jsx_opening_element name: (identifier) @jsx-tag
+		(jsx_attribute
+			(property_identifier) @jsx-attr
+			(string (string_fragment) @from)
+			(#match? @jsx-attr "^(src|poster)$")
+		)
+		(#match? @jsx-tag "^(img|video|source)$")
+	)
+
+	(jsx_self_closing_element name: (identifier) @jsx-tag
+		(jsx_attribute
+			(property_identifier) @jsx-attr
+			(string (string_fragment) @from)
+			(#match? @jsx-attr "^(src|poster)$")
+		)
+		(#match? @jsx-tag "^(img|video|source)$")
+	)
+`
+
 // Note that we intentionally omit "lib" here since these directives do not result in a separate dependency
 // See: https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-lib-
 // > This directive allows a file to explicitly include an existing built-in lib file
@@ -118,8 +139,13 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	if tree != nil {
 		defer tree.Close()
 
+		querySource := importsQuery
+		if isTsxFilename(filePath) {
+			querySource = importsQueryJsx
+		}
+
 		// Query for more complex non-root node imports.
-		q, err := treeutils.GetQuery(lang, importsQuery)
+		q, err := treeutils.GetQuery(lang, querySource)
 		if err != nil {
 			log.Fatalf("Failed to create js 'importsQuery': %v", err)
 		}
@@ -177,13 +203,14 @@ func getTripleSlashDirectiveModule(comment string) (string, bool) {
 	return string(lib), len(lib) > 0
 }
 
-// File extension to language key
+func isTsxFilename(filename string) bool {
+	ext := path.Ext(filename)
+	return ext == ".tsx" || ext == ".jsx"
+}
+
+// File extension to language
 func filenameToLanguage(filename string) treeutils.Language {
-	ext := path.Ext(filename)[1:]
-	switch ext {
-	case "tsx":
-		fallthrough
-	case "jsx":
+	if isTsxFilename(filename) {
 		return tsx.NewLanguage()
 	}
 

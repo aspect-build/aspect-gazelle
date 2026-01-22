@@ -5,7 +5,10 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 ts_project(
     name = "tsx_css_outdir",
     srcs = ["main.tsx"],
-    assets = ["styles.css"],
+    assets = [
+        "images/logo.webp",
+        "styles.css",
+    ],
     out_dir = "dist",
     tsconfig = ":tsconfig",
     deps = ["//sub"],

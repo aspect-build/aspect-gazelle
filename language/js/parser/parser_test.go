@@ -325,14 +325,16 @@ var testCases = []struct {
 		ts: `
 			return (<img src="./x.png" />)
 		`,
-		filename: "imgAssetExpression.jsx",
+		filename:        "imgAssetExpression.jsx",
+		expectedImports: []string{"./x.png"},
 	},
 	{
 		desc: "tsx syntax",
 		ts: `
 			return (<img src="./x.png" />)
 		`,
-		filename: "imgAssetExpression.tsx",
+		filename:        "imgAssetExpression.tsx",
+		expectedImports: []string{"./x.png"},
 	},
 	{
 		desc: "jsx expression in non-jsx file",
@@ -387,6 +389,57 @@ var testCases = []struct {
 		`,
 		filename:        "requireAssetsQuery.tsx",
 		expectedImports: []string{"./styles.css?no-inline", "./images/logo.png#no-inline", "./images/logo2.gif?no-inline"},
+	},
+	{
+		desc: "jsx img src asset",
+		ts: `
+			<img src="./images/logo.png" title="not-img.png" />
+		`,
+		filename:        "imgAsset.tsx",
+		expectedImports: []string{"./images/logo.png"},
+	},
+	{
+		desc: "jsx img src multiple assets",
+		ts: `
+		    <>
+				<img src="./images/logo.png" title="not-img.png" />
+				<img src="./images/logo2.gif" alt="not-img2.png" />
+			</>
+		`,
+		filename:        "imgAssets.tsx",
+		expectedImports: []string{"./images/logo.png", "./images/logo2.gif"},
+	},
+	{
+		desc: "jsx img src alternate syntaxes",
+		ts: `
+		    const x = "not-supported.png";
+		    <>
+				<img src = "./images/logo.png" />
+
+				<img src={"not-supported.png"} />
+				<img src={"not" + "-" + "supported.png"} />
+				<img src={x} />
+
+				<!-- supported and listed after non-supported -->
+				<img src='./images/logo2.gif' />
+			</>
+		`,
+		filename:        "imgAssets.tsx",
+		expectedImports: []string{"./images/logo.png", "./images/logo2.gif"},
+	},
+	{
+		desc: "jsx video poster + sources asset",
+		ts: `
+			<>
+				<video poster="./images/poster.jpg" />
+
+				<video poster="./images/poster2.jpg">
+					<source src="./images/clip.webm" />
+				</video>
+			</>
+		`,
+		filename:        "video.tsx",
+		expectedImports: []string{"./images/poster.jpg", "./images/poster2.jpg", "./images/clip.webm"},
 	},
 }
 
