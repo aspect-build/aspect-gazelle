@@ -9,7 +9,6 @@ var testCases = []struct {
 	filename        string
 	expectedImports []string
 	expectedModules []string
-	expectError     bool
 }{
 	{
 		desc:     "empty",
