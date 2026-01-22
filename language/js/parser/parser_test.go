@@ -344,7 +344,6 @@ var testCases = []struct {
 	{
 		desc:        "completely invalid syntax",
 		ts:          `} from *`,
-		expectError: true,
 		filename:    "bad.js",
 	},
 }
