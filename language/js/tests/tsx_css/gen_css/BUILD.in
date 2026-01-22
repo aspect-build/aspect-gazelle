@@ -1,0 +1,4 @@
+genrule(
+    name = "gen-my-css",
+    outs = ["styles.css"],
+)

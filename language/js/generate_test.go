@@ -120,6 +120,31 @@ func TestGenerate(t *testing.T) {
 			impt:     "anything://me",
 			expected: "anything://me",
 		},
+		// Query params
+		{
+			pkg:      "",
+			from:     "from.ts",
+			impt:     "./styles.css?no-inline",
+			expected: "styles.css",
+		},
+		{
+			pkg:      "",
+			from:     "from.ts",
+			impt:     "./styles.css#no-inline",
+			expected: "styles.css",
+		},
+		{
+			pkg:      "",
+			from:     "from.ts",
+			impt:     "./styles.css?no-inline#hash",
+			expected: "styles.css",
+		},
+		{
+			pkg:      "dont-use-me",
+			from:     "anywhere.ts",
+			impt:     "https://me.com/file.css?no-inline",
+			expected: "https://me.com/file.css",
+		},
 	} {
 		desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s)", tc.pkg, tc.from, tc.impt)
 

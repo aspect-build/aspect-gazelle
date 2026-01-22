@@ -342,13 +342,52 @@ var testCases = []struct {
 		filename: "plain.js",
 	},
 	{
-		desc:        "completely invalid syntax",
-		ts:          `} from *`,
-		filename:    "bad.js",
+		desc:     "completely invalid syntax",
+		ts:       `} from *`,
+		filename: "bad.js",
 	},
-}
-
-func RunParserTests(t *testing.T, parserPost string) {
+	{
+		desc: "import .css",
+		ts: `
+			import "./styles.css"
+			import "./styles2.css"
+			import logo from "./images/logo.png"
+			import logo2 from "./images/logo2.gif"
+		`,
+		filename:        "importAssets.tsx",
+		expectedImports: []string{"./styles.css", "./styles2.css", "./images/logo.png", "./images/logo2.gif"},
+	},
+	{
+		desc: "import assets with query params/hash",
+		ts: `
+			import "./styles.css?no-inline"
+			import logo from "./images/logo.png#no-inline"
+			import logo2 from "./images/logo2.gif?no-inline"
+		`,
+		filename:        "importAssetsQuery.tsx",
+		expectedImports: []string{"./styles.css?no-inline", "./images/logo.png#no-inline", "./images/logo2.gif?no-inline"},
+	},
+	{
+		desc: "require .css",
+		ts: `
+			require("./styles.css")
+			require("./styles2.css")
+			require("./images/logo.png")
+			require("./images/logo2.gif")
+		`,
+		filename:        "requireAssets.tsx",
+		expectedImports: []string{"./styles.css", "./styles2.css", "./images/logo.png", "./images/logo2.gif"},
+	},
+	{
+		desc: "require assets with query params",
+		ts: `
+			require("./styles.css?no-inline")
+			require("./images/logo.png#no-inline")
+			require("./images/logo2.gif?no-inline")
+		`,
+		filename:        "requireAssetsQuery.tsx",
+		expectedImports: []string{"./styles.css?no-inline", "./images/logo.png#no-inline", "./images/logo2.gif?no-inline"},
+	},
 }
 
 func equal[T comparable](a, b []T) bool {

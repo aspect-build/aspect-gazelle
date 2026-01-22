@@ -37,7 +37,8 @@ var tsKinds = map[string]rule.KindInfo{
 		},
 		SubstituteAttrs: map[string]bool{},
 		MergeableAttrs: map[string]bool{
-			"srcs": true,
+			"srcs":   true,
+			"assets": true,
 
 			// Generated based on project config.
 			"isolated_typecheck": true,
