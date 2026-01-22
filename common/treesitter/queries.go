@@ -122,7 +122,7 @@ func (tree *treeAst) QueryErrors() []error {
 
 			// Navigate up the AST to include the full source line
 			if atStart.Column > 0 {
-				for show.StartPoint().Row > 0 && show.StartPoint().Row == atStart.Row {
+				for show.StartPoint().Row > 0 && show.StartPoint().Row == atStart.Row && show.Parent() != nil {
 					show = show.Parent()
 				}
 			}

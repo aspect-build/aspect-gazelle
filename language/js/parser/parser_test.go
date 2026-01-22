@@ -320,6 +320,32 @@ var testCases = []struct {
 		expectedModules: []string{"https://mod.com"},
 		expectedImports: []string{"ftp://ancient.com"},
 	},
+	{
+		desc: "jsx syntax",
+		ts: `
+			return (<img src="./x.png" />)
+		`,
+		filename: "imgAssetExpression.jsx",
+	},
+	{
+		desc: "tsx syntax",
+		ts: `
+			return (<img src="./x.png" />)
+		`,
+		filename: "imgAssetExpression.tsx",
+	},
+	{
+		desc: "jsx expression in non-jsx file",
+		ts: `
+			<img src="./x.png" />
+		`,
+		filename: "plain.js",
+	},
+	{
+		desc:        "completely invalid syntax",
+		ts:          `} from *`,
+		filename:    "bad.js",
+	},
 }
 
 func RunParserTests(t *testing.T, parserPost string) {
