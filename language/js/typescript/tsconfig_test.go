@@ -203,6 +203,27 @@ func TestTsconfigLoad(t *testing.T) {
 	})
 }
 
+func TestTsBuildInfoFileConfigDirExpansion(t *testing.T) {
+	t.Run("expand configDir in tsBuildInfoFile", func(t *testing.T) {
+		options := parseTest(t, "pkg", `{
+			"compilerOptions": {
+				"baseUrl": "${configDir}/lib",
+				"declarationDir": "${configDir}/types",
+				"incremental": true,
+				"outDir": "${configDir}/dist",
+				"rootDir": "${configDir}/src",
+				"tsBuildInfoFile": "${configDir}/lib-types/.tsbuildinfo"
+			}
+		}`)
+
+		assertEqual(t, options.BaseUrl, "pkg/lib", "baseUrl should expand configDir")
+		assertEqual(t, options.DeclarationDir, "pkg/types", "declarationDir should expand configDir")
+		assertEqual(t, options.OutDir, "pkg/dist", "outDir should expand configDir")
+		assertEqual(t, options.RootDir, "pkg/src", "rootDir should expand configDir")
+		assertEqual(t, options.TsBuildInfoFile, "pkg/lib-types/.tsbuildinfo", "tsBuildInfoFile should expand configDir")
+	})
+}
+
 func TestTsconfigParse(t *testing.T) {
 	t.Run("parse a tsconfig with empty config", func(t *testing.T) {
 		options := parseTest(t, ".", "{}")

@@ -1,0 +1,8 @@
+{
+    "compilerOptions": {
+        "declarationDir": "${configDir}/types",
+        "incremental": true,
+        "outDir": "${configDir}/dist",
+        "tsBuildInfoFile": "${configDir}/lib-types/.tsbuildinfo"
+    }
+}

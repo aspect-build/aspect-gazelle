@@ -80,6 +80,17 @@ func (j TsConfigJsxType) IsReact() bool {
 	return s == "react" || strings.HasPrefix(s, "react-")
 }
 
+func expandConfigDirPath(value, configDir string) string {
+	return path.Clean(strings.ReplaceAll(value, "${configDir}", configDir))
+}
+
+func expandConfigDirFile(value, configDir string) string {
+	if value == "" {
+		return value
+	}
+	return path.Clean(strings.ReplaceAll(value, "${configDir}", configDir))
+}
+
 type TsConfig struct {
 	// Directory of the tsconfig file
 	ConfigDir string
@@ -291,7 +302,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var tsBuildInfoFile string
 	if c.CompilerOptions.TsBuildInfoFile != nil {
-		tsBuildInfoFile = *c.CompilerOptions.TsBuildInfoFile
+		tsBuildInfoFile = expandConfigDirFile(*c.CompilerOptions.TsBuildInfoFile, configDir)
 	} else if baseConfig != nil {
 		tsBuildInfoFile = baseConfig.TsBuildInfoFile
 	}
@@ -312,14 +323,14 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var RootDir string
 	if c.CompilerOptions.RootDir != nil {
-		RootDir = path.Clean(*c.CompilerOptions.RootDir)
+		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
 	} else {
 		RootDir = "."
 	}
 
 	var OutDir string
 	if c.CompilerOptions.OutDir != nil {
-		OutDir = path.Clean(*c.CompilerOptions.OutDir)
+		OutDir = expandConfigDirPath(*c.CompilerOptions.OutDir, configDir)
 	} else if baseConfig != nil {
 		OutDir = baseConfig.OutDir
 	} else {
@@ -328,14 +339,14 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var declarationDir string
 	if c.CompilerOptions.DeclarationDir != nil {
-		declarationDir = path.Clean(*c.CompilerOptions.DeclarationDir)
+		declarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
 	} else {
 		declarationDir = OutDir
 	}
 
 	var BaseUrl string
 	if c.CompilerOptions.BaseUrl != nil {
-		BaseUrl = path.Clean(*c.CompilerOptions.BaseUrl)
+		BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl, configDir)
 	} else {
 		BaseUrl = "."
 	}
