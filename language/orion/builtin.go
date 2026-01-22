@@ -14,10 +14,10 @@ var builtinKinds = []plugin.RuleKind{
 		},
 	},
 
-	// @aspect_bazel_lib
+	// @bazel_lib
 	plugin.RuleKind{
 		Name: "copy_to_bin",
-		From: "@aspect_bazel_lib//lib:copy_to_bin.bzl",
+		From: "@bazel_lib//lib:copy_to_bin.bzl",
 		KindInfo: plugin.KindInfo{
 			NonEmptyAttrs:  []string{"srcs"},
 			MergeableAttrs: []string{"srcs"},
