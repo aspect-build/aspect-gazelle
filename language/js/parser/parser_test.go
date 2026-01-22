@@ -9,6 +9,7 @@ var testCases = []struct {
 	filename        string
 	expectedImports []string
 	expectedModules []string
+	expectError     bool
 }{
 	{
 		desc:     "empty",
@@ -319,6 +320,33 @@ var testCases = []struct {
 		filename:        "declare-protocol-module.ts",
 		expectedModules: []string{"https://mod.com"},
 		expectedImports: []string{"ftp://ancient.com"},
+	},
+	{
+		desc: "jsx syntax",
+		ts: `
+			return (<img src="./x.png" />)
+		`,
+		filename: "imgAssetExpression.jsx",
+	},
+	{
+		desc: "tsx syntax",
+		ts: `
+			return (<img src="./x.png" />)
+		`,
+		filename: "imgAssetExpression.tsx",
+	},
+	{
+		desc: "jsx expression in non-jsx file",
+		ts: `
+			<img src="./x.png" />
+		`,
+		filename: "plain.js",
+	},
+	{
+		desc:        "completely invalid syntax",
+		ts:          `} from *`,
+		expectError: true,
+		filename:    "bad.js",
 	},
 }
 
