@@ -441,6 +441,31 @@ var testCases = []struct {
 		filename:        "video.tsx",
 		expectedImports: []string{"./images/poster.jpg", "./images/poster2.jpg", "./images/clip.webm"},
 	},
+	{
+		desc: "jsx audio src asset",
+		ts: `
+			<>
+				<audio src="./audio/music.mp3" />
+
+				<audio src="./audio/podcast.wav">
+					<track src="./subtitles/en.vtt" />
+				</audio>
+			</>
+		`,
+		filename:        "audio.tsx",
+		expectedImports: []string{"./audio/music.mp3", "./audio/podcast.wav", "./subtitles/en.vtt"},
+	},
+	{
+		desc: "jsx track src asset",
+		ts: `
+			<video>
+				<track src="./subtitles/en.vtt" />
+				<track src="./subtitles/es.vtt" />
+			</video>
+		`,
+		filename:        "track.tsx",
+		expectedImports: []string{"./subtitles/en.vtt", "./subtitles/es.vtt"},
+	},
 }
 
 func equal[T comparable](a, b []T) bool {
