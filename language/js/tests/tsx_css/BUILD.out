@@ -1,0 +1,10 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+
+ts_project(
+    name = "tsx_css",
+    srcs = ["main.tsx"],
+    assets = ["styles.css"],
+    deps = ["//sub"],
+)

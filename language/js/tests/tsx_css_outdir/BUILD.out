@@ -1,0 +1,27 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# gazelle:generation_mode update_only
+
+ts_project(
+    name = "tsx_css_outdir",
+    srcs = ["main.tsx"],
+    assets = ["styles.css"],
+    out_dir = "dist",
+    tsconfig = ":tsconfig",
+    deps = ["//sub"],
+)
+
+ts_project(
+    name = "tsx_css_outdir_tests",
+    testonly = True,
+    srcs = ["main.spec.tsx"],
+    out_dir = "dist",
+    tsconfig = ":tsconfig",
+    deps = [":tsx_css_outdir"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)

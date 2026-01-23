@@ -179,10 +179,9 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 				dataFiles.Add(file)
 			}
-		}
-
-		// Not collect by any target group, but still collect as a data file.
-		if isDataFileExt(fileExt) {
+		} else {
+			// Not collected by any target group, but still collect as a data file.
+			BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
 			dataFiles.Add(file)
 		}
 	}
@@ -573,7 +572,27 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	}
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)
-	sourceRule.SetAttr("srcs", info.sources.Values())
+	if ruleKind == TsProjectKind {
+		assetFiles := make([]string, 0)
+		srcFiles := make([]string, 0, info.sources.Size())
+		for it := info.sources.Iterator(); it.Next(); {
+			sourceFile := it.Value().(string)
+			if isSourceFileExt(path.Ext(sourceFile)) || isDataFileExt(path.Ext(sourceFile)) {
+				srcFiles = append(srcFiles, sourceFile)
+			} else {
+				assetFiles = append(assetFiles, sourceFile)
+			}
+		}
+		sourceRule.SetAttr("srcs", srcFiles)
+		if len(assetFiles) > 0 {
+			sourceRule.SetAttr("assets", assetFiles)
+		} else {
+			sourceRule.DelAttr("assets")
+		}
+	} else {
+		sourceRule.SetAttr("srcs", info.sources.Values())
+		sourceRule.DelAttr("assets")
+	}
 
 	if group.testonly {
 		sourceRule.SetAttr("testonly", true)
@@ -833,6 +852,11 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 			continue
 		}
 
+		importPath = stripImportQuery(importPath)
+		if importPath == "" {
+			continue
+		}
+
 		// The path from the root
 		workspacePath := toImportSpecPath(sourcePath, importPath)
 
@@ -954,7 +978,7 @@ func toImportPaths(p string) []string {
 		if strings.HasSuffix(pNoExt, SlashIndexFileName) {
 			paths = append(paths, pNoExt[:len(pNoExt)-len(SlashIndexFileName)])
 		}
-	} else if isDataFileExt(pExt) {
+	} else {
 		paths = append(paths, p)
 	}
 
@@ -1096,7 +1120,7 @@ func isDeclarationFileType(f string) bool {
 	return strings.HasSuffix(f, ".d.ts") || strings.HasSuffix(f, ".d.mts") || strings.HasSuffix(f, ".d.cts")
 }
 
-// Supported data file extensions that typescript can reference.
+// Supported data file extensions that typescript can import which may be part of tsc compilation/type-checking
 func isDataFileExt(e string) bool {
 	return e == ".json"
 }
@@ -1136,6 +1160,11 @@ func toDtsExt(e string) string {
 // Normalize the given import statement from a relative path
 // to a path relative to the workspace.
 func toImportSpecPath(importFrom, importPath string) string {
+	importPath = stripImportQuery(importPath)
+	if importPath == "" {
+		return importPath
+	}
+
 	// Relative paths
 	if importPath[0] == '.' {
 		return path.Join(importFrom, "..", importPath)
@@ -1149,6 +1178,19 @@ func toImportSpecPath(importFrom, importPath string) string {
 	// Non-relative imports such as packages, paths depending on `rootDirs` etc.
 	// Clean any extra . / .. etc
 	return path.Clean(importPath)
+}
+
+func stripImportQuery(importPath string) string {
+	// Some frameworks support query parameters on imports, for example:
+	//  Vite: https://v6.vite.dev/guide/assets.html#explicit-inline-handling
+	//  Rspack: https://rsbuild.rs/guide/basic/static-assets#inline-assets
+	//  SVG: https://www.w3.org/TR/SVG/linking.html#SVGFragmentIdentifiers
+	queryIndex := strings.IndexAny(importPath, "?#")
+	if queryIndex == -1 {
+		return importPath
+	}
+
+	return importPath[:queryIndex]
 }
 
 // Return the default target name for the given language.GenerateArgs.

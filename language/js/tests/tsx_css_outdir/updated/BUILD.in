@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "updated",
+    srcs = ["old"],
+    assets = [
+        "old",
+        "unused.css",  # keep
+    ],
+)
+
+ts_project(
+    name = "updated_tests",
+    srcs = ["lib.spec.ts"], # no longer exists so the full rule should be deleted...
+    assets = ["lib.css"],   # ... even though the asset does still exist, it should not cause the rule to remain
+)

@@ -1,0 +1,7 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "sub",
+    srcs = ["lib.tsx"],
+    assets = ["css/lib.css"],
+)

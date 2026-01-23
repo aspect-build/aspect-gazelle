@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+genrule(
+    name = "gen-my-css",
+    outs = ["styles.css"],
+)
+
+ts_project(
+    name = "gen_css",
+    srcs = ["glib.tsx"],
+    assets = ["styles.css"],
+    out_dir = "dist",
+    tsconfig = "//:tsconfig",
+)
