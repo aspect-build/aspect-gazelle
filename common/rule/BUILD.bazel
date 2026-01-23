@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "rule",
@@ -17,5 +17,14 @@ go_library(
         "@gazelle//label",
         "@gazelle//language",
         "@gazelle//rule",
+    ],
+)
+
+go_test(
+    name = "rule_test",
+    srcs = ["glob_test.go"],
+    embed = [":rule"],
+    deps = [
+        "@com_github_bazelbuild_buildtools//build",
     ],
 )

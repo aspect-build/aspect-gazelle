@@ -10,24 +10,43 @@ import (
 )
 
 func ExpandSrcs(files []string, expr bzl.Expr) ([]string, error) {
-	// Pure array of source paths.
 	if list, ok := expr.(*bzl.ListExpr); ok {
-		srcs := make([]string, 0, len(list.List))
-		for _, e := range list.List {
-			if str, ok := e.(*bzl.StringExpr); ok {
-				srcs = append(srcs, str.Value)
-			} else {
-				BazelLog.Tracef("skipping non-string src %s", e)
-			}
+		return expandSrcsList(list), nil
+	}
+
+	if binary, ok := expr.(*bzl.BinaryExpr); ok && binary.Op == "+" {
+		left, err := ExpandSrcs(files, binary.X)
+		if err != nil {
+			return nil, err
 		}
-		return srcs, nil
+		right, err := ExpandSrcs(files, binary.Y)
+		if err != nil {
+			return nil, err
+		}
+		return append(left, right...), nil
 	}
 
 	g, isGlob := rule.ParseGlobExpr(expr)
 	if !isGlob {
-		return nil, fmt.Errorf("expected glob expression, got %s", expr)
+		return nil, fmt.Errorf("expected list or glob expression, got %s", expr)
 	}
 
+	return expandGlob(files, g), nil
+}
+
+func expandSrcsList(list *bzl.ListExpr) []string {
+	srcs := make([]string, 0, len(list.List))
+	for _, e := range list.List {
+		if str, ok := e.(*bzl.StringExpr); ok {
+			srcs = append(srcs, str.Value)
+		} else {
+			BazelLog.Tracef("skipping non-string src %s", e)
+		}
+	}
+	return srcs
+}
+
+func expandGlob(files []string, g rule.GlobValue) []string {
 	matches := []string{}
 
 	for _, file := range files {
@@ -54,5 +73,5 @@ func ExpandSrcs(files []string, expr bzl.Expr) ([]string, error) {
 		}
 	}
 
-	return matches, nil
+	return matches
 }
