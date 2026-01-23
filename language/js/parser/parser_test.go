@@ -5,10 +5,11 @@ import (
 )
 
 var testCases = []struct {
-	desc, ts        string
-	filename        string
-	expectedImports []string
-	expectedModules []string
+	desc, ts           string
+	filename           string
+	expectedImports    []string
+	expectedURLImports []string
+	expectedModules    []string
 }{
 	{
 		desc:     "empty",
@@ -370,6 +371,33 @@ var testCases = []struct {
 		expectedImports: []string{"./styles.css?no-inline", "./images/logo.png#no-inline", "./images/logo2.gif?no-inline"},
 	},
 	{
+		desc: "new URL import.meta.url assets",
+		ts: `
+			const logo = new URL("./images/logo.png", import.meta.url)
+			const logo = new URL("images/logo.png#hash", import.meta.url)
+
+			// Not a string
+			new URL(ignored, import.meta.url)
+			new URL("ignored" + ".png", import.meta.url)
+
+			// Different func name or non-constructor
+			new Url("./ignored.png", import.meta.url)
+			URL("./ignored.png", import.meta.url)
+			new URLs("./ignored.png", import.meta.url)
+			new url("./ignored.png", import.meta.url)
+
+			// No import.meta.url
+			new URL("./ignored.png")
+			new URL("./ignored.png", foobar.meta.url)
+			new URL("./ignored.png", meta.url)
+
+			// Another valid one at the end
+			new URL("./images/logo2.gif?no-inline", import.meta.url)
+		`,
+		filename:           "importMetaAssets.tsx",
+		expectedURLImports: []string{"./images/logo.png", "images/logo.png#hash", "./images/logo2.gif?no-inline"},
+	},
+	{
 		desc: "require .css",
 		ts: `
 			require("./styles.css")
@@ -487,6 +515,10 @@ func TestTreesitterParser(t *testing.T) {
 
 			if !equal(res.Imports, tc.expectedImports) {
 				t.Errorf("Unexpected import results\nactual:  %#v;\nexpected: %#v\ntypescript code:\n%v", res.Imports, tc.expectedImports, tc.ts)
+			}
+
+			if !equal(res.URLImports, tc.expectedURLImports) {
+				t.Errorf("Unexpected URL import results\nactual:  %#v;\nexpected: %#v\ntypescript code:\n%v", res.URLImports, tc.expectedURLImports, tc.ts)
 			}
 
 			if !equal(res.Modules, tc.expectedModules) {

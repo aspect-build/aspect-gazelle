@@ -8,3 +8,6 @@ export const App = () => (
     <img src="./images/logo.png" />
   </div>
 )
+
+export const logo = new URL("logo.png", import.meta.url)
+export const logo2 = new URL("./logo.png?2", import.meta.url)
