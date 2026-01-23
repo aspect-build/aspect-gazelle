@@ -105,7 +105,7 @@ const importsQueryJsx = importsQuery + `
 			(string (string_fragment) @from)
 			(#match? @jsx-attr "^(src|poster)$")
 		)
-		(#match? @jsx-tag "^(img|video|source)$")
+		(#match? @jsx-tag "^(img|video|source|audio|track)$")
 	)
 
 	(jsx_self_closing_element name: (identifier) @jsx-tag
@@ -114,7 +114,7 @@ const importsQueryJsx = importsQuery + `
 			(string (string_fragment) @from)
 			(#match? @jsx-attr "^(src|poster)$")
 		)
-		(#match? @jsx-tag "^(img|video|source)$")
+		(#match? @jsx-tag "^(img|video|source|audio|track)$")
 	)
 `
 
