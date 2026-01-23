@@ -41,7 +41,7 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | `# gazelle:js_pnpm_lockfile _lockfile_`                 | `pnpm-lock.yaml`            |
 | Path to the `pnpm-lock.yaml` file containing available npm packages. <br />This value is inherited by sub-directories and applied relative to each BUILD. |
 | `# gazelle:js_tsconfig_file _filename_`                 | `tsconfig.json`             |
-| Filename for locating a `tsconfig.json` file in each package. |
+| Path (relative to each package) for locating a `tsconfig.json` file. |
 | `# gazelle:js_tsconfig_ignore _property_`              | `[]`                        |
 | Specify a tsconfig related `ts_project` attribute which should not be generated. Attributes include the core `tsconfig` attribute as well as all attributes that must be kept in sync with the tsconfig such as `root_dir`, `declaration`, `incremental`, `composite` etc. Some use cases are (1) when a `ts_project` macro sets the attribute to avoid unnecessary generated code in your BUILD files, (2) when a tsconfig property is unnecessary in the bazel build but can not be removed from the tsconfig.json file. |
 | `# gazelle:js_ignore_imports _glob_`                    |                             |
