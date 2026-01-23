@@ -92,6 +92,15 @@ Individual plugins can be enabled/disabled via BUILD directives:
 # gazelle:{plugin_id} enabled|disabled
 ```
 
+## Directives
+
+<!-- prettier-ignore-start -->
+| **Directive** | **Meaning** |
+| --- | --- |
+| `# gazelle:{plugin_id} enabled\|disabled` | Enable or disable a plugin. The last directive wins and values are inherited by subpackages. |
+| `# gazelle:{property_name} {value}` | Set a plugin property value as defined by the plugin `Properties()`. Values are inherited by subpackages. |
+<!-- prettier-ignore-end -->
+
 ## Extension registration API
 
 ### `aspect.register_rule_kind`

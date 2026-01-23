@@ -36,8 +36,12 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | Enable generation of `npm_package` targets.<br />DEPRECATED: `referenced` will only generate `npm_package` targets for packages that are referenced by other projects. |
 | `# gazelle:js_package_rule_kind js_library\|npm_package`| `npm_package`               |
 | The target type to use for the npm package rule. |
+| `# gazelle:js_visibility [target_name] _labels_...`     |                             |
+| Set the `visibility` for generated `ts_project\|js_library` source targets. When the first token is not a label, it is treated as the target name to apply visibility to (defaults to `{dirname}`). |
 | `# gazelle:js_pnpm_lockfile _lockfile_`                 | `pnpm-lock.yaml`            |
 | Path to the `pnpm-lock.yaml` file containing available npm packages. <br />This value is inherited by sub-directories and applied relative to each BUILD. |
+| `# gazelle:js_tsconfig_file _filename_`                 | `tsconfig.json`             |
+| Filename for locating a `tsconfig.json` file in each package. |
 | `# gazelle:js_tsconfig_ignore _property_`              | `[]`                        |
 | Specify a tsconfig related `ts_project` attribute which should not be generated. Attributes include the core `tsconfig` attribute as well as all attributes that must be kept in sync with the tsconfig such as `root_dir`, `declaration`, `incremental`, `composite` etc. Some use cases are (1) when a `ts_project` macro sets the attribute to avoid unnecessary generated code in your BUILD files, (2) when a tsconfig property is unnecessary in the bazel build but can not be removed from the tsconfig.json file. |
 | `# gazelle:js_ignore_imports _glob_`                    |                             |
@@ -50,6 +54,8 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | The format used to generate the name of the main `ts_project` rule. |
 | `# gazelle:js_tests_naming_convention _name_`           | `{dirname}_tests`           |
 | The format used to generate the name of the test `ts_project` rule. |
+| `# gazelle:js_proto_naming_convention _name_`           | `{proto_library}_ts`        |
+| The format used to generate the name of the `ts_proto_library` rule. |
 | `# gazelle:js_files [custom_target_name] _glob_`        | `**/*.{ts,tsx,mts,cts}`     |
 | A glob pattern for files to be included in the main `ts_project` target, or a custom target.<br />Multiple patterns can be specified by using the `js_files` directive multiple times.<br />When specified the inherited configuration is replaced, not extended. |
 | `# gazelle:js_test_files [custom_target_name] _glob_`   | `**/*.{spec,test}.{ts,tsx,mts,cts}` |
