@@ -479,7 +479,7 @@ func (ts *typeScriptLang) resolveImport(
 			pImp := ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: impStm.ImportSpec.Lang,
-					Imp:  toImportSpecPath(impStm.SourcePath, p),
+					Imp:  toImportSpecPath(impStm.SourcePath, p, false),
 				},
 				SourcePath: impStm.SourcePath,
 				ImportPath: impStm.ImportPath,

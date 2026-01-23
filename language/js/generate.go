@@ -376,7 +376,7 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 			imports = append(imports, ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  toImportSpecPath(SourcePath, tsconfig.Extends),
+					Imp:  toImportSpecPath(SourcePath, tsconfig.Extends, false),
 				},
 				ImportPath: tsconfig.Extends,
 				SourcePath: SourcePath,
@@ -808,7 +808,7 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 				continue
 			}
 
-			workspacePath := toImportSpecPath(sourceFile, imp)
+			workspacePath := toImportSpecPath(sourceFile, imp, false)
 			workspacePath = strings.TrimSuffix(workspacePath, ".proto")
 			workspacePath = workspacePath + "_pb"
 
@@ -842,36 +842,40 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 	result := parseResult{
 		SourcePath: sourcePath,
 		Error:      err,
-		Imports:    make([]ImportStatement, 0, len(parseResults.Imports)),
+		Imports:    make([]ImportStatement, 0, len(parseResults.Imports)+len(parseResults.URLImports)),
 		Modules:    parseResults.Modules,
 	}
 
-	for _, importPath := range parseResults.Imports {
-		if cfg.IsImportIgnored(importPath) {
-			BazelLog.Tracef("%q (%s) import of %q ignored", sourcePath, LanguageName, importPath)
-			continue
+	processImports := func(imports []string, alwaysRelative bool) {
+		for _, rawImportPath := range imports {
+			importPath := stripImportQuery(rawImportPath)
+			if importPath == "" {
+				continue
+			}
+
+			if cfg.IsImportIgnored(importPath) {
+				BazelLog.Tracef("%q (%s) import of %q ignored", sourcePath, LanguageName, importPath)
+				continue
+			}
+
+			workspacePath := toImportSpecPath(sourcePath, importPath, alwaysRelative)
+
+			// Record all imports. Maybe local, maybe data, maybe in other BUILD etc.
+			result.Imports = append(result.Imports, ImportStatement{
+				ImportSpec: resolve.ImportSpec{
+					Lang: LanguageName,
+					Imp:  workspacePath,
+				},
+				ImportPath: importPath,
+				SourcePath: sourcePath,
+			})
+
+			BazelLog.Tracef("%q (%s) imports %q (via %q)", sourcePath, LanguageName, workspacePath, importPath)
 		}
-
-		importPath = stripImportQuery(importPath)
-		if importPath == "" {
-			continue
-		}
-
-		// The path from the root
-		workspacePath := toImportSpecPath(sourcePath, importPath)
-
-		// Record all imports. Maybe local, maybe data, maybe in other BUILD etc.
-		result.Imports = append(result.Imports, ImportStatement{
-			ImportSpec: resolve.ImportSpec{
-				Lang: LanguageName,
-				Imp:  workspacePath,
-			},
-			ImportPath: importPath,
-			SourcePath: sourcePath,
-		})
-
-		BazelLog.Tracef("%q (%s) imports %q (via %q)", sourcePath, LanguageName, workspacePath, importPath)
 	}
+
+	processImports(parseResults.Imports, false)
+	processImports(parseResults.URLImports, true)
 
 	return result
 }
@@ -1159,20 +1163,20 @@ func toDtsExt(e string) string {
 
 // Normalize the given import statement from a relative path
 // to a path relative to the workspace.
-func toImportSpecPath(importFrom, importPath string) string {
+func toImportSpecPath(importFrom, importPath string, alwaysRelative bool) string {
 	importPath = stripImportQuery(importPath)
 	if importPath == "" {
 		return importPath
 	}
 
-	// Relative paths
-	if importPath[0] == '.' {
-		return path.Join(importFrom, "..", importPath)
-	}
-
 	// URLs of any protocol
 	if strings.Contains(importPath, "://") {
 		return importPath
+	}
+
+	// Relative paths
+	if alwaysRelative || importPath[0] == '.' {
+		return path.Join(importFrom, "..", importPath)
 	}
 
 	// Non-relative imports such as packages, paths depending on `rootDirs` etc.

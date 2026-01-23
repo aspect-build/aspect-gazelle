@@ -6,6 +6,7 @@ ts_project(
     assets = [
         "css/lib.css",
         "images/icon.gif",
+        "lib-logo.png",
     ],
     out_dir = "dist",
     tsconfig = "//:tsconfig",

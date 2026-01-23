@@ -21,7 +21,13 @@ import (
 // TreeSitter playground: https://tree-sitter.github.io/tree-sitter/playground
 
 type ParseResult struct {
+	// Imports interpreted based on the format such as distinguishing relative vs absolute imports
 	Imports []string
+
+	// Imports known to always be relative to the file no matter what format they are in
+	URLImports []string
+
+	// Defined module names via "declare module 'modname' { ... }"
 	Modules []string
 }
 
@@ -95,6 +101,20 @@ const importsQuery = `
 			)
 		)
 	)
+
+	(new_expression
+		constructor: (identifier) @equals-url
+		arguments: (arguments
+			. (string (string_fragment) @url-from)
+			. (member_expression
+				object: (meta_property)
+				property: (property_identifier) @meta-url
+			)
+		)
+
+		(#eq? @equals-url "URL")
+		(#eq? @meta-url "url")
+	)
 `
 
 // Additional queries for Jsx/Tsx files to capture assets in jsx elements.
@@ -125,6 +145,7 @@ var tripleSlashRe = regexp.MustCompile(`^///\s*<reference\s+(?:path|types)\s*=\s
 
 func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var imports []string
+	var urlImports []string
 	var modules []string
 	var errs []error
 
@@ -155,6 +176,8 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
 				imports = append(imports, from)
+			} else if from, isFrom := caps["url-from"]; isFrom {
+				urlImports = append(urlImports, from)
 			} else if tripSlash, isTripSlash := caps["triple-slash"]; isTripSlash {
 				// Parse triple-slash directives
 				if lib, ok := getTripleSlashDirectiveModule(tripSlash); ok {
@@ -178,8 +201,9 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	}
 
 	result := ParseResult{
-		Imports: imports,
-		Modules: modules,
+		Imports:    imports,
+		URLImports: urlImports,
+		Modules:    modules,
 	}
 
 	var perr error

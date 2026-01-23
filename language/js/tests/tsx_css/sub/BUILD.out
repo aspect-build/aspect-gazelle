@@ -6,5 +6,6 @@ ts_project(
     assets = [
         "css/lib.css",
         "images/sub.svg",
+        "lib-logo.png",
     ],
 )

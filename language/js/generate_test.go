@@ -149,7 +149,7 @@ func TestGenerate(t *testing.T) {
 		desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s)", tc.pkg, tc.from, tc.impt)
 
 		t.Run(desc, func(t *testing.T) {
-			importPath := toImportSpecPath(path.Join(tc.pkg, tc.from), tc.impt)
+			importPath := toImportSpecPath(path.Join(tc.pkg, tc.from), tc.impt, false)
 
 			if !reflect.DeepEqual(importPath, tc.expected) {
 				t.Errorf("toImportSpecPath('%s', '%s', '%s'): \nactual:   %s\nexpected:  %s\n", tc.pkg, tc.from, tc.impt, importPath, tc.expected)
@@ -178,6 +178,53 @@ func TestGenerate(t *testing.T) {
 		assertImports(t, "bar.cts", []string{"bar.cjs", "bar.d.cts"})
 		assertImports(t, "bar/index.cts", []string{"bar/index.cjs", "bar/index.d.cts", "bar"})
 		assertImports(t, "bar.d.cts", []string{"bar.d.cts", "bar.cjs"})
+	})
+
+	t.Run("toImportSpecPath AllowRelative", func(t *testing.T) {
+		for _, tc := range []struct {
+			pkg, from, impt string
+			expected        string
+		}{
+			{
+				pkg:      "",
+				from:     "from.ts",
+				impt:     "asset.png",
+				expected: "asset.png",
+			},
+			{
+				pkg:      "",
+				from:     "sub/from.ts",
+				impt:     "asset.png",
+				expected: "sub/asset.png",
+			},
+			{
+				pkg:      "foo",
+				from:     "sub/from.ts",
+				impt:     "./asset.png",
+				expected: "foo/sub/asset.png",
+			},
+			{
+				pkg:      "",
+				from:     "from.ts",
+				impt:     "asset.png?no-inline",
+				expected: "asset.png",
+			},
+			{
+				pkg:      "",
+				from:     "from.ts",
+				impt:     "https://me.com/asset.png",
+				expected: "https://me.com/asset.png",
+			},
+		} {
+			desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s) AllowRelative", tc.pkg, tc.from, tc.impt)
+			t.Run(desc, func(t *testing.T) {
+				importPath := toImportSpecPath(path.Join(tc.pkg, tc.from), tc.impt, true)
+
+				if !reflect.DeepEqual(importPath, tc.expected) {
+					t.Errorf("toImportSpecPath('%s', '%s', '%s', AllowRelative=true) : \nactual:    %s\nexpected:  %s\n", tc.pkg, tc.from, tc.impt, importPath, tc.expected)
+				}
+			})
+		}
 	})
 }
 
