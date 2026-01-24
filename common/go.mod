@@ -4,7 +4,7 @@ go 1.24.5
 
 require (
 	github.com/bazelbuild/bazel-gazelle v0.47.0
-	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
+	github.com/bazelbuild/buildtools v0.0.0-20260121081817-bbf01ec6cb49
 	github.com/bmatcuk/doublestar/v4 v4.9.2
 	github.com/emirpasic/gods v1.18.1
 	github.com/onsi/gomega v1.39.0

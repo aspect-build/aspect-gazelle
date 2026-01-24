@@ -8,7 +8,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
+	github.com/bazelbuild/buildtools v0.0.0-20260121081817-bbf01ec6cb49
 	github.com/emirpasic/gods v1.18.1
 	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // NOTE: upgrade causes issues with invalid json
 	gopkg.in/yaml.v3 v3.0.1
