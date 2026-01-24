@@ -32,7 +32,9 @@ require (
 require (
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
 	github.com/a8m/envsubst v1.4.3 // indirect
+	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/bazel-contrib/rules_jvm v0.31.1 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.9.2 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -45,21 +47,25 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
-	github.com/goccy/go-yaml v1.18.0 // indirect
+	github.com/goccy/go-yaml v1.19.2 // indirect
 	github.com/google/btree v1.1.3 // indirect
-	github.com/itchyny/gojq v0.12.18-0.20251005142832-e46d0344f209 // indirect
+	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
+	github.com/itchyny/gojq v0.12.18 // indirect
 	github.com/itchyny/timefmt-go v0.1.7 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mikefarah/yq/v4 v4.49.1 // indirect
+	github.com/mikefarah/yq/v4 v4.50.1 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
+	github.com/zclconf/go-cty v1.17.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.39.0 // indirect
 	go.starlark.net v0.0.0-20260102030733-3fee463870c9 // indirect
@@ -69,6 +75,7 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.40.0 // indirect
 	golang.org/x/text v0.33.0 // indirect
+	golang.org/x/tools v0.41.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
