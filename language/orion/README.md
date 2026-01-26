@@ -61,7 +61,7 @@ Here's a very simple example that generates `sh_library` targets for all Shell s
 ```starlark
 "Create sh_library targets for .bash and .sh files"
 
-aspect.register_configure_extension(
+aspect.orion_extension(
     id = "rules_sh",
     prepare = lambda cfg: aspect.PrepareResult(
         sources = aspect.SourceExtensions(".bash", ".sh"),
