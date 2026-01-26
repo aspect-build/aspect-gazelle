@@ -11,6 +11,7 @@ def declare(ctx):
             kind = "rb_library",
             attrs = {
                 "srcs": [file.path],
+                "deps": ["@bundle//:{}".format(i.captures["module"].strip("'")) for i in file.query_results["imports"]],
             },
         )
 
