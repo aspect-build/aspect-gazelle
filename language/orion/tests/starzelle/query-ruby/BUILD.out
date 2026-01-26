@@ -1,0 +1,7 @@
+load("@deps-test//my:rules.bzl", "rb_library")
+
+rb_library(
+    name = "a_lib",
+    srcs = ["a.rb"],
+    deps = ["@bundle//:faker"],
+)

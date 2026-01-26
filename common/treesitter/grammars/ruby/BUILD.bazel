@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "ruby",
+    srcs = [
+        "binding.go",
+        "@tree-sitter-ruby//:srcs",  #keep
+    ],
+    cgo = True,
+    copts = ["-Iexternal/*tree-sitter-ruby"],  #keep
+    importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/ruby",
+    visibility = ["//visibility:public"],
+    deps = ["//common/treesitter"],
+)

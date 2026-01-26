@@ -101,6 +101,20 @@ visibility = ["//visibility:public"],
     urls = ["https://github.com/tree-sitter/tree-sitter-typescript/archive/v0.23.2.tar.gz"],
 )
 
+http_archive(
+    name = "tree-sitter-ruby",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    integrity = "sha256-5+SVd93B8t6OQtQjU7R34zjBW7uVslWOEj3cE9iHifA=",
+    strip_prefix = "tree-sitter-ruby-0.23.1",
+    urls = ["https://github.com/tree-sitter/tree-sitter-ruby/archive/v0.23.1.tar.gz"],
+)
+
 ####### Dev dependencies ########
 
 # Go SDK version which can only be defined in a root MODULE

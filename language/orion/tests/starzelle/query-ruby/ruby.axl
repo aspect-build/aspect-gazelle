@@ -1,0 +1,39 @@
+aspect.gazelle_rule_kind("rb_library", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def declare(ctx):
+    for file in ctx.sources:
+        ctx.targets.add(
+            name = file.path[:file.path.rindex(".")] + "_lib",
+            kind = "rb_library",
+            attrs = {
+                "srcs": [file.path],
+                "deps": ["@bundle//:{}".format(i.captures["module"].strip("'")) for i in file.query_results["imports"]],
+            },
+        )
+
+aspect.orion_extension(
+    id = "ruby-test",
+    prepare = lambda _: aspect.PrepareResult(
+        # All source files to be processed
+        sources = aspect.SourceExtensions(".rb"),
+        queries = {
+            # A query treated as an array of results
+            "imports": aspect.AstQuery(
+                grammar = "ruby",
+                filter = "*.rb",
+                query = """
+                    (call
+                        method: (identifier) @method
+                        arguments: (argument_list (string) @module)
+                        (#eq? @method "require")
+                    )
+                """,
+            ),
+        },
+    ),
+    declare = declare,
+)
