@@ -20,6 +20,7 @@ go_library(
         "@aspect_gazelle//common/treesitter/grammars/java",
         "@aspect_gazelle//common/treesitter/grammars/json",
         "@aspect_gazelle//common/treesitter/grammars/kotlin",
+        "@aspect_gazelle//common/treesitter/grammars/ruby",
         "@aspect_gazelle//common/treesitter/grammars/rust",
         "@aspect_gazelle//common/treesitter/grammars/starlark",
         "@aspect_gazelle//common/treesitter/grammars/tsx",

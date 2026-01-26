@@ -38,6 +38,7 @@ const (
 	Java                        = "java"
 	Go                          = "go"
 	Rust                        = "rust"
+	Ruby                        = "ruby"
 )
 
 type Language interface {
@@ -127,6 +128,14 @@ var extLanguages = map[string]LanguageGrammar{
 	"jav":  Java,
 	"jsh":  Java,
 	"json": JSON,
+
+	"rb":   Ruby,
+	"rake": Ruby,
+	"gemspec": Ruby,
+	"podspec": Ruby,
+	"thor": Ruby,
+	"jbuilder": Ruby,
+	"rabl": Ruby,
 }
 
 // In theory, this is a mirror of
