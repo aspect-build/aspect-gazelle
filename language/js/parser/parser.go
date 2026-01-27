@@ -24,6 +24,9 @@ type ParseResult struct {
 	// Imports interpreted based on the format such as distinguishing relative vs absolute imports
 	Imports []string
 
+	// Imports sourced from jsx/tsx attributes
+	JSXImports []string
+
 	// Imports known to always be relative to the file no matter what format they are in
 	URLImports []string
 
@@ -122,7 +125,7 @@ const importsQueryJsx = importsQuery + `
 	(jsx_opening_element name: (identifier) @jsx-tag
 		(jsx_attribute
 			(property_identifier) @jsx-attr
-			(string (string_fragment) @from)
+			(string (string_fragment) @jsx-from)
 			(#match? @jsx-attr "^(src|poster)$")
 		)
 		(#match? @jsx-tag "^(img|video|source|audio|track)$")
@@ -131,7 +134,7 @@ const importsQueryJsx = importsQuery + `
 	(jsx_self_closing_element name: (identifier) @jsx-tag
 		(jsx_attribute
 			(property_identifier) @jsx-attr
-			(string (string_fragment) @from)
+			(string (string_fragment) @jsx-from)
 			(#match? @jsx-attr "^(src|poster)$")
 		)
 		(#match? @jsx-tag "^(img|video|source|audio|track)$")
@@ -145,6 +148,7 @@ var tripleSlashRe = regexp.MustCompile(`^///\s*<reference\s+(?:path|types)\s*=\s
 
 func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var imports []string
+	var jsxImports []string
 	var urlImports []string
 	var modules []string
 	var errs []error
@@ -176,6 +180,8 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
 				imports = append(imports, from)
+			} else if from, isFrom := caps["jsx-from"]; isFrom {
+				jsxImports = append(jsxImports, from)
 			} else if from, isFrom := caps["url-from"]; isFrom {
 				urlImports = append(urlImports, from)
 			} else if tripSlash, isTripSlash := caps["triple-slash"]; isTripSlash {
@@ -202,6 +208,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 
 	result := ParseResult{
 		Imports:    imports,
+		JSXImports: jsxImports,
 		URLImports: urlImports,
 		Modules:    modules,
 	}

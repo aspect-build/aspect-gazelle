@@ -8,6 +8,7 @@ var testCases = []struct {
 	desc, ts           string
 	filename           string
 	expectedImports    []string
+	expectedJSXImports []string
 	expectedURLImports []string
 	expectedModules    []string
 }{
@@ -326,16 +327,16 @@ var testCases = []struct {
 		ts: `
 			return (<img src="./x.png" />)
 		`,
-		filename:        "imgAssetExpression.jsx",
-		expectedImports: []string{"./x.png"},
+		filename:           "imgAssetExpression.jsx",
+		expectedJSXImports: []string{"./x.png"},
 	},
 	{
 		desc: "tsx syntax",
 		ts: `
 			return (<img src="./x.png" />)
 		`,
-		filename:        "imgAssetExpression.tsx",
-		expectedImports: []string{"./x.png"},
+		filename:           "imgAssetExpression.tsx",
+		expectedJSXImports: []string{"./x.png"},
 	},
 	{
 		desc: "jsx expression in non-jsx file",
@@ -423,8 +424,8 @@ var testCases = []struct {
 		ts: `
 			<img src="./images/logo.png" title="not-img.png" />
 		`,
-		filename:        "imgAsset.tsx",
-		expectedImports: []string{"./images/logo.png"},
+		filename:           "imgAsset.tsx",
+		expectedJSXImports: []string{"./images/logo.png"},
 	},
 	{
 		desc: "jsx img src multiple assets",
@@ -434,8 +435,8 @@ var testCases = []struct {
 				<img src="./images/logo2.gif" alt="not-img2.png" />
 			</>
 		`,
-		filename:        "imgAssets.tsx",
-		expectedImports: []string{"./images/logo.png", "./images/logo2.gif"},
+		filename:           "imgAssets.tsx",
+		expectedJSXImports: []string{"./images/logo.png", "./images/logo2.gif"},
 	},
 	{
 		desc: "jsx img src alternate syntaxes",
@@ -452,8 +453,8 @@ var testCases = []struct {
 				<img src='./images/logo2.gif' />
 			</>
 		`,
-		filename:        "imgAssets.tsx",
-		expectedImports: []string{"./images/logo.png", "./images/logo2.gif"},
+		filename:           "imgAssets.tsx",
+		expectedJSXImports: []string{"./images/logo.png", "./images/logo2.gif"},
 	},
 	{
 		desc: "jsx video poster + sources asset",
@@ -466,8 +467,8 @@ var testCases = []struct {
 				</video>
 			</>
 		`,
-		filename:        "video.tsx",
-		expectedImports: []string{"./images/poster.jpg", "./images/poster2.jpg", "./images/clip.webm"},
+		filename:           "video.tsx",
+		expectedJSXImports: []string{"./images/poster.jpg", "./images/poster2.jpg", "./images/clip.webm"},
 	},
 	{
 		desc: "jsx audio src asset",
@@ -480,8 +481,8 @@ var testCases = []struct {
 				</audio>
 			</>
 		`,
-		filename:        "audio.tsx",
-		expectedImports: []string{"./audio/music.mp3", "./audio/podcast.wav", "./subtitles/en.vtt"},
+		filename:           "audio.tsx",
+		expectedJSXImports: []string{"./audio/music.mp3", "./audio/podcast.wav", "./subtitles/en.vtt"},
 	},
 	{
 		desc: "jsx track src asset",
@@ -491,8 +492,8 @@ var testCases = []struct {
 				<track src="./subtitles/es.vtt" />
 			</video>
 		`,
-		filename:        "track.tsx",
-		expectedImports: []string{"./subtitles/en.vtt", "./subtitles/es.vtt"},
+		filename:           "track.tsx",
+		expectedJSXImports: []string{"./subtitles/en.vtt", "./subtitles/es.vtt"},
 	},
 }
 
@@ -519,6 +520,10 @@ func TestTreesitterParser(t *testing.T) {
 
 			if !equal(res.URLImports, tc.expectedURLImports) {
 				t.Errorf("Unexpected URL import results\nactual:  %#v;\nexpected: %#v\ntypescript code:\n%v", res.URLImports, tc.expectedURLImports, tc.ts)
+			}
+
+			if !equal(res.JSXImports, tc.expectedJSXImports) {
+				t.Errorf("Unexpected JSX import results\nactual:  %#v;\nexpected: %#v\ntypescript code:\n%v", res.JSXImports, tc.expectedJSXImports, tc.ts)
 			}
 
 			if !equal(res.Modules, tc.expectedModules) {

@@ -21,6 +21,9 @@ type ImportStatement struct {
 	// The path as written in the import statement
 	ImportPath string
 
+	// The type of import which produced this statement
+	Kind ImportKind
+
 	// If the import is optional and failure to resolve should not be an error
 	Optional bool
 
@@ -28,6 +31,14 @@ type ImportStatement struct {
 	// dependencies when types are shipped separately
 	TypesOnly bool
 }
+
+type ImportKind string
+
+const (
+	ImportKindImport ImportKind = "import"
+	ImportKindJsx    ImportKind = "jsx"
+	ImportKindURL    ImportKind = "url"
+)
 
 // Npm link-all rule import data
 type LinkAllPackagesImports struct{}

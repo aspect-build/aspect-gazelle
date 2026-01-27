@@ -46,6 +46,8 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | Specify a tsconfig related `ts_project` attribute which should not be generated. Attributes include the core `tsconfig` attribute as well as all attributes that must be kept in sync with the tsconfig such as `root_dir`, `declaration`, `incremental`, `composite` etc. Some use cases are (1) when a `ts_project` macro sets the attribute to avoid unnecessary generated code in your BUILD files, (2) when a tsconfig property is unnecessary in the bazel build but can not be removed from the tsconfig.json file. |
 | `# gazelle:js_ignore_imports _glob_`                    |                             |
 | Imports matching the glob will be ignored when generating BUILD files in the specifying directory and descendants. |
+| `# gazelle:js_assets import\|jsx\|url`                  |                             |
+| Specify a comma- or whitespace-separated list of asset types to collect (any of `import`, `jsx`, or `url`). If this directive is not set, all three types are collected by default. For example, `# gazelle:js_assets import` collects only import-based assets, opting out of `jsx` and `url`. |
 | `# gazelle:js_resolve _glob_ _target_`                  |                             |
 | Imports matching the glob will be resolved to the specified target within the specifying directory and descendants.<br />This directive is an extension of the standard `resolve` directive with added glob support and only applying to JavaScript rules. |
 | `# gazelle:js_validate_import_statements error\|warn\|off`   | `error`                      |

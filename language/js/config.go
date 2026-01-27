@@ -58,6 +58,8 @@ const (
 	Directive_LibraryFiles = "js_files"
 	// The glob for test files.
 	Directive_TestFiles = "js_test_files"
+	// The directive controlling whether asset collection is enabled for import types.
+	Directive_Assets = "js_assets"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
 	Directive_CustomTargetFiles = "js_custom_files"
@@ -182,6 +184,10 @@ type JsGazelleConfig struct {
 	validateImportStatements ValidationMode
 	targets                  []*TargetGroup
 
+	collectAssetImports bool
+	collectAssetJsx     bool
+	collectAssetURL     bool
+
 	// Generated rule names
 	npmLinkAllTargetName       string
 	targetNamingOverrides      map[string]string
@@ -206,6 +212,9 @@ func newRootConfig() *JsGazelleConfig {
 		tsconfigIgnoredProps:       []string{},
 		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,
+		collectAssetImports:        true,
+		collectAssetJsx:            true,
+		collectAssetURL:            true,
 		npmLinkAllTargetName:       DefaultNpmLinkAllTargetName,
 		npmPackageNamingConvention: DefaultNpmPackageTargetName,
 		targetNamingOverrides:      make(map[string]string),
@@ -424,6 +433,35 @@ func (c *JsGazelleConfig) SetValidateImportStatements(mode ValidationMode) {
 // it defaults to true.
 func (c *JsGazelleConfig) ValidateImportStatements() ValidationMode {
 	return c.validateImportStatements
+}
+
+func (c *JsGazelleConfig) SetCollectAssetsFrom(kinds ...ImportKind) {
+	c.collectAssetImports = false
+	c.collectAssetJsx = false
+	c.collectAssetURL = false
+	for _, kind := range kinds {
+		switch kind {
+		case ImportKindImport:
+			c.collectAssetImports = true
+		case ImportKindJsx:
+			c.collectAssetJsx = true
+		case ImportKindURL:
+			c.collectAssetURL = true
+		}
+	}
+}
+
+func (c *JsGazelleConfig) CollectAssetsFrom(kind ImportKind) bool {
+	switch kind {
+	case ImportKindImport:
+		return c.collectAssetImports
+	case ImportKindJsx:
+		return c.collectAssetJsx
+	case ImportKindURL:
+		return c.collectAssetURL
+	default:
+		return true
+	}
 }
 
 // SetLibraryNamingConvention sets the ts_project target naming convention.

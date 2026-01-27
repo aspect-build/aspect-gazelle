@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_assets import
+
+ts_project(
+    name = "tsx_css_opt-out",
+    srcs = ["main.tsx"],
+    assets = ["styles.css"],
+)
