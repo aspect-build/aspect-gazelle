@@ -1,0 +1,3 @@
+# gazelle:generation_mode update_only
+
+# gazelle:js_files main.tsx
