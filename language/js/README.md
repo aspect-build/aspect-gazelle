@@ -47,7 +47,7 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | `# gazelle:js_ignore_imports _glob_`                    |                             |
 | Imports matching the glob will be ignored when generating BUILD files in the specifying directory and descendants. |
 | `# gazelle:js_assets import\|jsx\|url`                  |                             |
-| Declare which types of assets are collected. |
+| Specify a comma- or whitespace-separated list of asset types to collect (any of `import`, `jsx`, or `url`). If this directive is not set, all three types are collected by default. For example, `# gazelle:js_assets import` collects only import-based assets, opting out of `jsx` and `url`. |
 | `# gazelle:js_resolve _glob_ _target_`                  |                             |
 | Imports matching the glob will be resolved to the specified target within the specifying directory and descendants.<br />This directive is an extension of the standard `resolve` directive with added glob support and only applying to JavaScript rules. |
 | `# gazelle:js_validate_import_statements error\|warn\|off`   | `error`                      |
