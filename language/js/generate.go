@@ -934,6 +934,15 @@ func (ts *typeScriptLang) addModuleDeclaration(module string, moduleLabel *label
 	ts.moduleTypes[module] = append(ts.moduleTypes[module], moduleLabel)
 }
 
+// path.Join() for cases where the 2 parts are already normalized and simply need concatenation.
+func joinPkg(pkg, rel string) string {
+	if pkg == "" {
+		return rel
+	}
+	// rel is already workspace-relative and should not need path cleaning.
+	return pkg + "/" + rel
+}
+
 // Find names/paths that the given path can be imported as.
 func toImportPaths(p string) []string {
 	// NOTE: this is invoked extremely frequently so it's important to keep it fast and light.
@@ -1008,7 +1017,7 @@ func (ts *typeScriptLang) collectFileLabels(args language.GenerateArgs) {
 			Pkg:  args.Rel,
 		}
 
-		for _, importPath := range toImportPaths(path.Join(args.Rel, f)) {
+		for _, importPath := range toImportPaths(joinPkg(args.Rel, f)) {
 			ts.addFileLabel(importPath, &genLabel)
 		}
 	}

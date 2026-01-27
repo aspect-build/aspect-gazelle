@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"maps"
-	"path"
 	"slices"
 	"strings"
 	"sync"
@@ -87,7 +86,7 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 		// Capture loop variables for goroutine
 		sourceFile := sourceFile
 		eg.Go(func() error {
-			p := path.Join(args.Rel, sourceFile)
+			p := joinPkg(args.Rel, sourceFile)
 			queryResults, err := host.runSourceQueries(queryCache, queries, args.Config.RepoRoot, p)
 			if err != nil {
 				return fmt.Errorf("Querying source file %q: %v", p, err)
@@ -510,4 +509,13 @@ func (host *GazelleHost) generateTargets(pluginId plugin.PluginId, prep pluginCo
 	)
 
 	return host.plugins[pluginId].DeclareTargets(ctx).Actions
+}
+
+// path.Join() for cases where the 2 parts are already normalized and simply need concatenation.
+func joinPkg(pkg, rel string) string {
+	if pkg == "" {
+		return rel
+	}
+	// rel is already workspace-relative and should not need path cleaning.
+	return pkg + "/" + rel
 }

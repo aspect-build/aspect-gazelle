@@ -93,19 +93,19 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 	// Sources that produce importable paths.
 	for _, src := range srcs {
 		// The raw source path
-		srcs = []string{path.Join(f.Pkg, src)}
+		srcs = []string{joinPkg(f.Pkg, src)}
 
 		// Also add tsconfig-mapped directories for references
 		// to the output files of the ts_project rule.
 		if tsconfig != nil {
 			outSrc := tsconfig.ToOutDir(src)
 			if outSrc != src {
-				srcs = append(srcs, path.Join(f.Pkg, outSrc))
+				srcs = append(srcs, joinPkg(f.Pkg, outSrc))
 			}
 
 			declarationOutDir := tsconfig.ToDeclarationOutDir(src)
 			if outSrc != declarationOutDir && declarationOutDir != src {
-				srcs = append(srcs, path.Join(f.Pkg, declarationOutDir))
+				srcs = append(srcs, joinPkg(f.Pkg, declarationOutDir))
 			}
 		}
 
