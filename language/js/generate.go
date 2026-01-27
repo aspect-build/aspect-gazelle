@@ -551,8 +551,10 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		// Remove it from the dataFiles to signify that it is now a "source" file
 		// owned by this target.
 		if dataFile, ok := dataFileWorkspacePaths[workspacePath]; ok {
-			info.sources.Add(dataFile)
-			dataFiles.Remove(dataFile)
+			if isDataFileExt(path.Ext(dataFile)) || cfg.CollectAssetsFrom(importStatement.Kind) {
+				info.sources.Add(dataFile)
+				dataFiles.Remove(dataFile)
+			}
 		}
 	}
 
@@ -842,11 +844,11 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 	result := parseResult{
 		SourcePath: sourcePath,
 		Error:      err,
-		Imports:    make([]ImportStatement, 0, len(parseResults.Imports)+len(parseResults.URLImports)),
+		Imports:    make([]ImportStatement, 0, len(parseResults.Imports)+len(parseResults.JSXImports)+len(parseResults.URLImports)),
 		Modules:    parseResults.Modules,
 	}
 
-	processImports := func(imports []string, alwaysRelative bool) {
+	processImports := func(imports []string, alwaysRelative bool, kind ImportKind) {
 		for _, rawImportPath := range imports {
 			importPath := stripImportQuery(rawImportPath)
 			if importPath == "" {
@@ -868,14 +870,20 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 				},
 				ImportPath: importPath,
 				SourcePath: sourcePath,
+				Kind:       kind,
 			})
 
 			BazelLog.Tracef("%q (%s) imports %q (via %q)", sourcePath, LanguageName, workspacePath, importPath)
 		}
 	}
 
-	processImports(parseResults.Imports, false)
-	processImports(parseResults.URLImports, true)
+	processImports(parseResults.Imports, false, ImportKindImport)
+	if cfg.collectAssetJsx {
+		processImports(parseResults.JSXImports, false, ImportKindJsx)
+	}
+	if cfg.collectAssetURL {
+		processImports(parseResults.URLImports, true, ImportKindURL)
+	}
 
 	return result
 }

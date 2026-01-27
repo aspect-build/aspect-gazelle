@@ -55,6 +55,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_PackageRuleKind,
 		Directive_LibraryFiles,
 		Directive_TestFiles,
+		Directive_Assets,
 
 		// TODO(deprecated): remove
 		Directive_CustomTargetFiles,
@@ -225,6 +226,36 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			}
 
 			config.addTargetGlob(group, groupGlob, true)
+		case Directive_Assets:
+			if value == "" {
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_Assets, d.Value)
+				return
+			}
+
+			assetKinds := make([]ImportKind, 0, 3)
+			for _, token := range strings.Fields(value) {
+				for _, part := range strings.Split(token, ",") {
+					assetType := strings.TrimSpace(part)
+					if assetType == "" {
+						continue
+					}
+
+					switch assetType {
+					case string(ImportKindImport):
+						assetKinds = append(assetKinds, ImportKindImport)
+					case string(ImportKindJsx):
+						assetKinds = append(assetKinds, ImportKindJsx)
+					case string(ImportKindURL):
+						assetKinds = append(assetKinds, ImportKindURL)
+					default:
+						common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_Assets, d.Value)
+						return
+					}
+				}
+			}
+
+			// Overwrite any inherited configuration for asset collection.
+			config.SetCollectAssetsFrom(assetKinds...)
 
 		// TODO: remove, deprecated
 		case Directive_CustomTargetFiles:
