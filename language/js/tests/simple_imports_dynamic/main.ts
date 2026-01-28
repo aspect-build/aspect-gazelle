@@ -15,6 +15,8 @@ import('./subproject/lib').then(console.log);
 
 // Import of a project with indirect deps
 import('./subproject-backref/lib').then(console.log);
+import('./subproject-index').then(console.log);
+import('./subproject-index/index').then(console.log);
 
 // Imports of various file extensions
 import('./exts/common-dts.cjs').then(console.log);

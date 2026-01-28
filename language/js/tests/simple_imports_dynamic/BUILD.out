@@ -15,5 +15,6 @@ ts_project(
         "//exts",
         "//subproject",
         "//subproject-backref",
+        "//subproject-index",
     ],
 )
