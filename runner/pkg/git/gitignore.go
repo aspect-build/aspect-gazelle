@@ -12,9 +12,9 @@ import (
 	gitignore "github.com/go-git/go-git/v5/plumbing/format/gitignore"
 )
 
-type isGitIgnored func(p string, isDir bool) bool
+type isGitIgnored func(pathParts []string, isDir bool) bool
 
-func processGitignoreFile(rootDir, gitignorePath string, d interface{}) (func(p string, isDir bool) bool, interface{}) {
+func processGitignoreFile(rootDir, gitignorePath string, d interface{}) (func(pathParts []string, isDir bool) bool, interface{}) {
 	var ignorePatterns []gitignore.Pattern
 	if d != nil {
 		ignorePatterns = d.([]gitignore.Pattern)
@@ -44,10 +44,7 @@ func processGitignoreFile(rootDir, gitignorePath string, d interface{}) (func(p 
 }
 
 func createMatcherFunc(ignorePatterns []gitignore.Pattern) isGitIgnored {
-	matcher := gitignore.NewMatcher(ignorePatterns)
-	return func(s string, isDir bool) bool {
-		return matcher.Match(strings.Split(s, "/"), isDir)
-	}
+	return gitignore.NewMatcher(ignorePatterns).Match
 }
 
 func parseIgnore(rel string, ignoreReader io.Reader) []gitignore.Pattern {

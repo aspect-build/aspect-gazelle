@@ -13,8 +13,9 @@ func TestGitIgnore(t *testing.T) {
 		for _, m := range matches {
 			// Use trailing slash in test data to indicate directory
 			m, isDir := strings.CutSuffix(m, "/")
+			pathParts := strings.Split(m, "/")
 
-			if !(matcher != nil && matcher(m, isDir)) {
+			if !(matcher != nil && matcher(pathParts, isDir)) {
 				t.Error(fmt.Sprintf("%s should match '%s'", what, m))
 			}
 		}
@@ -23,8 +24,9 @@ func TestGitIgnore(t *testing.T) {
 		for _, m := range matches {
 			// Use trailing slash in test data to indicate directory
 			m, isDir := strings.CutSuffix(m, "/")
+			pathParts := strings.Split(m, "/")
 
-			if matcher != nil && matcher(m, isDir) {
+			if matcher != nil && matcher(pathParts, isDir) {
 				t.Error(fmt.Sprintf("%s should NOT match '%s'", what, m))
 			}
 		}
