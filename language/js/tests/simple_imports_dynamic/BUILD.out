@@ -1,17 +1,23 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
 # gazelle:generation_mode update_only
+# gazelle:js_files main main.ts
 
 ts_project(
     name = "simple_imports_dynamic",
     srcs = [
         "lib.ts",
-        "main.ts",
         "subdir/index.ts",
         "subdir/lib.ts",
         "subdir/parent-ref.ts",
     ],
+)
+
+ts_project(
+    name = "main",
+    srcs = ["main.ts"],
     deps = [
+        ":simple_imports_dynamic",
         "//exts",
         "//subproject",
         "//subproject-backref",

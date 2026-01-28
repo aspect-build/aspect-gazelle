@@ -148,11 +148,11 @@ var InvalidTsconfig = TsConfig{
 }
 
 func isRelativePath(p string) bool {
-	if path.IsAbs(p) {
+	if p == "" || p[0] == '/' {
 		return false
 	}
 
-	return strings.HasPrefix(p, "./") || strings.HasPrefix(p, "../")
+	return p[0] == '.' && (p == "." || p == ".." || strings.HasPrefix(p, "./") || strings.HasPrefix(p, "../"))
 }
 
 // Load a tsconfig.json file and return the compilerOptions config with

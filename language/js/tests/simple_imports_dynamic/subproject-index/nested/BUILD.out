@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "nested",
+    srcs = ["index.ts"],
+    deps = ["//subproject-index"],
+)
+
+ts_project(
+    name = "main",
+    srcs = ["main.ts"],
+    deps = [
+        ":nested",
+        "//subproject-index",
+    ],
+)

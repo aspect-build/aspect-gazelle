@@ -83,6 +83,8 @@ func TestIsRelativePath(t *testing.T) {
 		shouldMatch := []string{
 			"./path",
 			"../parent",
+			".",
+			"..",
 		}
 
 		for _, s := range shouldMatch {
