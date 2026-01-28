@@ -1191,9 +1191,14 @@ func toImportSpecPath(importFrom, importPath string, alwaysRelative bool) string
 		return importPath
 	}
 
-	// Relative paths
+	// Relative paths are relative to the importing file's directory
 	if alwaysRelative || importPath[0] == '.' {
 		return path.Join(importFrom, "..", importPath)
+	}
+
+	// Absolute paths starting with / are treated as workspace-relative
+	if importPath[0] == '/' {
+		return path.Clean(importPath[1:])
 	}
 
 	// Non-relative imports such as packages, paths depending on `rootDirs` etc.

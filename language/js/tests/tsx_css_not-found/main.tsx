@@ -1,1 +1,6 @@
+import "styles.css"
+import "styles.css?foo"
 import "./styles.css"
+import "./styles.css#bar"
+import "/abs/styles.css"
+import "/abs/styles.css?baz"
