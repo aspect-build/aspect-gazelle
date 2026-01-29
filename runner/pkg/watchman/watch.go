@@ -185,10 +185,11 @@ func (w *WatchmanWatcher) getWatchmanSocket() (string, error) {
 		return "", fmt.Errorf("failed to parse get-socketname output: %w", err)
 	}
 
-	if sockname := sockname["sockname"]; sockname == "" {
+	socketPath := sockname["sockname"]
+	if socketPath == "" {
 		return "", fmt.Errorf("watchman socket not found")
 	}
-	return sockname["sockname"], nil
+	return socketPath, nil
 }
 
 func (w *WatchmanWatcher) connect() (watchmanSocket, error) {
