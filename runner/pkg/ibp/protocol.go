@@ -223,13 +223,12 @@ func (p *aspectBazelProtocol) Cycle(changes SourceInfoMap) error {
 			return err
 		}
 
-		if resp["cycle_id"] == nil {
-			return fmt.Errorf("Received unexpected response without cycle_id: %v", resp)
+		receivedCycleId, ok := resp["cycle_id"].(float64)
+		if !ok {
+			return fmt.Errorf("Received response with invalid cycle_id type: %v", resp)
 		}
 
-		receivedCicleId := resp["cycle_id"]
-
-		if receivedCicleId != float64(cycle_id) {
+		if int(receivedCycleId) != cycle_id {
 			return fmt.Errorf("Received unexpected cycle response to cycle_id=%d: %v", cycle_id, resp)
 		}
 
