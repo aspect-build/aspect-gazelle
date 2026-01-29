@@ -530,7 +530,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 				Imp:  "react",
 			},
 			ImportPath: string(tsconfig.Jsx),
-			SourcePath: path.Join(tsconfig.ConfigDir, tsconfig.ConfigName),
+			SourcePath: joinPkg(tsconfig.ConfigDir, tsconfig.ConfigName),
 		})
 	}
 
@@ -538,7 +538,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	dataFileWorkspacePaths := make(map[string]string, dataFiles.Size())
 	for it := dataFiles.Iterator(); it.Next(); {
 		dataFile := it.Value().(string)
-		dataFileWorkspacePaths[path.Join(args.Rel, dataFile)] = dataFile
+		dataFileWorkspacePaths[joinPkg(args.Rel, dataFile)] = dataFile
 	}
 
 	// Add any imported data files as sources.
@@ -834,7 +834,7 @@ func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.Generat
 	repoRoot := args.Config.RepoRoot
 
 	return common.Parallelize(sourceFiles, func(sourcePath string) parseResult {
-		return ts.collectImports(cfg, parserCache, repoRoot, path.Join(rel, sourcePath))
+		return ts.collectImports(cfg, parserCache, repoRoot, joinPkg(rel, sourcePath))
 	})
 }
 
@@ -1069,7 +1069,7 @@ func (ts *typeScriptLang) addPnpmLockfile(c *config.Config, cfg *JsGazelleConfig
 			pnpmProject.AddPackage(pkg, version, &label.Label{
 				Repo:     c.RepoName,
 				Pkg:      pnpmProject.Pkg(),
-				Name:     path.Join(cfg.npmLinkAllTargetName, pkg),
+				Name:     cfg.npmLinkAllTargetName + "/" + pkg,
 				Relative: false,
 			})
 		}
