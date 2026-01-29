@@ -376,7 +376,7 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 			imports = append(imports, ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  toImportSpecPath(SourcePath, tsconfig.Extends, false),
+					Imp:  toImportSpecPath("", SourcePath, tsconfig.Extends),
 				},
 				ImportPath: tsconfig.Extends,
 				SourcePath: SourcePath,
@@ -810,7 +810,7 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 				continue
 			}
 
-			workspacePath := toImportSpecPath(sourceFile, imp, false)
+			workspacePath := toImportSpecPath("", sourceFile, imp)
 			workspacePath = strings.TrimSuffix(workspacePath, ".proto")
 			workspacePath = workspacePath + "_pb"
 
@@ -848,7 +848,7 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 		Modules:    parseResults.Modules,
 	}
 
-	processImports := func(imports []string, alwaysRelative bool, kind ImportKind) {
+	processImports := func(imports []string, absolutePathBase string, kind ImportKind) {
 		for _, rawImportPath := range imports {
 			importPath := stripImportQuery(rawImportPath)
 			if importPath == "" {
@@ -860,7 +860,7 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 				continue
 			}
 
-			workspacePath := toImportSpecPath(sourcePath, importPath, alwaysRelative)
+			workspacePath := toImportSpecPath(absolutePathBase, sourcePath, importPath)
 
 			// Record all imports. Maybe local, maybe data, maybe in other BUILD etc.
 			result.Imports = append(result.Imports, ImportStatement{
@@ -877,12 +877,22 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 		}
 	}
 
-	processImports(parseResults.Imports, false, ImportKindImport)
+	processImports(parseResults.Imports, "", ImportKindImport)
 	if cfg.collectAssetJsx {
-		processImports(parseResults.JSXImports, false, ImportKindJsx)
+		// Find the pnpm project (package.json location) for this source file.
+		// Absolute JSX element imports (starting with /) are resolved relative to the package.json directory.
+		//  Rspack: https://rsbuild.dev/config/server/public-dir
+		var jsxAbsoluteBase string
+		if project := ts.pnpmProjects.GetProject(sourcePath); project != nil {
+			jsxAbsoluteBase = project.Pkg()
+		}
+
+		// JSX element absolute paths (starting with /) are resolved relative to jsxAbsoluteBase
+		processImports(parseResults.JSXImports, jsxAbsoluteBase, ImportKindJsx)
 	}
 	if cfg.collectAssetURL {
-		processImports(parseResults.URLImports, true, ImportKindURL)
+		// URL imports treat bare paths as relative to the source file.
+		processImports(parseResults.URLImports, ".", ImportKindURL)
 	}
 
 	return result
@@ -1180,7 +1190,8 @@ func toDtsExt(e string) string {
 
 // Normalize the given import statement from a relative path
 // to a path relative to the workspace.
-func toImportSpecPath(importFrom, importPath string, alwaysRelative bool) string {
+// Absolute paths (starting with /) are resolved from the workspace root unless absoluteBase is set.
+func toImportSpecPath(absoluteBase, importFrom, importPath string) string {
 	importPath = stripImportQuery(importPath)
 	if importPath == "" {
 		return importPath
@@ -1191,14 +1202,21 @@ func toImportSpecPath(importFrom, importPath string, alwaysRelative bool) string
 		return importPath
 	}
 
-	// Relative paths are relative to the importing file's directory
-	if alwaysRelative || importPath[0] == '.' {
-		return path.Join(importFrom, "..", importPath)
+	// Absolute paths starting with / are treated as relative to the importing file's directory
+	if importPath[0] == '/' {
+		// Special case: absoluteBase="." means all paths are source-relative (URL imports)
+		if absoluteBase == "." {
+			return path.Join(importFrom, "..", importPath[1:])
+		}
+		if absoluteBase != "" {
+			return path.Join(absoluteBase, importPath[1:])
+		}
+		return path.Clean(importPath[1:])
 	}
 
-	// Absolute paths starting with / are treated as workspace-relative
-	if importPath[0] == '/' {
-		return path.Clean(importPath[1:])
+	// Relative paths are relative to the importing file's directory
+	if importPath[0] == '.' || absoluteBase != "" {
+		return path.Join(importFrom, "..", importPath)
 	}
 
 	// Non-relative imports such as packages, paths depending on `rootDirs` etc.
