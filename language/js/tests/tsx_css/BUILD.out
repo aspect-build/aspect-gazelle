@@ -4,11 +4,16 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
 ts_project(
     name = "tsx_css",
-    srcs = ["main.tsx"],
+    srcs = [
+        "main.tsx",
+        "sub/lib.tsx",
+    ],
     assets = [
         "images/logo.png",
         "logo.png",
         "styles.css",
+        "sub/css/lib.css",
+        "sub/images/sub.svg",
+        "sub/lib-logo.png",
     ],
-    deps = ["//sub"],
 )

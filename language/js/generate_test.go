@@ -204,6 +204,18 @@ func TestGenerate(t *testing.T) {
 				expected: "foo/sub/asset.png",
 			},
 			{
+				pkg:      "foo",
+				from:     "sub/from.ts",
+				impt:     "/asset.png",
+				expected: "foo/sub/asset.png",
+			},
+			{
+				pkg:      "foo",
+				from:     "sub/from.ts",
+				impt:     "asset.png",
+				expected: "foo/sub/asset.png",
+			},
+			{
 				pkg:      "",
 				from:     "from.ts",
 				impt:     "asset.png?no-inline",

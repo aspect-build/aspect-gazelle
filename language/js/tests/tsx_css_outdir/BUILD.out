@@ -4,15 +4,20 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
 ts_project(
     name = "tsx_css_outdir",
-    srcs = ["main.tsx"],
+    srcs = [
+        "main.tsx",
+        "sub/lib.tsx",
+    ],
     assets = [
         "images/logo.webp",
         "logo.png",
         "styles.css",
+        "sub/css/lib.css",
+        "sub/images/icon.gif",
+        "sub/lib-logo.png",
     ],
     out_dir = "dist",
     tsconfig = ":tsconfig",
-    deps = ["//sub"],
 )
 
 ts_project(
