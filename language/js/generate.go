@@ -1216,8 +1216,9 @@ func toImportSpecPath(absoluteBase, importFrom, importPath string) string {
 		return path.Clean(trimmedImportPath)
 	}
 
-	// Relative paths are relative to the importing file's directory
-	if importPath[0] == '.' || absoluteBase != "" {
+	// Relative paths are relative to the importing file's directory.
+	// Treat bare paths as relative only in URL-import mode (absoluteBase == ".").
+	if importPath[0] == '.' || absoluteBase == "." {
 		return path.Join(importFrom, "..", importPath)
 	}
 
