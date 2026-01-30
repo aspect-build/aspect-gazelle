@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "absolute",
+    srcs = ["lib.tsx"],
+    out_dir = "dist",
+    tsconfig = "//:tsconfig",
+    deps = ["//:tsx_css_outdir"],
+)

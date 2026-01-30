@@ -13,6 +13,13 @@ func TestGenerate(t *testing.T) {
 		pkg, from, impt string
 		expected        string
 	}{
+		// Empty import path
+		{
+			pkg:      "",
+			from:     "from.ts",
+			impt:     "",
+			expected: "",
+		},
 		// Simple
 		{
 			pkg:      "",
@@ -43,6 +50,12 @@ func TestGenerate(t *testing.T) {
 			pkg:      "",
 			from:     "from.ts",
 			impt:     "workspace/is/common",
+			expected: "workspace/is/common",
+		},
+		{
+			pkg:      "",
+			from:     "from.ts",
+			impt:     "/workspace/is/common",
 			expected: "workspace/is/common",
 		},
 		{
@@ -149,7 +162,7 @@ func TestGenerate(t *testing.T) {
 		desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s)", tc.pkg, tc.from, tc.impt)
 
 		t.Run(desc, func(t *testing.T) {
-			importPath := toImportSpecPath(path.Join(tc.pkg, tc.from), tc.impt, false)
+			importPath := toImportSpecPath("", path.Join(tc.pkg, tc.from), tc.impt)
 
 			if !reflect.DeepEqual(importPath, tc.expected) {
 				t.Errorf("toImportSpecPath('%s', '%s', '%s'): \nactual:   %s\nexpected:  %s\n", tc.pkg, tc.from, tc.impt, importPath, tc.expected)
@@ -180,7 +193,8 @@ func TestGenerate(t *testing.T) {
 		assertImports(t, "bar.d.cts", []string{"bar.d.cts", "bar.cjs"})
 	})
 
-	t.Run("toImportSpecPath AllowRelative", func(t *testing.T) {
+	// Test bare paths with absolutePathBase (used for new URL() imports)
+	t.Run("toImportSpecPath bare paths with absolutePathBase", func(t *testing.T) {
 		for _, tc := range []struct {
 			pkg, from, impt string
 			expected        string
@@ -228,12 +242,108 @@ func TestGenerate(t *testing.T) {
 				expected: "https://me.com/asset.png",
 			},
 		} {
-			desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s) AllowRelative", tc.pkg, tc.from, tc.impt)
+			desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s) bare path", tc.pkg, tc.from, tc.impt)
 			t.Run(desc, func(t *testing.T) {
-				importPath := toImportSpecPath(path.Join(tc.pkg, tc.from), tc.impt, true)
+				// Using "." as absolutePathBase triggers bare path handling (treats bare paths as relative)
+				importPath := toImportSpecPath(".", path.Join(tc.pkg, tc.from), tc.impt)
 
 				if !reflect.DeepEqual(importPath, tc.expected) {
-					t.Errorf("toImportSpecPath('%s', '%s', '%s', AllowRelative=true) : \nactual:    %s\nexpected:  %s\n", tc.pkg, tc.from, tc.impt, importPath, tc.expected)
+					t.Errorf("toImportSpecPath(\".\", '%s', '%s') : \nactual:    %s\nexpected:  %s\n", path.Join(tc.pkg, tc.from), tc.impt, importPath, tc.expected)
+				}
+			})
+		}
+	})
+
+	// Test absolute paths with absolutePathBase (used for JSX <img src="/..."> imports)
+	t.Run("toImportSpecPath absolute paths with absolutePathBase", func(t *testing.T) {
+		for _, tc := range []struct {
+			base, from, impt string
+			expected         string
+		}{
+			// Absolute path resolved relative to base (package.json location)
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/images/logo.png",
+				expected: "packages/app/images/logo.png",
+			},
+			// Absolute path under nested directory resolved relative to base
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/sub/images/logo.png",
+				expected: "packages/app/sub/images/logo.png",
+			},
+			// Absolute path from nested subdirectory
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/deep/nested/component.tsx",
+				impt:     "/assets/video.mp4",
+				expected: "packages/app/assets/video.mp4",
+			},
+			// Absolute path with query param (should be stripped)
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/images/logo.png?v=1",
+				expected: "packages/app/images/logo.png",
+			},
+			// Absolute path with query and hash (should be stripped)
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/images/logo.png?inline#hash",
+				expected: "packages/app/images/logo.png",
+			},
+			// Absolute path with hash (should be stripped)
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/images/logo.png#section",
+				expected: "packages/app/images/logo.png",
+			},
+			// Absolute path with parent segments (should be cleaned)
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "/images/../logo.png",
+				expected: "packages/app/logo.png",
+			},
+			// Relative path still resolves relative to source file, not base
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "./local.png",
+				expected: "packages/app/src/local.png",
+			},
+			// Relative path with ..
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/deep/component.tsx",
+				impt:     "../images/logo.png",
+				expected: "packages/app/src/images/logo.png",
+			},
+			// Root-level base
+			{
+				base:     "",
+				from:     "src/component.tsx",
+				impt:     "/images/logo.png",
+				expected: "images/logo.png",
+			},
+			// URL should pass through unchanged
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "https://example.com/image.png",
+				expected: "https://example.com/image.png",
+			},
+		} {
+			desc := fmt.Sprintf("toImportSpecPath(base=%s, from=%s, impt=%s)", tc.base, tc.from, tc.impt)
+			t.Run(desc, func(t *testing.T) {
+				importPath := toImportSpecPath(tc.base, tc.from, tc.impt)
+
+				if !reflect.DeepEqual(importPath, tc.expected) {
+					t.Errorf("toImportSpecPath('%s', '%s', '%s') : \nactual:    %s\nexpected:  %s\n", tc.base, tc.from, tc.impt, importPath, tc.expected)
 				}
 			})
 		}
