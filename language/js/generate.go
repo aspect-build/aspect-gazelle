@@ -1204,14 +1204,16 @@ func toImportSpecPath(absoluteBase, importFrom, importPath string) string {
 
 	// Absolute paths starting with / are treated as relative to the importing file's directory
 	if importPath[0] == '/' {
+		// Normalize multiple leading slashes so we never pass an absolute path into path.Join.
+		trimmedImportPath := strings.TrimLeft(importPath, "/")
 		// Special case: absoluteBase="." means all paths are source-relative (URL imports)
 		if absoluteBase == "." {
-			return path.Join(importFrom, "..", importPath[1:])
+			return path.Join(importFrom, "..", trimmedImportPath)
 		}
 		if absoluteBase != "" {
-			return path.Join(absoluteBase, importPath[1:])
+			return path.Join(absoluteBase, trimmedImportPath)
 		}
-		return path.Clean(importPath[1:])
+		return path.Clean(trimmedImportPath)
 	}
 
 	// Relative paths are relative to the importing file's directory
