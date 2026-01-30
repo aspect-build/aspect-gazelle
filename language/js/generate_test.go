@@ -248,7 +248,7 @@ func TestGenerate(t *testing.T) {
 				importPath := toImportSpecPath(".", path.Join(tc.pkg, tc.from), tc.impt)
 
 				if !reflect.DeepEqual(importPath, tc.expected) {
-					t.Errorf("toImportSpecPath(\".\", '%s', '%s', '%s') : \nactual:    %s\nexpected:  %s\n", tc.pkg, tc.from, tc.impt, importPath, tc.expected)
+					t.Errorf("toImportSpecPath(\".\", '%s', '%s') : \nactual:    %s\nexpected:  %s\n", path.Join(tc.pkg, tc.from), tc.impt, importPath, tc.expected)
 				}
 			})
 		}
