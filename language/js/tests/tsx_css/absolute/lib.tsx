@@ -1,4 +1,4 @@
-// Test JSX img src with absolute paths (resolved relative to workspace root)
+// Test JSX img src with absolute paths (resolved relative to the package.json directory, falling back to the workspace root)
 
 export const AbsoluteImages = () => (
   <div>
