@@ -158,6 +158,25 @@ func TestGenerate(t *testing.T) {
 			impt:     "https://me.com/file.css?no-inline",
 			expected: "https://me.com/file.css",
 		},
+		// Bare package imports should not be resolved as relative paths
+		{
+			pkg:      "packages/app",
+			from:     "packages/app/src/component.tsx",
+			impt:     "react",
+			expected: "react",
+		},
+		{
+			pkg:      "packages/app",
+			from:     "packages/app/src/component.tsx",
+			impt:     "lodash",
+			expected: "lodash",
+		},
+		{
+			pkg:      "packages/app",
+			from:     "packages/app/src/component.tsx",
+			impt:     "@scope/package",
+			expected: "@scope/package",
+		},
 	} {
 		desc := fmt.Sprintf("toImportSpecPath(%s, %s, %s)", tc.pkg, tc.from, tc.impt)
 
@@ -336,6 +355,25 @@ func TestGenerate(t *testing.T) {
 				from:     "packages/app/src/component.tsx",
 				impt:     "https://example.com/image.png",
 				expected: "https://example.com/image.png",
+			},
+			// Bare package imports should not be resolved as relative paths
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "react",
+				expected: "react",
+			},
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "lodash",
+				expected: "lodash",
+			},
+			{
+				base:     "packages/app",
+				from:     "packages/app/src/component.tsx",
+				impt:     "@scope/package",
+				expected: "@scope/package",
 			},
 		} {
 			desc := fmt.Sprintf("toImportSpecPath(base=%s, from=%s, impt=%s)", tc.base, tc.from, tc.impt)
