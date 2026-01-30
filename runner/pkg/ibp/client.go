@@ -10,8 +10,9 @@ import (
 )
 
 type IncrementalClient interface {
-	Connect() error
+	Connect(cap ...WatchCapability) error
 	Disconnect() error
+	HasCap(cap WatchCapability) bool
 	AwaitCycle() iter.Seq2[*CycleSourcesMessage, error]
 }
 
@@ -19,8 +20,9 @@ type incClient struct {
 	socketPath string
 	socket     socket.Socket[interface{}, map[string]interface{}]
 
-	// The negotiated protocol version
+	// The negotiated protocol version and capabilities
 	version ProtocolVersion
+	caps    map[WatchCapability]bool
 }
 
 var _ IncrementalClient = (*incClient)(nil)
@@ -30,7 +32,7 @@ func NewClient(host string) IncrementalClient {
 		socketPath: host,
 	}
 }
-func (c *incClient) Connect() error {
+func (c *incClient) Connect(cap ...WatchCapability) error {
 	if c.socket != nil {
 		return fmt.Errorf("client already connected")
 	}
@@ -44,6 +46,15 @@ func (c *incClient) Connect() error {
 	if err := c.negotiate(); err != nil {
 		return fmt.Errorf("failed to negotiate protocol version: %w", err)
 	}
+
+	if !c.version.HasCapMessage() && len(cap) > 0 {
+		return fmt.Errorf("server does not support capabilities negotiation")
+	}
+
+	if err := c.cap(cap...); err != nil {
+		return fmt.Errorf("failed to setup capabilities: %w", err)
+	}
+
 	return nil
 }
 
@@ -90,6 +101,43 @@ func negotiateVersion(acceptedVersions []interface{}) (ProtocolVersion, error) {
 		}
 	}
 	return -1, fmt.Errorf("unsupported versions %v, expected one of %v", acceptedVersions, abazelSupportedProtocolVersions)
+}
+
+func (c *incClient) cap(caps ...WatchCapability) error {
+	err := c.socket.Send(capMessage{
+		Message: Message{
+			Kind: "CAPS",
+		},
+		Caps: caps,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to negotiate protocol version: %w", err)
+	}
+
+	r, err := c.socket.Recv()
+	if err != nil {
+		return fmt.Errorf("failed to receive CAPS response: %w", err)
+	}
+
+	if r["kind"] != "CAPS_RESPONSE" {
+		return fmt.Errorf("Expected CAPS_RESPONSE, got %v", r)
+	}
+
+	enabledCapsRaw, ok := r["enabled_caps"].([]interface{})
+	if !ok {
+		return fmt.Errorf("Invalid enabled_caps, expected []string, received type: %T", r["enabled_caps"])
+	}
+
+	c.caps = make(map[WatchCapability]bool, len(enabledCapsRaw))
+	for _, cap := range enabledCapsRaw {
+		c.caps[WatchCapability(cap.(string))] = true
+	}
+
+	return nil
+}
+
+func (c *incClient) HasCap(cap WatchCapability) bool {
+	return c.caps[cap]
 }
 
 func (c *incClient) Disconnect() error {
