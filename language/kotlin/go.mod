@@ -5,16 +5,16 @@ go 1.24.5
 replace github.com/aspect-build/aspect-gazelle/common => ../../common
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
-	github.com/bazel-contrib/rules_jvm v0.31.1
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-00010101000000-000000000000
+	github.com/bazel-contrib/rules_jvm v0.32.0
 	github.com/bazelbuild/bazel-gazelle v0.47.0
 	github.com/emirpasic/gods v1.18.1
 	github.com/rs/zerolog v1.34.0
 )
 
 require (
-	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839 // indirect
-	github.com/bmatcuk/doublestar/v4 v4.9.2 // indirect
+	github.com/bazelbuild/buildtools v0.0.0-20260202105709-e24971d9d1a7 // indirect
+	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
