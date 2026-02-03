@@ -15,7 +15,6 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/emirpasic/gods/maps/treemap"
-	"github.com/emirpasic/gods/sets/treeset"
 )
 
 func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
@@ -153,7 +152,7 @@ func (kt *kotlinLang) addBinaryRule(targetName string, target *KotlinBinTarget, 
 	BazelLog.Infof("add rule '%s' '%s:%s'", ktBinary.Kind(), args.Rel, ktBinary.Name())
 }
 
-func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources *treeset.Set) chan *parser.ParseResult {
+func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) chan *parser.ParseResult {
 	rootDir := args.Config.RepoRoot
 	rel := args.Rel
 
@@ -185,8 +184,8 @@ func parseFile(rootDir, rel, filePath string) (*parser.ParseResult, []error) {
 	return p.Parse(filePath, content)
 }
 
-func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args language.GenerateArgs) *treeset.Set {
-	sourceFiles := treeset.NewWithStringComparator()
+func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args language.GenerateArgs) []string {
+	sourceFiles := []string{}
 
 	// TODO: "module" targets similar to java?
 
@@ -195,7 +194,7 @@ func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args la
 		if isSourceFileType(f) {
 			BazelLog.Tracef("SourceFile: %s", f)
 
-			sourceFiles.Add(f)
+			sourceFiles = append(sourceFiles, f)
 		}
 	}
 

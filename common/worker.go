@@ -3,8 +3,6 @@ package gazelle
 import (
 	"math"
 	"sync"
-
-	"github.com/emirpasic/gods/sets/treeset"
 )
 
 const (
@@ -14,7 +12,7 @@ const (
 
 // Parallelize an action over a set of string values.
 // Returns a channel that emits results as they are produced.
-func Parallelize[T any](values *treeset.Set, process func(string) T) chan T {
+func Parallelize[T any](values []string, process func(string) T) chan T {
 	// The channel of inputs
 	valuesCh := make(chan string)
 
@@ -22,7 +20,7 @@ func Parallelize[T any](values *treeset.Set, process func(string) T) chan T {
 	resultsCh := make(chan T)
 
 	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+values.Size()/2)))
+	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
 
 	// Start the worker goroutines.
 	var wg sync.WaitGroup
@@ -39,9 +37,8 @@ func Parallelize[T any](values *treeset.Set, process func(string) T) chan T {
 
 	// Send values to the workers.
 	go func() {
-		valueChannelIt := values.Iterator()
-		for valueChannelIt.Next() {
-			valuesCh <- valueChannelIt.Value().(string)
+		for _, value := range values {
+			valuesCh <- value
 		}
 
 		close(valuesCh)

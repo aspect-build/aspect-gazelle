@@ -21,6 +21,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
@@ -38,7 +39,6 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	bzl "github.com/bazelbuild/buildtools/build"
-	"github.com/emirpasic/gods/maps/treemap"
 	"github.com/emirpasic/gods/sets/treeset"
 )
 
@@ -138,11 +138,11 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	tsconfigRel, tsconfig := ts.tsconfig.FindConfig(args.Rel)
 
 	// Create a set of source and generated source files per target.
-	sourceFileGroups := treemap.NewWithStringComparator()
-	generatedFileGroups := treemap.NewWithStringComparator()
+	sourceFileGroups := make(map[string][]string, len(cfg.GetSourceTargets()))
+	generatedFileGroups := make(map[string][]string, len(cfg.GetSourceTargets()))
 
 	// Collect data files which *may* be added to a target if imported within the sources.
-	dataFiles := treeset.NewWithStringComparator()
+	dataFiles := make([]string, 0, 5)
 
 	// Calculate the tsconfig rootDir relative to the current directory being walked
 	tsconfigRootDir := "."
@@ -159,30 +159,29 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	}
 
 	// Util for adding a file to a source group or the data files.
-	processPotentialSourceFile := func(groups *treemap.Map, file string) {
+	processPotentialSourceFile := func(groups map[string][]string, file string) {
 		fileExt := path.Ext(file)
 		if isSourceFileExt(fileExt) {
 			if target := cfg.GetFileSourceTarget(file, tsconfigRootDir); target != nil {
 				// Source files belonging to a target group.
 				BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
 
-				groupFiles, _ := groups.Get(target.name)
-				if groupFiles == nil {
-					groupFiles = treeset.NewWithStringComparator()
-					groups.Put(target.name, groupFiles)
+				_, hasGroup := groups[target.name]
+				if !hasGroup {
+					groups[target.name] = make([]string, 0, 10)
 				}
-				groupFiles.(*treeset.Set).Add(file)
+				groups[target.name] = append(groups[target.name], file)
 			} else {
 				// Source files with no group, but may still be considered "data"
 				// of other source-importing targets such as npm package targets.
 				BazelLog.Tracef("add src data file '%s/%s'", args.Rel, file)
 
-				dataFiles.Add(file)
+				dataFiles = append(dataFiles, file)
 			}
 		} else {
 			// Not collected by any target group, but still collect as a data file.
 			BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
-			dataFiles.Add(file)
+			dataFiles = append(dataFiles, file)
 		}
 	}
 
@@ -204,12 +203,12 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	packageName := toDefaultTargetName(args, DefaultRootTargetName)
 
 	// Create rules for each target group.
-	sourceRules := treemap.NewWithStringComparator()
+	sourceRules := make(map[string]interface{}, len(sourceFileGroups))
 	for _, group := range cfg.GetSourceTargets() {
 		// The project rule name. Can be configured to map to a different name.
 		ruleName := cfg.RenderSourceTargetName(group.name, packageName, hasPackageTarget)
 
-		var ruleSrcs, ruleGenSrcs *treeset.Set
+		var ruleSrcs, ruleGenSrcs []string
 
 		// If the rule has it's own custom list of sources then parse and use that list.
 		if existing := ruleUtils.GetFileRuleByName(args, ruleName); existing != nil && sourceRuleKinds.Contains(existing.Kind()) && isCustomSrcs(existing.Attr("srcs")) {
@@ -219,21 +218,18 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 			}
 
 			if customSrcs != nil {
-				ruleSrcs = treeset.NewWithStringComparator()
-				for _, src := range customSrcs {
-					ruleSrcs.Add(src)
-				}
+				ruleSrcs = customSrcs
 			}
 		} else {
-			if srcs, hasSrcs := sourceFileGroups.Get(group.name); hasSrcs {
-				ruleSrcs = srcs.(*treeset.Set)
+			if srcs, hasSrcs := sourceFileGroups[group.name]; hasSrcs {
+				ruleSrcs = srcs
 			}
-			if genSrcs, hasGenSrcs := generatedFileGroups.Get(group.name); hasGenSrcs {
-				ruleGenSrcs = genSrcs.(*treeset.Set)
+			if genSrcs, hasGenSrcs := generatedFileGroups[group.name]; hasGenSrcs {
+				ruleGenSrcs = genSrcs
 			}
 		}
 
-		if ruleSrcs == nil || ruleSrcs.Empty() {
+		if ruleSrcs == nil || len(ruleSrcs) == 0 {
 			// No sources for this source group. Remove the rule if it exists.
 			ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
 		} else {
@@ -255,7 +251,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 				return
 			}
 
-			sourceRules.Put(group.name, srcRule)
+			sourceRules[group.name] = srcRule
 		}
 	}
 
@@ -263,7 +259,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	if hasPackageTarget {
 		// Add the primary source rule by default if it exists
 		var srcLabel *label.Label
-		if srcRule, _ := sourceRules.Get(DefaultLibraryName); srcRule != nil {
+		if srcRule, hasDefaultLib := sourceRules[DefaultLibraryName]; hasDefaultLib {
 			srcLabel = &label.Label{
 				Name:     srcRule.(*rule.Rule).Name(),
 				Repo:     args.Config.RepoName,
@@ -276,7 +272,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	}
 }
 
-func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.GenerateArgs, packageName string, dataFiles *treeset.Set, srcLabel *label.Label, result *language.GenerateResult) {
+func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.GenerateArgs, packageName string, dataFiles []string, srcLabel *label.Label, result *language.GenerateResult) {
 	npmPackageInfo := newTsPackageInfo(srcLabel)
 
 	packageJsonPath := path.Join(args.Rel, NpmPackageFilename)
@@ -295,7 +291,7 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 			continue
 		}
 
-		if dataFiles.Contains(impt) {
+		if slices.Contains(dataFiles, impt) {
 			npmPackageInfo.sources.Add(impt)
 		} else {
 			if strings.Contains(impt, "*") {
@@ -320,8 +316,8 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	// Add the package.json if not in the src
 	// TODO: why not always add it?
 	// TODO: declare import on it instead if it's in another rule?
-	if dataFiles.Contains(NpmPackageFilename) {
-		dataFiles.Remove(NpmPackageFilename)
+	if packageIdx := slices.Index(dataFiles, NpmPackageFilename); packageIdx != -1 {
+		dataFiles = slices.Delete(dataFiles, packageIdx, packageIdx+1)
 		npmPackageInfo.sources.Add(NpmPackageFilename)
 	}
 
@@ -479,7 +475,7 @@ func hasTranspiledSources(sourceFiles *treeset.Set) bool {
 	})
 }
 
-func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, dataFiles *treeset.Set, result *language.GenerateResult) (*rule.Rule, error) {
+func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
 	// Check for name-collisions with the rule being generated.
 	colError := ruleUtils.CheckCollisionErrors(targetName, TsProjectKind, sourceRuleKinds, args)
 	if colError != nil {
@@ -497,9 +493,13 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	// Project data combined from all files.
 	info := newTsProjectInfo()
-	sourceFiles.Each(func(_ int, f any) { info.sources.Add(f.(string)) })
+	for _, f := range sourceFiles {
+		info.sources.Add(f)
+	}
 	if genFiles != nil {
-		genFiles.Each(func(_ int, f any) { info.sources.Add(f.(string)) })
+		for _, f := range genFiles {
+			info.sources.Add(f)
+		}
 	}
 
 	// Parse source files, do not parse generated files that are not source files.
@@ -535,9 +535,8 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	}
 
 	// Data file lookup map. Workspace path => local path
-	dataFileWorkspacePaths := make(map[string]string, dataFiles.Size())
-	for it := dataFiles.Iterator(); it.Next(); {
-		dataFile := it.Value().(string)
+	dataFileWorkspacePaths := make(map[string]string, len(dataFiles))
+	for _, dataFile := range dataFiles {
 		dataFileWorkspacePaths[joinPkg(args.Rel, dataFile)] = dataFile
 	}
 
@@ -553,7 +552,9 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		if dataFile, ok := dataFileWorkspacePaths[workspacePath]; ok {
 			if isDataFileExt(path.Ext(dataFile)) || cfg.CollectAssetsFrom(importStatement.Kind) {
 				info.sources.Add(dataFile)
-				dataFiles.Remove(dataFile)
+				if dataIdx := slices.Index(dataFiles, dataFile); dataIdx != -1 {
+					dataFiles = slices.Delete(dataFiles, dataIdx, dataIdx+1)
+				}
 			}
 		}
 	}
@@ -828,7 +829,7 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 	return results, nil
 }
 
-func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles *treeset.Set) chan parseResult {
+func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) chan parseResult {
 	parserCache := cache.Get(args.Config)
 	rel := args.Rel
 	repoRoot := args.Config.RepoRoot
