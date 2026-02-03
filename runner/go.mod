@@ -16,7 +16,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20251115024249-7cad566bc683
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20251115024249-7cad566bc683
-	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20251012075144-43a5acf8cedf
+	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260119084900-9bdafcfba839
 	github.com/bufbuild/rules_buf v0.5.2
