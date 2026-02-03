@@ -7,7 +7,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 func GetFileRuleByName(args language.GenerateArgs, ruleName string) *rule.Rule {
@@ -33,7 +33,7 @@ func MapKind(args language.GenerateArgs, kind string) string {
 	return kind
 }
 
-func RemoveRule(args language.GenerateArgs, ruleName string, generatedKinds *treeset.Set, result *language.GenerateResult) {
+func RemoveRule(args language.GenerateArgs, ruleName string, generatedKinds *treeset.Set[string], result *language.GenerateResult) {
 	existing := GetFileRuleByName(args, ruleName)
 	if existing == nil {
 		BazelLog.Tracef("remove rule '%s:%s' not found", args.Rel, ruleName)
@@ -53,7 +53,7 @@ func RemoveRule(args language.GenerateArgs, ruleName string, generatedKinds *tre
 // and that rule type is unknown or can not be adapted to the new rule kind.
 // If an existing rule can not be adapted (maybe due to Gazelle bugs/limitations) an
 // error explaining the case is returned.
-func CheckCollisionErrors(targetName, expectedKind string, generatedKinds *treeset.Set, args language.GenerateArgs) error {
+func CheckCollisionErrors(targetName, expectedKind string, generatedKinds *treeset.Set[string], args language.GenerateArgs) error {
 	// No file generated yet
 	if args.File == nil {
 		return nil
@@ -78,14 +78,14 @@ func CheckCollisionErrors(targetName, expectedKind string, generatedKinds *trees
 	return nil
 }
 
-func containsMappedKind(args language.GenerateArgs, generatedKinds *treeset.Set, kind string) bool {
+func containsMappedKind(args language.GenerateArgs, generatedKinds *treeset.Set[string], kind string) bool {
 	_, found := getMappedKind(args, generatedKinds, kind)
 	return found
 }
 
-func getMappedKind(args language.GenerateArgs, generatedKinds *treeset.Set, kind string) (string, bool) {
+func getMappedKind(args language.GenerateArgs, generatedKinds *treeset.Set[string], kind string) (string, bool) {
 	for it := generatedKinds.Iterator(); it.Next(); {
-		generatedKind := it.Value().(string)
+		generatedKind := it.Value()
 		if MapKind(args, generatedKind) == kind {
 			return generatedKind, true
 		}

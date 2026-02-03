@@ -13,7 +13,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/repo"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 
 	jvm_types "github.com/bazel-contrib/rules_jvm/java/gazelle/private/types"
 )
@@ -45,7 +45,7 @@ func (kt *kotlinLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) []re
 			for _, pkg := range target.Packages.Values() {
 				provides = append(provides, resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  pkg.(string),
+					Imp:  pkg,
 				})
 			}
 
@@ -89,7 +89,7 @@ func (kt *kotlinLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.
 func (kt *kotlinLang) resolveImports(
 	c *config.Config,
 	ix *resolve.RuleIndex,
-	imports *treeset.Set,
+	imports *treeset.Set[ImportStatement],
 	from label.Label,
 ) (*common.LabelSet, error) {
 	deps := common.NewLabelSet(from)
@@ -98,7 +98,7 @@ func (kt *kotlinLang) resolveImports(
 
 	it := imports.Iterator()
 	for it.Next() {
-		mod := it.Value().(ImportStatement)
+		mod := it.Value()
 
 		resolutionType, dep, err := kt.resolveImport(c, ix, mod, from)
 		if err != nil {

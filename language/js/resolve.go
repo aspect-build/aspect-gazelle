@@ -16,7 +16,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/bazelbuild/buildtools/build"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 // typeScriptLang satisfies the resolve.Resolver interface. It resolves dependencies
@@ -67,7 +67,7 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 		srcsSet := infoAttr.(*TsProjectInfo).sources
 		srcs = make([]string, 0, srcsSet.Size())
 		for it := srcsSet.Iterator(); it.Next(); {
-			srcs = append(srcs, it.Value().(string))
+			srcs = append(srcs, it.Value())
 		}
 	} else {
 		BazelLog.Debugf("Imports(%s): //%s:%s (non-generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
@@ -300,7 +300,7 @@ func (ts *typeScriptLang) Resolve(
 		deps := common.NewLabelSet(from)
 
 		// Support this target representing a project or a package
-		var imports *treeset.Set
+		var imports *treeset.Set[ImportStatement]
 		if packageInfo, isPackageInfo := importData.(*TsPackageInfo); isPackageInfo {
 			imports = packageInfo.imports
 
@@ -344,11 +344,11 @@ func (ts *typeScriptLang) Resolve(
 		}
 
 		for dep := range deps.Labels() {
-			srcs = append(srcs, dep)
+			srcs = append(srcs, dep.String())
 		}
 
 		if packageInfo.source != nil {
-			srcs = append(srcs, packageInfo.source)
+			srcs = append(srcs, packageInfo.source.String())
 		}
 
 		if len(srcs) > 0 {
@@ -374,7 +374,7 @@ func (ts *typeScriptLang) resolveImports(
 	c *config.Config,
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
-	imports *treeset.Set,
+	imports *treeset.Set[ImportStatement],
 	from label.Label,
 ) error {
 	cfg := c.Exts[LanguageName].(*JsGazelleConfig)
@@ -383,7 +383,7 @@ func (ts *typeScriptLang) resolveImports(
 
 	it := imports.Iterator()
 	for it.Next() {
-		imp := it.Value().(ImportStatement)
+		imp := it.Value()
 
 		// Overrides override all
 		if override, ok := resolve.FindRuleWithOverride(c, imp.ImportSpec, LanguageName); ok {

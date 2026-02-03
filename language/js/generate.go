@@ -39,7 +39,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	bzl "github.com/bazelbuild/buildtools/build"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 const (
@@ -122,7 +122,7 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 	}
 
 	for it := info.imports.Iterator(); it.Next(); {
-		impt := it.Value().(ImportStatement)
+		impt := it.Value()
 
 		// Might be a direct import of a file or dir
 		i = append(i, impt.Imp)
@@ -203,7 +203,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	packageName := toDefaultTargetName(args, DefaultRootTargetName)
 
 	// Create rules for each target group.
-	sourceRules := make(map[string]interface{}, len(sourceFileGroups))
+	sourceRules := make(map[string]*rule.Rule, len(sourceFileGroups))
 	for _, group := range cfg.GetSourceTargets() {
 		// The project rule name. Can be configured to map to a different name.
 		ruleName := cfg.RenderSourceTargetName(group.name, packageName, hasPackageTarget)
@@ -261,7 +261,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		var srcLabel *label.Label
 		if srcRule, hasDefaultLib := sourceRules[DefaultLibraryName]; hasDefaultLib {
 			srcLabel = &label.Label{
-				Name:     srcRule.(*rule.Rule).Name(),
+				Name:     srcRule.Name(),
 				Repo:     args.Config.RepoName,
 				Pkg:      args.Rel,
 				Relative: true,
@@ -469,9 +469,9 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 	BazelLog.Infof("add rule '%s' '%s:%s'", tsProtoLibrary.Kind(), args.Rel, tsProtoLibrary.Name())
 }
 
-func hasTranspiledSources(sourceFiles *treeset.Set) bool {
-	return sourceFiles.Any(func(_ int, f any) bool {
-		return isTranspiledSourceFileType(f.(string))
+func hasTranspiledSources(sourceFiles *treeset.Set[string]) bool {
+	return sourceFiles.Any(func(_ int, f string) bool {
+		return isTranspiledSourceFileType(f)
 	})
 }
 
@@ -542,7 +542,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	// Add any imported data files as sources.
 	for it := info.imports.Iterator(); it.Next(); {
-		importStatement := it.Value().(ImportStatement)
+		importStatement := it.Value()
 		workspacePath := importStatement.Imp
 
 		// If the imported path is a file that can be compiled as ts source
@@ -579,7 +579,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		assetFiles := make([]string, 0)
 		srcFiles := make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
-			sourceFile := it.Value().(string)
+			sourceFile := it.Value()
 			if isSourceFileExt(path.Ext(sourceFile)) || isDataFileExt(path.Ext(sourceFile)) {
 				srcFiles = append(srcFiles, sourceFile)
 			} else {

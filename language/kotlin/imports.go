@@ -24,8 +24,8 @@ func (is *ImportStatement) packageFullyQualifiedName() *javaFullyQualifiedName {
 }
 
 // importStatementComparator compares modules by name.
-func importStatementComparator(a, b interface{}) int {
-	return strings.Compare(a.(ImportStatement).Imp, b.(ImportStatement).Imp)
+func importStatementComparator(a, b ImportStatement) int {
+	return strings.Compare(a.Imp, b.Imp)
 }
 
 // javaFullyQualifiedName represents a fully-qualified name in Java, which is

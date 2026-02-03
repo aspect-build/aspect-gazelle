@@ -1,11 +1,13 @@
 package gazelle
 
 import (
+	"strings"
+
 	jvm_maven "github.com/bazel-contrib/rules_jvm/java/gazelle/private/maven"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 const LanguageName = "kotlin"
@@ -17,7 +19,7 @@ const (
 	RulesKotlinRepositoryName = "io_bazel_rules_kotlin"
 )
 
-var sourceRuleKinds = treeset.NewWithStringComparator(KtJvmLibrary)
+var sourceRuleKinds = treeset.NewWith(strings.Compare, KtJvmLibrary)
 
 var _ language.Language = (*kotlinLang)(nil)
 

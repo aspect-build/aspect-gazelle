@@ -3,12 +3,11 @@ package gazelle
 import (
 	"path"
 	"strings"
-)
 
-import "github.com/emirpasic/gods/sets/treeset"
+	"github.com/emirpasic/gods/v2/sets/treeset"
 
-import (
 	jvm_java "github.com/bazel-contrib/rules_jvm/java/gazelle/private/java"
+
 	jvm_types "github.com/bazel-contrib/rules_jvm/java/gazelle/private/types"
 )
 
@@ -28,7 +27,7 @@ func IsNativeImport(impt string) bool {
 }
 
 type KotlinTarget struct {
-	Imports *treeset.Set
+	Imports *treeset.Set[ImportStatement]
 }
 
 /**
@@ -40,8 +39,8 @@ type KotlinTarget struct {
 type KotlinLibTarget struct {
 	KotlinTarget
 
-	Packages *treeset.Set
-	Files    *treeset.Set
+	Packages *treeset.Set[string]
+	Files    *treeset.Set[string]
 }
 
 func NewKotlinLibTarget() *KotlinLibTarget {
@@ -49,8 +48,8 @@ func NewKotlinLibTarget() *KotlinLibTarget {
 		KotlinTarget: KotlinTarget{
 			Imports: treeset.NewWith(importStatementComparator),
 		},
-		Packages: treeset.NewWithStringComparator(),
-		Files:    treeset.NewWithStringComparator(),
+		Packages: treeset.NewWith(strings.Compare),
+		Files:    treeset.NewWith(strings.Compare),
 	}
 }
 
