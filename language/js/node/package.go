@@ -5,7 +5,7 @@ import (
 	"path"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/msolo/jsonr"
+	"github.com/goexlib/jsonc"
 )
 
 type npmPackageJSON struct {
@@ -23,10 +23,13 @@ type npmPackageJSON struct {
 // Extract the various import types from the package.json file such as
 // 'main' and 'exports' fields.
 func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
-	packageJsonDecoder := jsonr.NewDecoder(packageJsonReader)
+	packageJsonData, err := io.ReadAll(packageJsonReader)
+	if err != nil {
+		return nil, err
+	}
 
 	var c npmPackageJSON
-	if err := packageJsonDecoder.Decode(&c); err != nil {
+	if err := jsonc.Unmarshal(packageJsonData, &c); err != nil {
 		return nil, err
 	}
 

@@ -1,1 +1,1 @@
-Failed to parse "package.json" imports: ERR: position:0 malformed integer number
+Failed to parse "package.json" imports: invalid character 'o' in literal null (expecting 'u')

@@ -25,7 +25,7 @@ import (
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/msolo/jsonr"
+	"github.com/goexlib/jsonc"
 )
 
 type tsCompilerOptionsJSON struct {
@@ -190,8 +190,13 @@ func parseTsConfigJSONFile(parsed map[string]*TsConfig, resolver TsConfigResolve
 }
 
 func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, root, tsconfig string, tsconfigReader io.Reader) (*TsConfig, error) {
+	tsconfigData, err := io.ReadAll(tsconfigReader)
+	if err != nil {
+		return nil, err
+	}
+
 	var c tsConfigJSON
-	if err := jsonr.NewDecoder(tsconfigReader).Decode(&c); err != nil {
+	if err := jsonc.Unmarshal(tsconfigData, &c); err != nil {
 		return nil, err
 	}
 

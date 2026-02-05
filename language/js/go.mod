@@ -10,7 +10,7 @@ require (
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260202105709-e24971d9d1a7
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
-	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // NOTE: upgrade causes issues with invalid json
+	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5
 	gopkg.in/yaml.v3 v3.0.1
 )
 
