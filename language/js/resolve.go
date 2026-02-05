@@ -419,16 +419,8 @@ func (ts *typeScriptLang) resolveImports(
 				BazelLog.Debugf("import %q for target %v not found", imp.ImportPath, from)
 
 				notFound := fmt.Errorf(
-					"Import %[1]q from %[2]q is an unknown dependency. Possible solutions:\n"+
-						"\t1. Instruct Gazelle to resolve to a known dependency using a directive:\n"+
-						"\t\t# aspect:resolve [src-lang] %[5]s import-string label\n"+
-						"\t\t   or\n"+
-						"\t\t# aspect:resolve_regex [src-lang] %[5]s import-string-regex label\n"+
-						"\t\t   or\n"+
-						"\t\t# aspect:js_resolve import-string-glob label\n"+
-						"\t2. Ignore the dependency using the '# aspect:%[3]s %[1]s' directive.\n"+
-						"\t3. Disable Gazelle resolution validation using '# aspect:%[4]s off'",
-					imp.ImportPath, imp.SourcePath, Directive_IgnoreImports, Directive_ValidateImportStatements, LanguageName,
+					"Import %q from %q is an unknown %s dependency",
+					imp.ImportPath, imp.SourcePath, LanguageName,
 				)
 				resolutionErrors = append(resolutionErrors, notFound)
 			}

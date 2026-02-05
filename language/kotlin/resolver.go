@@ -109,10 +109,8 @@ func (kt *kotlinLang) resolveImports(
 			BazelLog.Debugf("import %q for target %v not found", mod.Imp, from)
 
 			notFound := fmt.Errorf(
-				"Import %[1]q from %[2]q is an unknown dependency. Possible solutions:\n"+
-					"\t1. Instruct Gazelle to resolve to a known dependency using a directive:\n"+
-					"\t\t# gazelle:resolve [src-lang] kotlin import-string label\n",
-				mod.Imp, mod.SourcePath,
+				"Import %q from %q is an unknown %s dependency",
+				mod.Imp, mod.SourcePath, LanguageName,
 			)
 
 			errs = append(errs, notFound)

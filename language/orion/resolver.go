@@ -197,11 +197,8 @@ func (re *GazelleHost) resolveImports(
 			BazelLog.Debugf("import %q for target %v not found", imp.Id, from)
 
 			if !imp.Optional {
-				notFound := fmt.Errorf(
-					"Import %[1]q (provider %[2]q) from %[3]q is an unknown dependency. Possible solutions:\n"+
-						"\t1. Instruct Gazelle to resolve to a known dependency using a directive:\n"+
-						"\t\t# aspect:resolve [src-lang] %[4]s import-string label\n",
-					imp.Id, imp.Provider, imp.From, pluginId,
+				notFound := fmt.Errorf("Import %q (provider %q) from %q is an unknown dependency",
+					imp.Id, imp.Provider, imp.From,
 				)
 
 				errs = append(errs, notFound)
