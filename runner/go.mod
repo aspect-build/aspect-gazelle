@@ -49,6 +49,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.5 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
+	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
@@ -61,7 +62,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mikefarah/yq/v4 v4.52.2 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/msolo/jsonr v0.0.0-20231023064044-62fbfc3a0313 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/rs/zerolog v1.34.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
