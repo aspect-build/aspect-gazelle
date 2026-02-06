@@ -5,11 +5,6 @@ go_library(
     srcs = ["parser.go"],
     importpath = "github.com/aspect-build/aspect-gazelle/language/kotlin/parser",
     visibility = ["//visibility:public"],
-    deps = [
-        "@aspect_gazelle//common/logger",
-        "@aspect_gazelle//common/treesitter",
-        "@aspect_gazelle//common/treesitter/grammars/kotlin",
-    ],
 )
 
 go_test(

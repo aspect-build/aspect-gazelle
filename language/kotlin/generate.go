@@ -179,8 +179,7 @@ func parseFile(rootDir, rel, filePath string) (*parser.ParseResult, []error) {
 		return nil, []error{err}
 	}
 
-	p := parser.NewParser()
-	return p.Parse(filePath, content)
+	return parser.Parse(filePath, content)
 }
 
 func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args language.GenerateArgs) []string {
