@@ -234,9 +234,19 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 		}
 	}
 
+	// OTEL trace+span IDs may be included depending on protocol version/caps.
+	// Simply pass them along as-is if present, only assuming 'string' type, otherwise leave blank.
+	var traceId, spanId string
+	if v, ok := msg["trace_id"].(string); ok {
+		traceId = v
+	}
+	if v, ok := msg["span_id"].(string); ok {
+		spanId = v
+	}
+
 	return CycleSourcesMessage{
 		CycleMessage: CycleMessage{
-			Message: Message{Kind: "CYCLE"},
+			Message: Message{Kind: "CYCLE", TraceId: traceId, SpanId: spanId},
 			CycleId: cycleId,
 		},
 		Scope:   scope,

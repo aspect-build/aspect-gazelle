@@ -10,6 +10,7 @@ import (
 
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
 	"github.com/fatih/color"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ProtocolVersion int
@@ -34,6 +35,7 @@ type WatchCapability string
 
 const (
 	WatchCapability_WatchScope WatchCapability = "scope"
+	WatchCapability_OTEL       WatchCapability = "otel"
 )
 
 type WatchScope string
@@ -47,9 +49,9 @@ const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
 type IncrementalBazel interface {
 	// Messaging to the client
-	Init(scope WatchScope, sources SourceInfoMap) error
-	Cycle(scope WatchScope, changes SourceInfoMap) error
-	Exit(err error) error
+	Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error
+	Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error
+	Exit(ctx context.Context, err error) error
 
 	// Server + Connection to client
 	Serve(ctx context.Context) error
@@ -70,6 +72,10 @@ type IncrementalBazel interface {
 
 type Message struct {
 	Kind string `json:"kind"`
+
+	// OTEL trace IDs can be added to any message, omitted if empty.
+	TraceId string `json:"trace_id,omitempty"`
+	SpanId  string `json:"span_id,omitempty"`
 }
 
 type negotiateMessage struct {
@@ -164,6 +170,27 @@ func (p *aspectBazelProtocol) WatchingScope(s WatchScope) bool {
 	return slices.Contains(scopes, s)
 }
 
+func (p *aspectBazelProtocol) isOTELCapEnabled() bool {
+	if p.caps == nil {
+		return false
+	}
+	return p.caps[WatchCapability_OTEL] == true
+}
+
+func (p *aspectBazelProtocol) otelMessage(ctx context.Context, kind string) Message {
+	m := Message{Kind: kind}
+	if p.isOTELCapEnabled() {
+		sc := trace.SpanContextFromContext(ctx)
+		if sc.HasTraceID() {
+			m.TraceId = sc.TraceID().String()
+		}
+		if sc.HasSpanID() {
+			m.SpanId = sc.SpanID().String()
+		}
+	}
+	return m
+}
+
 func (p *aspectBazelProtocol) Env() []string {
 	return []string{
 		PROTOCOL_SOCKET_ENV + "=" + p.socketPath,
@@ -181,7 +208,7 @@ func (p *aspectBazelProtocol) Serve(ctx context.Context) error {
 
 	go func() {
 		// TODO: cancel the if the context is done or if Close() invoked
-		if err := p.acceptNegotiation(); err != nil {
+		if err := p.acceptNegotiation(ctx); err != nil {
 			select {
 			case <-ctx.Done():
 				// Ignore errors if the context is done, as this is likely due to shutdown.
@@ -203,7 +230,7 @@ func (p *aspectBazelProtocol) HasConnection() bool {
 	return p.socket != nil && p.socket.HasConnection()
 }
 
-func (p *aspectBazelProtocol) acceptNegotiation() error {
+func (p *aspectBazelProtocol) acceptNegotiation(ctx context.Context) error {
 	// Wait for a connection
 	if err := p.socket.Accept(); err != nil {
 		return err
@@ -211,7 +238,7 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 
 	// Negotiate the protocol version
 	m := negotiateMessage{
-		Message:  Message{Kind: "NEGOTIATE"},
+		Message:  p.otelMessage(ctx, "NEGOTIATE"),
 		Versions: abazelSupportedProtocolVersions,
 	}
 	if err := p.socket.Send(m); err != nil {
@@ -236,7 +263,7 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 	version := ProtocolVersion(negResp["version"].(float64))
 
 	if version.HasCapMessage() {
-		if err := p.negotiateCapabilities(version); err != nil {
+		if err := p.negotiateCapabilities(ctx, version); err != nil {
 			return fmt.Errorf("Failed to negotiate capabilities: %v", err)
 		}
 	}
@@ -247,7 +274,7 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 	return nil
 }
 
-func (p *aspectBazelProtocol) negotiateCapabilities(version ProtocolVersion) error {
+func (p *aspectBazelProtocol) negotiateCapabilities(ctx context.Context, version ProtocolVersion) error {
 	capsResp, err := p.socket.Recv()
 	if err != nil {
 		return fmt.Errorf("Error receiving CAPS request: %v", err)
@@ -261,15 +288,15 @@ func (p *aspectBazelProtocol) negotiateCapabilities(version ProtocolVersion) err
 		return fmt.Errorf("Failed to read capabilities: %v", err)
 	}
 
+	p.caps = caps
+
 	m := capMessage{
-		Message: Message{Kind: "CAPS_RESPONSE"},
+		Message: p.otelMessage(ctx, "CAPS_RESPONSE"),
 		Caps:    caps,
 	}
 	if err := p.socket.Send(m); err != nil {
 		return fmt.Errorf("Failed to send CAPS_RESPONSE: %v", err)
 	}
-
-	p.caps = caps
 
 	return nil
 }
@@ -285,11 +312,11 @@ func (p *aspectBazelProtocol) Close() error {
 	return nil
 }
 
-func (p *aspectBazelProtocol) Init(scope WatchScope, sources SourceInfoMap) error {
-	return p.Cycle(scope, sources)
+func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error {
+	return p.Cycle(ctx, scope, sources)
 }
 
-func (p *aspectBazelProtocol) Cycle(scope WatchScope, changes SourceInfoMap) error {
+func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
 	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
@@ -302,7 +329,7 @@ func (p *aspectBazelProtocol) Cycle(scope WatchScope, changes SourceInfoMap) err
 
 	c := CycleSourcesMessage{
 		CycleMessage: CycleMessage{
-			Message: Message{Kind: "CYCLE"},
+			Message: p.otelMessage(ctx, "CYCLE"),
 			CycleId: cycle_id,
 		},
 		Scope:   scope,
@@ -348,14 +375,14 @@ func (p *aspectBazelProtocol) Cycle(scope WatchScope, changes SourceInfoMap) err
 	}
 }
 
-func (p *aspectBazelProtocol) Exit(err error) error {
+func (p *aspectBazelProtocol) Exit(ctx context.Context, err error) error {
 	d := ""
 	if err != nil {
 		d = err.Error()
 	}
 
 	c := exitMessage{
-		Message:     Message{Kind: "EXIT"},
+		Message:     p.otelMessage(ctx, "EXIT"),
 		Description: d,
 	}
 	return p.socket.Send(c)
@@ -386,6 +413,9 @@ func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapabili
 				return nil, err
 			}
 			caps[WatchCapability_WatchScope] = scopeVal
+		case WatchCapability_OTEL:
+			// No additional config for OTEL; it is enabled when this capability is present with a boolean true value.
+			caps[WatchCapability_OTEL] = readCapBool(val)
 		default:
 			// Unknown capabilities are not processed, may still be accessed by the sdk user.
 			caps[WatchCapability(cap)] = val
@@ -426,4 +456,12 @@ func readScopeCapList(val any) ([]WatchScope, error) {
 	}
 
 	return scopes, nil
+}
+
+func readCapBool(val any) bool {
+	boolVal, isBool := val.(bool)
+	if !isBool {
+		return false
+	}
+	return boolVal
 }

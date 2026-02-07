@@ -12,5 +12,6 @@ go_library(
         "//pkg/socket",
         "@aspect_gazelle//common/logger",
         "@com_github_fatih_color//:color",
+        "@io_opentelemetry_go_otel_trace//:trace",
     ],
 )
