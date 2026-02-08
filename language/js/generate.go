@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
+	"iter"
 	"path"
 	"slices"
 	"strings"
@@ -968,67 +969,83 @@ func joinPkg(pkg, rel string) string {
 	return pkg + "/" + rel
 }
 
-// Find names/paths that the given path can be imported as.
-func toImportPaths(p string) []string {
+// toImportPaths returns an iterator over all paths that p can be imported as.
+func toImportPaths(p string) iter.Seq[string] {
 	// NOTE: this is invoked extremely frequently so it's important to keep it fast and light.
 	// Do not cause unnecessary memory allocations such as splitting or slicing strings.
+	return func(yield func(string) bool) {
+		pExt := path.Ext(p)
+		pNoExt := p[:len(p)-len(pExt)]
 
-	// There will most likely be only one import path when a file is already known to be a "source file"
-	paths := make([]string, 0, 1)
+		if isDeclarationFileType(p) {
+			pNoExt := p[:len(pNoExt)-2]
 
-	pExt := path.Ext(p)
-	pNoExt := p[:len(p)-len(pExt)]
+			// The import of the raw dts file
+			if !yield(p) {
+				return
+			}
 
-	if isDeclarationFileType(p) {
-		pNoExt := p[:len(pNoExt)-2]
+			// Assume the js extension also exists
+			// TODO: don't do that
+			if !yield(pNoExt + toJsExt(pExt)) {
+				return
+			}
 
-		// The import of the raw dts file
-		paths = append(paths, p)
+			// Without the dts extension
+			if isImplicitSourceFileExt(pExt) {
+				if !yield(pNoExt) {
+					return
+				}
+			}
 
-		// Assume the js extension also exists
-		// TODO: don't do that
-		paths = append(paths, pNoExt+toJsExt(pExt))
+			// Directory without the filename
+			if strings.HasSuffix(pNoExt, SlashIndexFileName) {
+				if !yield(pNoExt[:len(pNoExt)-len(SlashIndexFileName)]) {
+					return
+				}
+			}
+		} else if isTranspiledSourceFileExt(pExt) {
+			// The transpiled files extensions
+			if !yield(pNoExt+toJsExt(pExt)) || !yield(pNoExt+toDtsExt(pExt)) {
+				return
+			}
 
-		// Without the dts extension
-		if isImplicitSourceFileExt(pExt) {
-			paths = append(paths, pNoExt)
+			// Without the extension if it is implicit
+			if isImplicitSourceFileExt(pExt) {
+				if !yield(pNoExt) {
+					return
+				}
+			}
+
+			// Directory without the filename
+			if strings.HasSuffix(pNoExt, SlashIndexFileName) {
+				if !yield(pNoExt[:len(pNoExt)-len(SlashIndexFileName)]) {
+					return
+				}
+			}
+		} else if isSourceFileExt(pExt) {
+			// The import of the raw file
+			if !yield(p) {
+				return
+			}
+
+			// Without the extension if it is implicit
+			if isImplicitSourceFileExt(pExt) {
+				if !yield(pNoExt) {
+					return
+				}
+			}
+
+			// Directory without the filename
+			if strings.HasSuffix(pNoExt, SlashIndexFileName) {
+				if !yield(pNoExt[:len(pNoExt)-len(SlashIndexFileName)]) {
+					return
+				}
+			}
+		} else {
+			yield(p)
 		}
-
-		// Directory without the filename
-		if strings.HasSuffix(pNoExt, SlashIndexFileName) {
-			paths = append(paths, pNoExt[:len(pNoExt)-len(SlashIndexFileName)])
-		}
-	} else if isTranspiledSourceFileExt(pExt) {
-		// The transpiled files extensions
-		paths = append(paths, pNoExt+toJsExt(pExt), pNoExt+toDtsExt(pExt))
-
-		// Without the extension if it is implicit
-		if isImplicitSourceFileExt(pExt) {
-			paths = append(paths, pNoExt)
-		}
-
-		// Directory without the filename
-		if strings.HasSuffix(pNoExt, SlashIndexFileName) {
-			paths = append(paths, pNoExt[:len(pNoExt)-len(SlashIndexFileName)])
-		}
-	} else if isSourceFileExt(pExt) {
-		// The import of the raw file
-		paths = append(paths, p)
-
-		// Without the extension if it is implicit
-		if isImplicitSourceFileExt(pExt) {
-			paths = append(paths, pNoExt)
-		}
-
-		// Directory without the filename
-		if strings.HasSuffix(pNoExt, SlashIndexFileName) {
-			paths = append(paths, pNoExt[:len(pNoExt)-len(SlashIndexFileName)])
-		}
-	} else {
-		paths = append(paths, p)
 	}
-
-	return paths
 }
 
 // Collect and persist all possible references to files that can be imported
@@ -1042,7 +1059,7 @@ func (ts *typeScriptLang) collectFileLabels(args language.GenerateArgs) {
 			Pkg:  args.Rel,
 		}
 
-		for _, importPath := range toImportPaths(joinPkg(args.Rel, f)) {
+		for importPath := range toImportPaths(joinPkg(args.Rel, f)) {
 			ts.addFileLabel(importPath, &genLabel)
 		}
 	}

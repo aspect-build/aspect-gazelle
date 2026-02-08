@@ -110,7 +110,7 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 		}
 
 		for _, src := range srcs {
-			for _, impt := range toImportPaths(src) {
+			for impt := range toImportPaths(src) {
 				provides = append(provides, resolve.ImportSpec{
 					Lang: LanguageName,
 					Imp:  impt,
