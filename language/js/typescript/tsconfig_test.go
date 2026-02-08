@@ -590,10 +590,12 @@ func TestExpandPathsMatch(t *testing.T) {
 		{name: "empty dir, dot rel", configDir: "", pathsRel: ".", input: "foo", expected: "foo"},
 		{name: "empty dir, src rel", configDir: "", pathsRel: "src", input: "foo", expected: "src/foo"},
 		{name: "both empty", configDir: "", pathsRel: "", input: "foo", expected: "foo"},
+		{name: "both empty with empty input", configDir: "", pathsRel: "", input: "", expected: "."},
 
 		// Input with path segments needing Clean
 		{name: "input needs clean", configDir: "pkg", pathsRel: ".", input: "./a/../b", expected: "pkg/b"},
 		{name: "input with dot segments", configDir: "pkg", pathsRel: "src", input: "./foo", expected: "pkg/src/foo"},
+		{name: "absolute input normalized under rel root", configDir: ".", pathsRel: "src", input: "/foo", expected: "src/foo"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			config := TsConfig{
@@ -632,9 +634,11 @@ func TestExpandBaseUrl(t *testing.T) {
 		// Empty strings
 		{name: "empty dir, dot base", configDir: "", baseUrl: ".", input: "foo", expected: "foo"},
 		{name: "both empty", configDir: "", baseUrl: "", input: "foo", expected: "foo"},
+		{name: "both empty with empty input", configDir: "", baseUrl: "", input: "", expected: "."},
 
 		// Input with path segments needing Clean
 		{name: "input needs clean", configDir: "pkg", baseUrl: ".", input: "./a/../b", expected: "pkg/b"},
+		{name: "absolute input normalized under baseUrl", configDir: ".", baseUrl: "src", input: "/foo", expected: "src/foo"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			config := TsConfig{
