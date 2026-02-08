@@ -198,7 +198,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 
 		// Parse errors. Only log them due to many false positives potentially caused by issues
 		// such as only parsing a single file at a time so type information from other files is missing.
-		if Log.IsLevelEnabled(Log.TraceLevel) {
+		if Log.IsTraceEnabled() {
 			treeErrors := tree.QueryErrors()
 			if treeErrors != nil {
 				Log.Tracef("TreeSitter query errors: %v", treeErrors)

@@ -28,7 +28,7 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 
 	// Parse errors. Only log them due to many false positives.
 	// TODO: what false positives? See js plugin where this is from
-	if BazelLog.IsLevelEnabled(BazelLog.TraceLevel) {
+	if BazelLog.IsTraceEnabled() {
 		treeErrors := ast.QueryErrors()
 		if treeErrors != nil {
 			BazelLog.Tracef("TreeSitter query errors: %v", treeErrors)

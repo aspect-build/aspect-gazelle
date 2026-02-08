@@ -138,5 +138,10 @@ func Fatal(msg string) {
 }
 
 func IsLevelEnabled(l Level) bool {
-	return level > l
+	return level <= l
+}
+
+// IsTraceEnabled returns true when trace-level logging is active.
+func IsTraceEnabled() bool {
+	return level <= TraceLevel
 }
