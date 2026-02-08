@@ -6,19 +6,16 @@ import (
 )
 
 var testCases = []struct {
-	desc     string
-	kt       string
-	filename string
-	pkg      string
-	imports  []string
-	hasMain  bool
+	desc    string
+	kt      string
+	pkg     string
+	imports []string
+	hasMain bool
 }{
 	{
-		desc:     "empty",
-		kt:       "",
-		filename: "empty.kt",
-		pkg:      "",
-		imports:  []string{},
+		desc:    "empty",
+		kt:      "",
+		imports: []string{},
 	},
 	{
 		desc: "simple",
@@ -26,9 +23,7 @@ var testCases = []struct {
 import a.B
 import c.D as E
 	`,
-		filename: "simple.kt",
-		pkg:      "",
-		imports:  []string{"a", "c"},
+		imports: []string{"a", "c"},
 	},
 	{
 		desc: "stars",
@@ -36,9 +31,8 @@ import c.D as E
 
 import  d.y.* 
 		`,
-		filename: "stars.kt",
-		pkg:      "a.b.c",
-		imports:  []string{"d.y"},
+		pkg:     "a.b.c",
+		imports: []string{"d.y"},
 	},
 	{
 		desc: "line-comments",
@@ -49,9 +43,8 @@ import a.B // trailing
 import c.D // trailing
 import d.* // trailing
 		`,
-		filename: "comments.kt",
-		pkg:      "x",
-		imports:  []string{"a", "c", "d"},
+		pkg:     "x",
+		imports: []string{"a", "c", "d"},
 	},
 	{
 		desc: "value-classes",
@@ -59,9 +52,7 @@ import d.* // trailing
 @JvmInline
 value class Password(private val s: String)
 	`,
-		filename: "simple.kt",
-		pkg:      "",
-		imports:  []string{},
+		imports: []string{},
 	},
 	{
 		desc: "fun-interface",
@@ -74,9 +65,8 @@ fun interface MyAction {
     fun execute(): String
 }
 	`,
-		filename: "fun_interface.kt",
-		pkg:      "com.example",
-		imports:  []string{"com.example.other"},
+		pkg:     "com.example",
+		imports: []string{"com.example.other"},
 	},
 	{
 		desc: "fun-interface-with-main",
@@ -94,10 +84,9 @@ fun main() {
     println(t.transform("hello"))
 }
 	`,
-		filename: "fun_interface_main.kt",
-		pkg:      "com.example",
-		imports:  []string{"com.example.other"},
-		hasMain:  true,
+		pkg:     "com.example",
+		imports: []string{"com.example.other"},
+		hasMain: true,
 	},
 	{
 		desc: "fun-interface-no-imports",
@@ -106,16 +95,13 @@ fun interface Runnable {
     fun run()
 }
 	`,
-		filename: "runnable.kt",
-		pkg:      "",
-		imports:  []string{},
+		imports: []string{},
 	},
 	{
-		desc:     "main-simple",
-		kt:       "fun main() {}",
-		filename: "main.kt",
-		imports:  []string{},
-		hasMain:  true,
+		desc:    "main-simple",
+		kt:      "fun main() {}",
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "main-with-package",
@@ -123,10 +109,9 @@ fun interface Runnable {
 package my.demo
 fun main() {}
 	`,
-		filename: "main_pkg.kt",
-		pkg:      "my.demo",
-		imports:  []string{},
-		hasMain:  true,
+		pkg:     "my.demo",
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "main-with-args",
@@ -135,9 +120,8 @@ fun main(args: Array<String>) {
     println(args)
 }
 	`,
-		filename: "main_args.kt",
-		imports:  []string{},
-		hasMain:  true,
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "main-with-imports",
@@ -146,10 +130,9 @@ package my.demo
 import kotlin.text.*
 fun main() {}
 	`,
-		filename: "main_imports.kt",
-		pkg:      "my.demo",
-		imports:  []string{"kotlin.text"},
-		hasMain:  true,
+		pkg:     "my.demo",
+		imports: []string{"kotlin.text"},
+		hasMain: true,
 	},
 	{
 		desc: "suspend-fun-main",
@@ -160,9 +143,8 @@ suspend fun main() {
     println("hello from coroutines")
 }
 	`,
-		filename: "suspend_main.kt",
-		imports:  []string{"kotlinx.coroutines"},
-		hasMain:  true,
+		imports: []string{"kotlinx.coroutines"},
+		hasMain: true,
 	},
 	{
 		desc: "suspend-fun-main-with-args",
@@ -171,9 +153,8 @@ suspend fun main(args: Array<String>) {
     delay(1000)
 }
 	`,
-		filename: "suspend_main_args.kt",
-		imports:  []string{},
-		hasMain:  true,
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "no-main-regular-fun",
@@ -181,9 +162,8 @@ suspend fun main(args: Array<String>) {
 fun helper() {}
 fun process(x: Int): String { return x.toString() }
 	`,
-		filename: "helper.kt",
-		imports:  []string{},
-		hasMain:  false,
+		imports: []string{},
+		hasMain: false,
 	},
 	{
 		desc: "no-main-nested-in-object",
@@ -200,10 +180,9 @@ object Constants {
 
 fun nonMain() {}
 	`,
-		filename: "nested_main.kt",
-		pkg:      "test.lib",
-		imports:  []string{},
-		hasMain:  false,
+		pkg:     "test.lib",
+		imports: []string{},
+		hasMain: false,
 	},
 	{
 		desc: "no-main-nested-in-class",
@@ -214,9 +193,8 @@ class MyApp {
     }
 }
 	`,
-		filename: "class_main.kt",
-		imports:  []string{},
-		hasMain:  false,
+		imports: []string{},
+		hasMain: false,
 	},
 	{
 		desc: "no-main-in-companion-object",
@@ -230,9 +208,8 @@ class Application {
     }
 }
 	`,
-		filename: "companion_main.kt",
-		imports:  []string{},
-		hasMain:  false,
+		imports: []string{},
+		hasMain: false,
 	},
 	{
 		desc: "main-after-class",
@@ -245,9 +222,8 @@ fun main() {
     Helper().doWork()
 }
 	`,
-		filename: "main_after_class.kt",
-		imports:  []string{},
-		hasMain:  true,
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "single-segment-import-skipped",
@@ -255,8 +231,7 @@ fun main() {
 import a
 import b.C
 	`,
-		filename: "single_segment.kt",
-		imports:  []string{"b"},
+		imports: []string{"b"},
 	},
 	{
 		desc: "raw-string-false-imports",
@@ -270,23 +245,20 @@ val query = """
 
 import real.Dep
 	`,
-		filename: "raw_string.kt",
-		pkg:      "com.example",
-		imports:  []string{"real"},
+		pkg:     "com.example",
+		imports: []string{"real"},
 	},
 	{
-		desc:     "private-fun-main",
-		kt:       "private fun main() {}",
-		filename: "private_main.kt",
-		imports:  []string{},
-		hasMain:  true,
+		desc:    "private-fun-main",
+		kt:      "private fun main() {}",
+		imports: []string{},
+		hasMain: true,
 	},
 	{
-		desc:     "internal-fun-main",
-		kt:       "internal fun main() {}",
-		filename: "internal_main.kt",
-		imports:  []string{},
-		hasMain:  true,
+		desc:    "internal-fun-main",
+		kt:      "internal fun main() {}",
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "multi-line-block-comment",
@@ -302,9 +274,8 @@ import real.Dependency
 
 class Foo
 	`,
-		filename: "block_comment.kt",
-		pkg:      "com.example",
-		imports:  []string{"real"},
+		pkg:     "com.example",
+		imports: []string{"real"},
 	},
 	{
 		desc: "nested-block-comments",
@@ -315,9 +286,8 @@ package com.example
 
 import real.Dep
 	`,
-		filename: "nested_block.kt",
-		pkg:      "com.example",
-		imports:  []string{"real"},
+		pkg:     "com.example",
+		imports: []string{"real"},
 	},
 	{
 		desc: "multiple-modifiers-main",
@@ -326,9 +296,8 @@ public suspend fun main() {
     println("hello")
 }
 	`,
-		filename: "multi_mod_main.kt",
-		imports:  []string{},
-		hasMain:  true,
+		imports: []string{},
+		hasMain: true,
 	},
 	{
 		desc: "duplicate-package-imports",
@@ -336,35 +305,132 @@ public suspend fun main() {
 import com.example.Foo
 import com.example.Bar
 	`,
-		filename: "dup_imports.kt",
-		imports:  []string{"com.example", "com.example"},
+		imports: []string{"com.example", "com.example"},
+	},
+	{
+		desc: "triple-quote-in-line-comment",
+		kt: `
+package com.example
+
+val x = 1 // some """ example
+import real.Dep
+	`,
+		pkg:     "com.example",
+		imports: []string{"real"},
+	},
+	{
+		desc: "block-comment-open-in-line-comment",
+		kt: `
+package com.example
+
+val x = 1 // see /*
+import real.Dep
+	`,
+		pkg:     "com.example",
+		imports: []string{"real"},
+	},
+	{
+		desc: "main-with-space-before-paren",
+		kt: `
+fun main () {
+    println("hello")
+}
+	`,
+		imports: []string{},
+		hasMain: true,
+	},
+	{
+		desc: "block-comment-marker-inside-string",
+		kt: `
+package com.example
+
+val pattern = "/* start"
+import real.Dep
+val end = "end */"
+	`,
+		pkg:     "com.example",
+		imports: []string{"real"},
+	},
+	{
+		desc: "block-comment-extra-close",
+		kt: `
+package com.example
+
+/* comment */ */ stray close
+
+/* second block
+   still a comment
+*/
+
+import real.Dep
+	`,
+		pkg:     "com.example",
+		imports: []string{"real"},
+	},
+	{
+		desc: "top-level-main-with-indentation",
+		kt: `
+package sample
+    fun main() {}
+`,
+		pkg:     "sample",
+		imports: []string{},
+		hasMain: true,
+	},
+	{
+		desc: "nested-main-at-column-zero",
+		kt: `
+class App {
+fun main() {}
+}
+`,
+		imports: []string{},
+		hasMain: false,
+	},
+	{
+		desc:    "semicolon-separated-declarations",
+		kt:      `package a.b; import c.D; fun main() {}`,
+		pkg:     "a.b",
+		imports: []string{"c"},
+		hasMain: true,
+	},
+	{
+		desc: "annotation-before-main",
+		kt: `
+@JvmName("entry") fun main() {}
+`,
+		imports: []string{},
+		hasMain: true,
+	},
+	{
+		desc:    "escaped-keywords-not-declarations",
+		kt:      "val `package` = 1\nval `import` = 2\nval `fun` = 3\n",
+		imports: []string{},
+	},
+	{
+		desc:    "escaped-identifiers-in-package-and-import",
+		kt:      "package com.`when`\nimport com.`when`.Service\n",
+		pkg:     "com.when",
+		imports: []string{"com.when"},
 	},
 }
 
-func TestParser(t *testing.T) {
+func TestParse(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			res, errs := Parse(tc.filename, []byte(tc.kt))
-			if len(errs) > 0 {
-				t.Errorf("Errors parsing %q: %v", tc.filename, errs)
-			}
+			res := Parse([]byte(tc.kt))
 
-			if res.File != tc.filename {
-				t.Errorf("File:\n  actual:   %q\n  expected: %q", res.File, tc.filename)
+			if res.Package != tc.pkg {
+				t.Errorf("Package:\n  got:  %q\n  want: %q\nkotlin code:\n%s", res.Package, tc.pkg, tc.kt)
 			}
 
 			if !slices.Equal(res.Imports, tc.imports) {
-				t.Errorf("Imports:\n  actual:   %#v\n  expected: %#v\nkotlin code:\n%v", res.Imports, tc.imports, tc.kt)
-			}
-
-			if res.Package != tc.pkg {
-				t.Errorf("Package:\n  actual:   %#v\n  expected: %#v\nkotlin code:\n%v", res.Package, tc.pkg, tc.kt)
+				t.Errorf("Imports:\n  got:  %#v\n  want: %#v\nkotlin code:\n%s", res.Imports, tc.imports, tc.kt)
 			}
 
 			if res.HasMain != tc.hasMain {
-				t.Errorf("HasMain:\n  actual:   %v\n  expected: %v\nkotlin code:\n%v", res.HasMain, tc.hasMain, tc.kt)
+				t.Errorf("HasMain:\n  got:  %v\n  want: %v\nkotlin code:\n%s", res.HasMain, tc.hasMain, tc.kt)
 			}
 		})
 	}
 }
-

@@ -43,12 +43,12 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 		var target *KotlinTarget
 
 		if p.HasMain {
-			binTarget := NewKotlinBinTarget(p.File, p.Package)
-			binTargets.Put(p.File, binTarget)
+			binTarget := NewKotlinBinTarget(p.file, p.Package)
+			binTargets.Put(p.file, binTarget)
 
 			target = &binTarget.KotlinTarget
 		} else {
-			libTarget.Files.Add(p.File)
+			libTarget.Files.Add(p.file)
 			libTarget.Packages.Add(p.Package)
 
 			target = &libTarget.KotlinTarget
@@ -60,7 +60,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 					Lang: LanguageName,
 					Imp:  impt,
 				},
-				SourcePath: p.File,
+				SourcePath: p.file,
 			})
 		}
 	}
@@ -151,35 +151,27 @@ func (kt *kotlinLang) addBinaryRule(targetName string, target *KotlinBinTarget, 
 	BazelLog.Infof("add rule '%s' '%s:%s'", ktBinary.Kind(), args.Rel, ktBinary.Name())
 }
 
-func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) chan *parser.ParseResult {
+// parseResult pairs a ParseResult with the source file that produced it.
+type parseResult struct {
+	file string
+	*parser.ParseResult
+}
+
+func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) chan *parseResult {
 	rootDir := args.Config.RepoRoot
 	rel := args.Rel
 
-	return common.Parallelize(sources, func(sourcePath string) *parser.ParseResult {
-		r, errs := parseFile(rootDir, rel, sourcePath)
+	return common.Parallelize(sources, func(sourcePath string) *parseResult {
+		BazelLog.Tracef("ParseImports(%s): %s", LanguageName, sourcePath)
 
-		// Output errors to stdout
-		if len(errs) > 0 {
-			fmt.Println(sourcePath, "parse error(s):")
-			for _, err := range errs {
-				fmt.Println(err)
-			}
+		content, err := os.ReadFile(path.Join(rootDir, rel, sourcePath))
+		if err != nil {
+			fmt.Printf("%s parse error: %v\n", sourcePath, err)
+			return &parseResult{file: sourcePath, ParseResult: &parser.ParseResult{Imports: []string{}}}
 		}
 
-		return r
+		return &parseResult{file: sourcePath, ParseResult: parser.Parse(content)}
 	})
-}
-
-// Parse the passed file for import statements.
-func parseFile(rootDir, rel, filePath string) (*parser.ParseResult, []error) {
-	BazelLog.Tracef("ParseImports(%s): %s", LanguageName, filePath)
-
-	content, err := os.ReadFile(path.Join(rootDir, rel, filePath))
-	if err != nil {
-		return nil, []error{err}
-	}
-
-	return parser.Parse(filePath, content)
 }
 
 func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args language.GenerateArgs) []string {
