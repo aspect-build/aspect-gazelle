@@ -421,7 +421,7 @@ func TestGenerate(t *testing.T) {
 }
 
 func assertImports(t *testing.T, p string, expected []string) {
-	actual := toImportPaths(p)
+	actual := slices.Collect(toImportPaths(p))
 
 	// Order doesn't matter so sort to ignore order
 	slices.Sort(actual)
