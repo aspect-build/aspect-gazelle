@@ -13,14 +13,14 @@ const (
 // Parallelize an action over a set of string values.
 // Returns a channel that emits results as they are produced.
 func Parallelize[T any](values []string, process func(string) T) chan T {
-	// The channel of inputs
-	valuesCh := make(chan string)
-
-	// The channel of outputs.
-	resultsCh := make(chan T)
-
 	// The number of workers. Don't create more workers than necessary.
 	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
+
+	// The channel of inputs
+	valuesCh := make(chan string, workerCount)
+
+	// The channel of outputs.
+	resultsCh := make(chan T, workerCount)
 
 	// Start the worker goroutines.
 	var wg sync.WaitGroup
