@@ -379,7 +379,7 @@ func (ts *typeScriptLang) resolveImports(
 ) error {
 	cfg := c.Exts[LanguageName].(*JsGazelleConfig)
 
-	resolutionErrors := []error{}
+	var resolutionErrors []error
 
 	it := imports.Iterator()
 	for it.Next() {

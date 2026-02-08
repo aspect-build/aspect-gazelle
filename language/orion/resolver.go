@@ -185,7 +185,7 @@ func (re *GazelleHost) resolveImports(
 ) (*common.LabelSet, error) {
 	deps := common.NewLabelSet(from)
 
-	errs := []error{}
+	var errs []error
 
 	for _, imp := range imports {
 		resolutionType, dep, err := re.resolveImport(c, ix, pluginId, imp, from)

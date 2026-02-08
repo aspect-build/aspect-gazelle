@@ -62,7 +62,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		Imports: []string{},
 	}
 
-	errs := make([]error, 0)
+	var errs []error
 
 	lang := kotlin.NewLanguage()
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)

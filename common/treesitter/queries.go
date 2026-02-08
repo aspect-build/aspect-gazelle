@@ -91,7 +91,7 @@ func (tree *treeAst) QueryErrors() []error {
 		return nil
 	}
 
-	errors := make([]error, 0)
+	var errors []error
 
 	query, err := GetQuery(tree.lang, ErrorsQuery)
 	if err != nil {
