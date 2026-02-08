@@ -189,6 +189,38 @@ func TestGenerate(t *testing.T) {
 		})
 	}
 
+	// Edge cases for the importDir optimization (strings.LastIndex-based directory extraction)
+	t.Run("toImportSpecPath importDir edge cases", func(t *testing.T) {
+		for _, tc := range []struct {
+			from, impt string
+			expected   string
+		}{
+			// No slash in importFrom — directory portion is empty
+			{from: "file.ts", impt: "./foo", expected: "foo"},
+			{from: "file.ts", impt: "bar", expected: "bar"},
+
+			// Deep nesting
+			{from: "deep/nested/dir/file.ts", impt: "../sibling", expected: "deep/nested/sibling"},
+			{from: "a/b/c.ts", impt: "../../x", expected: "x"},
+
+			// importPath with multiple parent traversals
+			{from: "a/b/c/d.ts", impt: "../../../root", expected: "root"},
+			{from: "a/b/c/d.ts", impt: "./local", expected: "a/b/c/local"},
+
+			// Dot-only import
+			{from: "a/b.ts", impt: ".", expected: "a"},
+			{from: "a/b.ts", impt: "..", expected: "."},
+		} {
+			desc := fmt.Sprintf("toImportSpecPath(from=%s, impt=%s)", tc.from, tc.impt)
+			t.Run(desc, func(t *testing.T) {
+				actual := toImportSpecPath("", tc.from, tc.impt)
+				if actual != tc.expected {
+					t.Errorf("toImportSpecPath('', %q, %q):\n\tactual:   %s\n\texpected: %s", tc.from, tc.impt, actual, tc.expected)
+				}
+			})
+		}
+	})
+
 	t.Run("toImportPaths", func(t *testing.T) {
 		// Traditional [.d].ts[x] don't require an extension
 		assertImports(t, "bar.ts", []string{"bar", "bar.d.ts", "bar.js"})
