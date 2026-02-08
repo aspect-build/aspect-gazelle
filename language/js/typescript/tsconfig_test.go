@@ -560,6 +560,95 @@ func TestTsconfigParse(t *testing.T) {
 	})
 }
 
+func TestExpandPathsMatch(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		configDir string
+		pathsRel  string
+		input     string
+		expected  string
+	}{
+		// Both ConfigDir and Paths.Rel are "."
+		{name: "both dot", configDir: ".", pathsRel: ".", input: "foo", expected: "foo"},
+		{name: "both dot relative", configDir: ".", pathsRel: ".", input: "./foo", expected: "foo"},
+		{name: "both dot parent", configDir: ".", pathsRel: ".", input: "../b", expected: "../b"},
+
+		// ConfigDir is ".", Paths.Rel is not
+		{name: "dot dir, src rel", configDir: ".", pathsRel: "src", input: "foo", expected: "src/foo"},
+		{name: "dot dir, parent rel", configDir: ".", pathsRel: "../libs", input: "foo", expected: "../libs/foo"},
+
+		// ConfigDir is not ".", Paths.Rel is "."
+		{name: "pkg dir, dot rel", configDir: "packages/app", pathsRel: ".", input: "src/foo", expected: "packages/app/src/foo"},
+		{name: "pkg dir, dot rel parent", configDir: "a", pathsRel: ".", input: "../b", expected: "b"},
+
+		// Neither is "."
+		{name: "both set", configDir: "packages/app", pathsRel: "src", input: "foo", expected: "packages/app/src/foo"},
+		{name: "both set parent rel", configDir: "packages/app", pathsRel: "../libs/ts/liba", input: "src/test", expected: "packages/libs/ts/liba/src/test"},
+		{name: "tsconfig_test inherited", configDir: "tsconfig_test", pathsRel: "../libs/ts/liba", input: "src/test", expected: "libs/ts/liba/src/test"},
+
+		// Empty strings (defensive)
+		{name: "empty dir, dot rel", configDir: "", pathsRel: ".", input: "foo", expected: "foo"},
+		{name: "empty dir, src rel", configDir: "", pathsRel: "src", input: "foo", expected: "src/foo"},
+		{name: "both empty", configDir: "", pathsRel: "", input: "foo", expected: "foo"},
+
+		// Input with path segments needing Clean
+		{name: "input needs clean", configDir: "pkg", pathsRel: ".", input: "./a/../b", expected: "pkg/b"},
+		{name: "input with dot segments", configDir: "pkg", pathsRel: "src", input: "./foo", expected: "pkg/src/foo"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := TsConfig{
+				ConfigDir: tc.configDir,
+				Paths:     &TsConfigPaths{Rel: tc.pathsRel},
+			}
+			actual := config.expandPathsMatch(tc.input)
+			if actual != tc.expected {
+				t.Errorf("expandPathsMatch(%q):\n\tactual:   %s\n\texpected: %s", tc.input, actual, tc.expected)
+			}
+		})
+	}
+}
+
+func TestExpandBaseUrl(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		configDir string
+		baseUrl   string
+		input     string
+		expected  string
+	}{
+		// Both ConfigDir and BaseUrl are "."
+		{name: "both dot", configDir: ".", baseUrl: ".", input: "foo", expected: "foo"},
+
+		// ConfigDir is ".", BaseUrl is not
+		{name: "dot dir, src base", configDir: ".", baseUrl: "src", input: "foo", expected: "src/foo"},
+
+		// ConfigDir is not ".", BaseUrl is "."
+		{name: "pkg dir, dot base", configDir: "packages/app", baseUrl: ".", input: "foo", expected: "packages/app/foo"},
+
+		// Neither is "."
+		{name: "both set", configDir: "packages/app", baseUrl: "src", input: "foo", expected: "packages/app/src/foo"},
+		{name: "base with parent", configDir: "packages/app", baseUrl: "../lib", input: "foo", expected: "packages/lib/foo"},
+
+		// Empty strings
+		{name: "empty dir, dot base", configDir: "", baseUrl: ".", input: "foo", expected: "foo"},
+		{name: "both empty", configDir: "", baseUrl: "", input: "foo", expected: "foo"},
+
+		// Input with path segments needing Clean
+		{name: "input needs clean", configDir: "pkg", baseUrl: ".", input: "./a/../b", expected: "pkg/b"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config := TsConfig{
+				ConfigDir: tc.configDir,
+				BaseUrl:   tc.baseUrl,
+			}
+			actual := config.expandBaseUrl(tc.input)
+			if actual != tc.expected {
+				t.Errorf("expandBaseUrl(%q):\n\tactual:   %s\n\texpected: %s", tc.input, actual, tc.expected)
+			}
+		})
+	}
+}
+
 func TestTsconfigOutRootDirs(t *testing.T) {
 	t.Run("empty config", func(t *testing.T) {
 		o1 := parseTest(t, ".", `{}`)

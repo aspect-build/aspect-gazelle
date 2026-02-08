@@ -447,18 +447,22 @@ func (c TsConfig) stripRootPrependDir(out, f string) string {
 	return f
 }
 
-// Returns the path from the project base to the active tsconfig.json file
-// This is used to build the path from the project base to the file being imported
-// because gazelle seems to resolve files relative to the project base
-// if the passed path is not absolute.
-// Or an empty string if the path is absolute
-func (c TsConfig) expandRelativePath(importPath string) string {
+// Expands the path from the project base to the active tsconfig.json file
+func (c TsConfig) expandBaseUrl(importPath string) string {
 	// Absolute paths must never be expanded but everything else must be relative to the bazel-root
 	// and therefore expanded with the path to the current active tsconfig.json
-	if !path.IsAbs(importPath) {
-		return c.ConfigDir
+	if path.IsAbs(importPath) {
+		return path.Join(c.BaseUrl, importPath)
 	}
-	return ""
+	return path.Join(c.ConfigDir, c.BaseUrl, importPath)
+}
+
+// Expands the paths-mapped path relative to the tsconfig.json file
+func (c TsConfig) expandPathsMatch(importPath string) string {
+	if path.IsAbs(importPath) {
+		return path.Join(c.Paths.Rel, importPath)
+	}
+	return path.Join(c.ConfigDir, c.Paths.Rel, importPath)
 }
 
 // Expand the given path to all possible mapped paths for this config, in priority order.
@@ -476,7 +480,7 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 		}
 
 		for _, m := range exact {
-			possible = append(possible, path.Join(c.expandRelativePath(m), c.Paths.Rel, m))
+			possible = append(possible, c.expandPathsMatch(m))
 		}
 	}
 
@@ -511,7 +515,7 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 				matchedText := p[len(m.prefix) : len(p)-len(m.suffix)]
 				mappedPath := strings.Replace(originalPath, "*", matchedText, 1)
 
-				possible = append(possible, path.Join(c.expandRelativePath(mappedPath), c.Paths.Rel, mappedPath))
+				possible = append(possible, c.expandPathsMatch(mappedPath))
 			}
 		}
 	}
@@ -520,7 +524,7 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 	// Must not to be absolute or relative to be expanded
 	// https://www.typescriptlang.org/tsconfig#baseUrl
 	if !isRelativePath(p) {
-		baseUrlPath := path.Join(c.expandRelativePath(p), c.BaseUrl, p)
+		baseUrlPath := c.expandBaseUrl(p)
 
 		if BazelLog.IsTraceEnabled() {
 			BazelLog.Tracef("TsConfig.baseUrl match for %q: %v", p, baseUrlPath)
