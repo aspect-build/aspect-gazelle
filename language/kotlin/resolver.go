@@ -94,7 +94,7 @@ func (kt *kotlinLang) resolveImports(
 ) (*common.LabelSet, error) {
 	deps := common.NewLabelSet(from)
 
-	errs := []error{}
+	var errs []error
 
 	it := imports.Iterator()
 	for it.Next() {
