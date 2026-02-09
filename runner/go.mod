@@ -21,7 +21,7 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20260202105709-e24971d9d1a7
 	github.com/bufbuild/rules_buf v0.5.2
 	github.com/fatih/color v1.18.0
-	github.com/go-git/go-git/v5 v5.16.4
+	github.com/go-git/go-git/v5 v5.16.5
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	go.opentelemetry.io/otel v1.40.0
 	go.opentelemetry.io/otel/trace v1.40.0
