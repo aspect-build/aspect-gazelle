@@ -71,11 +71,18 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	// Parse and query source files
 	for sourceFile, pluginIds := range sourceFilePlugins {
 		// Collect all queries for this source file from all plugins
+		// as well as the queriesHash for all plugins with queries for this file.
 		queries := make(plugin.NamedQueries)
+		pluginHashes := make([]string, 0, len(pluginIds))
 		for _, pluginId := range pluginIds {
 			prep := cfg.pluginPrepareResults[pluginId]
+			hasMatch := false
 			for queryId, query := range prep.getQueriesForFile(sourceFile) {
 				queries[pluginId+"|"+queryId] = query
+				hasMatch = true
+			}
+			if hasMatch {
+				pluginHashes = append(pluginHashes, prep.queriesHash)
 			}
 		}
 
@@ -83,11 +90,15 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 			continue
 		}
 
+		// Joined queriesHash for all plugins with queries on this file
+		slices.Sort(pluginHashes) // Sorted to ensure deterministic cache keys regardless of plugin order
+		queriesHash := strings.Join(pluginHashes, "|")
+
 		// Capture loop variables for goroutine
 		sourceFile := sourceFile
 		eg.Go(func() error {
 			p := joinPkg(args.Rel, sourceFile)
-			queryResults, err := host.runSourceQueries(queryCache, queries, args.Config.RepoRoot, p)
+			queryResults, err := host.runSourceQueries(queryCache, queries, queriesHash, args.Config.RepoRoot, p)
 			if err != nil {
 				return fmt.Errorf("Querying source file %q: %v", p, err)
 			}
@@ -403,9 +414,7 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 	return hex.EncodeToString(cacheDigest.Sum(nil))
 }
 
-func (host *GazelleHost) runSourceQueries(queryCache cache.Cache, queries plugin.NamedQueries, baseDir, f string) (plugin.QueryResults, error) {
-	queriesHash := computeQueriesCacheKey(queries)
-
+func (host *GazelleHost) runSourceQueries(queryCache cache.Cache, queries plugin.NamedQueries, queriesHash, baseDir, f string) (plugin.QueryResults, error) {
 	var qr plugin.QueryResults
 
 	r, _, err := queryCache.LoadOrStoreFile(baseDir, f, queriesHash, func(p string, sourceCode []byte) (any, error) {

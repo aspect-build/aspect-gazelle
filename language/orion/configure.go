@@ -79,6 +79,9 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 			config.pluginPrepareResults[k] = pluginConfig{
 				PrepareContext: prepContext,
 				PrepareResult:  prepResult,
+
+				// Precompute the queriesHash for all of this plugin's queries
+				queriesHash: computeQueriesCacheKey(prepResult.Queries),
 			}
 
 			return nil

@@ -86,6 +86,10 @@ func (c *BUILDConfig) getRawValue(key string, inherit bool) ([]string, bool) {
 type pluginConfig struct {
 	plugin.PrepareContext
 	plugin.PrepareResult
+
+	// Hash of all query definitions configured for this plugin in this context.
+	// Precomputed at configure time for potential use as a cache key.
+	queriesHash string
 }
 
 func (c *pluginConfig) getQueriesForFile(f string) iter.Seq2[string, plugin.QueryDefinition] {
