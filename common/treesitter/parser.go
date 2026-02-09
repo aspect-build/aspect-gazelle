@@ -27,6 +27,21 @@ import (
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
+// Background tree deletion channel. Trees are sent here from Close() and
+// deleted by a pool of goroutines, so the ts_tree_delete CGo call does not
+// block parsing from completing.
+var treeDeleteCh = make(chan *sitter.Tree, 128)
+
+func init() {
+	for range 3 {
+		go func() {
+			for t := range treeDeleteCh {
+				t.Close()
+			}
+		}()
+	}
+}
+
 type LanguageGrammar string
 
 const (
@@ -89,9 +104,13 @@ type treeAst struct {
 var _ AST = (*treeAst)(nil)
 
 func (tree *treeAst) Close() {
-	tree.sitterTree.Close()
+	t := tree.sitterTree
 	tree.sitterTree = nil
 	tree.sourceCode = nil
+	if t != nil {
+		// Pass the tree to the background deletion channel and nil out the reference here
+		treeDeleteCh <- t
+	}
 }
 
 func (tree *treeAst) String() string {
