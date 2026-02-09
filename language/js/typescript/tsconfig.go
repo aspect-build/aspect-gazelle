@@ -471,7 +471,9 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 
 	// Check for exact 'paths' matches first
 	if exact := pathMap[p]; len(exact) > 0 {
-		BazelLog.Tracef("TsConfig.paths exact matches for %q: %v", p, exact)
+		if BazelLog.IsTraceEnabled() {
+			BazelLog.Tracef("TsConfig.paths exact matches for %q: %v", p, exact)
+		}
 
 		for _, m := range exact {
 			possible = append(possible, path.Join(c.expandRelativePath(m), c.Paths.Rel, m))
@@ -498,7 +500,9 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 		// Sort the 'paths' pattern matches by priority
 		sort.Sort(possibleMatches)
 
-		BazelLog.Tracef("TsConfig.paths glob matches for %q: %v", p, possibleMatches)
+		if BazelLog.IsTraceEnabled() {
+			BazelLog.Tracef("TsConfig.paths glob matches for %q: %v", p, possibleMatches)
+		}
 
 		// Expand and add the pattern matches
 		for _, m := range possibleMatches {
@@ -518,7 +522,9 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 	if !isRelativePath(p) {
 		baseUrlPath := path.Join(c.expandRelativePath(p), c.BaseUrl, p)
 
-		BazelLog.Tracef("TsConfig.baseUrl match for %q: %v", p, baseUrlPath)
+		if BazelLog.IsTraceEnabled() {
+			BazelLog.Tracef("TsConfig.baseUrl match for %q: %v", p, baseUrlPath)
+		}
 
 		possible = append(possible, baseUrlPath)
 	}

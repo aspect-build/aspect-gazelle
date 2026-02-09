@@ -164,7 +164,9 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		if isSourceFileExt(fileExt) {
 			if target := cfg.GetFileSourceTarget(file, tsconfigRootDir); target != nil {
 				// Source files belonging to a target group.
-				BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
+				if BazelLog.IsTraceEnabled() {
+					BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
+				}
 
 				_, hasGroup := groups[target.name]
 				if !hasGroup {
@@ -174,13 +176,17 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 			} else {
 				// Source files with no group, but may still be considered "data"
 				// of other source-importing targets such as npm package targets.
-				BazelLog.Tracef("add src data file '%s/%s'", args.Rel, file)
+				if BazelLog.IsTraceEnabled() {
+					BazelLog.Tracef("add src data file '%s/%s'", args.Rel, file)
+				}
 
 				dataFiles = append(dataFiles, file)
 			}
 		} else {
 			// Not collected by any target group, but still collect as a data file.
-			BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
+			if BazelLog.IsTraceEnabled() {
+				BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
+			}
 			dataFiles = append(dataFiles, file)
 		}
 	}
@@ -802,12 +808,16 @@ func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args languag
 
 		for _, imp := range imports {
 			if proto.IsRulesTsProtoBuiltin(imp) {
-				BazelLog.Tracef("Proto import builtin: %q", imp)
+				if BazelLog.IsTraceEnabled() {
+					BazelLog.Tracef("Proto import builtin: %q", imp)
+				}
 				continue
 			}
 
 			if cfg.IsImportIgnored(imp) {
-				BazelLog.Tracef("Proto import ignored: %q", imp)
+				if BazelLog.IsTraceEnabled() {
+					BazelLog.Tracef("Proto import ignored: %q", imp)
+				}
 				continue
 			}
 
@@ -857,7 +867,9 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 			}
 
 			if cfg.IsImportIgnored(importPath) {
-				BazelLog.Tracef("%q (%s) import of %q ignored", sourcePath, LanguageName, importPath)
+				if BazelLog.IsTraceEnabled() {
+					BazelLog.Tracef("%q (%s) import of %q ignored", sourcePath, LanguageName, importPath)
+				}
 				continue
 			}
 
@@ -874,7 +886,9 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 				Kind:       kind,
 			})
 
-			BazelLog.Tracef("%q (%s) imports %q (via %q)", sourcePath, LanguageName, workspacePath, importPath)
+			if BazelLog.IsTraceEnabled() {
+				BazelLog.Tracef("%q (%s) imports %q (via %q)", sourcePath, LanguageName, workspacePath, importPath)
+			}
 		}
 	}
 
