@@ -1,5 +1,5 @@
 diff --git a/walk/config.go b/walk/config.go
-index 53dcabe..b60bed5 100644
+index 53dcabe..eb97da3 100644
 --- a/walk/config.go
 +++ b/walk/config.go
 @@ -58,6 +58,12 @@ type walkConfig struct {
@@ -15,26 +15,7 @@ index 53dcabe..b60bed5 100644
  }
  
  const (
-@@ -79,6 +85,18 @@ func (wc *walkConfig) clone() *walkConfig {
- 	return &wcCopy
- }
- 
-+// PATCH(gitignore) ---
-+func (wc *walkConfig) isGitIgnored(p string, isDir bool) bool {
-+	if wc.isGitIgnoreDisabled {
-+		return false
-+	}
-+	if wc.isGitIgnoredExt == nil {
-+		return false
-+	}
-+	return wc.isGitIgnoredExt(strings.Split(p, "/"), isDir)
-+	// END PATCH(gitignore) ---
-+}
-+
- func (wc *walkConfig) isExcludedDir(p string) bool {
- 	return path.Base(p) == ".git" || wc.ignoreFilter.isDirectoryIgnored(p) || matchAnyGlob(wc.excludes, p)
- }
-@@ -139,7 +157,8 @@ func (cr *Configurer) CheckFlags(_ *flag.FlagSet, c *config.Config) error {
+@@ -139,7 +145,8 @@ func (cr *Configurer) CheckFlags(_ *flag.FlagSet, c *config.Config) error {
  }
  
  func (*Configurer) KnownDirectives() []string {
@@ -44,7 +25,7 @@ index 53dcabe..b60bed5 100644
  }
  
  func (cr *Configurer) Configure(c *config.Config, rel string, f *rule.File) {
-@@ -196,6 +215,9 @@ func configureForWalk(parent *walkConfig, rel string, f *rule.File) *walkConfig
+@@ -196,6 +203,9 @@ func configureForWalk(parent *walkConfig, rel string, f *rule.File) *walkConfig
  					log.Printf("the ignore directive does not take any arguments. Did you mean to use gazelle:exclude instead? in //%s '# gazelle:ignore %s'", f.Pkg, d.Value)
  				}
  				wc.ignore = true
@@ -55,10 +36,18 @@ index 53dcabe..b60bed5 100644
  		}
  	}
 diff --git a/walk/dirinfo.go b/walk/dirinfo.go
-index d2f989b..d993a44 100644
+index d2f989b..f884e11 100644
 --- a/walk/dirinfo.go
 +++ b/walk/dirinfo.go
-@@ -69,6 +69,24 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
+@@ -5,6 +5,7 @@ import (
+ 	"os"
+ 	"path"
+ 	"path/filepath"
++	"strings"
+ 	"sync"
+ 
+ 	"github.com/bazelbuild/bazel-gazelle/rule"
+@@ -69,14 +70,58 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
  	}
  
  	info.config = configureForWalk(parentConfig, rel, info.File)
@@ -83,14 +72,34 @@ index d2f989b..d993a44 100644
  	if info.config.isExcludedDir(rel) {
  		// Build file excludes the current directory. Ignore contents.
  		entries = nil
-@@ -77,6 +95,13 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
+ 	}
+ 
++	// PATCH(gitignore) ---
++	// Pre-compute gitignore path components once per directory to avoid
++	// a strings.Split allocation per entry.
++	var gitIgnoreParts []string
++	gitIgnoreActive := !info.config.isGitIgnoreDisabled && info.config.isGitIgnoredExt != nil
++	if gitIgnoreActive {
++		if rel != "" {
++			parentParts := strings.Split(rel, "/")
++			gitIgnoreParts = make([]string, len(parentParts)+1)
++			copy(gitIgnoreParts, parentParts)
++		} else {
++			gitIgnoreParts = make([]string, 1)
++		}
++	}
++	// END-PATCH(gitignore) ---
++
  	for _, e := range entries {
  		entryRel := path.Join(rel, e.Name())
  		e = maybeResolveSymlink(info.config, dir, entryRel, e)
 +
 +		// PATCH(gitignore) ---
-+		if info.config.isGitIgnored(entryRel, e.IsDir()) {
-+			continue
++		if gitIgnoreActive {
++			gitIgnoreParts[len(gitIgnoreParts)-1] = e.Name()
++			if info.config.isGitIgnoredExt(gitIgnoreParts, e.IsDir()) {
++				continue
++			}
 +		}
 +		// END-PATCH(gitignore) ---
 +
