@@ -57,7 +57,7 @@ func parseIgnore(rel string, ignoreReader io.Reader) []gitignore.Pattern {
 
 	reader := bufio.NewScanner(ignoreReader)
 	for reader.Scan() {
-		p := strings.TrimSpace(reader.Text())
+		p := strings.TrimLeft(reader.Text(), " \t")
 		if p == "" || strings.HasPrefix(p, "#") {
 			continue
 		}

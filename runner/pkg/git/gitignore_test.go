@@ -179,6 +179,16 @@ func TestGitIgnore(t *testing.T) {
 		shouldNotMatch("double wildcard different subdir", m, "startstar.ts", ".startstar.ts", "a/starstar.ts")
 	})
 
+	t.Run("escaped trailing whitespace", func(t *testing.T) {
+		// Bypass addIgnoreFileContent helper (which TrimSpaces lines)
+		// to test that parseIgnore preserves escaped trailing spaces.
+		patterns := parseIgnore("", strings.NewReader("foo\\ \n"))
+		m := createMatcherFunc(patterns)
+
+		shouldMatch("escaped trailing space", m, "foo ")
+		shouldNotMatch("without trailing space", m, "foo")
+	})
+
 	t.Run("dir specific matches", func(t *testing.T) {
 		m, _ := addIgnoreFileContent(nil, "", `
 		    **/node_modules/
