@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -62,8 +63,73 @@ func parseIgnore(rel string, ignoreReader io.Reader) []gitignore.Pattern {
 			continue
 		}
 
-		matcherPatterns = append(matcherPatterns, gitignore.ParsePattern(p, domain))
+		matcherPatterns = append(matcherPatterns, parsePattern(p, domain))
 	}
 
 	return matcherPatterns
+}
+
+func parsePattern(p string, domain []string) gitignore.Pattern {
+	if sp := newSimplePattern(p, domain); sp != nil {
+		return sp
+	}
+	return gitignore.ParsePattern(p, domain)
+}
+
+// simplePattern is an optimized gitignore.Pattern for name-only rules (no "/").
+// Unlike go-git's simpleNameMatch which calls filepath.Match on every path
+// component, this only checks the last component — parent components were
+// already tested when those directories were visited during the tree walk.
+type simplePattern struct {
+	domain    []string
+	glob      string
+	inclusion bool
+	dirOnly   bool
+}
+
+// newSimplePattern parses a raw gitignore line into a simplePattern.
+// Returns nil if the pattern contains a path separator (not simple),
+// otherwise returns a gitignore.Pattern that executes significantly faster
+// than go-git's default implementation for simple patterns.
+func newSimplePattern(raw string, domain []string) gitignore.Pattern {
+	p := &simplePattern{domain: domain}
+	s := raw
+	if strings.HasPrefix(s, "!") {
+		p.inclusion = true
+		s = s[1:]
+	}
+	if !strings.HasSuffix(s, "\\ ") {
+		s = strings.TrimRight(s, " ")
+	}
+	if strings.HasSuffix(s, "/") {
+		p.dirOnly = true
+		s = s[:len(s)-1]
+	}
+	if strings.Contains(s, "/") {
+		return nil
+	}
+	p.glob = s
+	return p
+}
+
+func (p *simplePattern) Match(path []string, isDir bool) gitignore.MatchResult {
+	if len(path) <= len(p.domain) {
+		return gitignore.NoMatch
+	}
+	for i, d := range p.domain {
+		if path[i] != d {
+			return gitignore.NoMatch
+		}
+	}
+	if p.dirOnly && !isDir {
+		return gitignore.NoMatch
+	}
+	name := path[len(path)-1]
+	if match, err := filepath.Match(p.glob, name); err != nil || !match {
+		return gitignore.NoMatch
+	}
+	if p.inclusion {
+		return gitignore.Include
+	}
+	return gitignore.Exclude
 }

@@ -127,9 +127,12 @@ func TestGitIgnore(t *testing.T) {
 			dir_slash_doublestar/**
 		`)
 
-		shouldMatch("no slash", m, "subdir/node_modules", "subdir/node_modules/x.ts", "subdir/node_modules/m/x.ts")
+		// In a tree walk, matched dirs are skipped before descending, so
+		// only test the entry-level path (not children inside matched dirs).
+		shouldMatch("no slash", m, "subdir/node_modules")
+		shouldMatch("no slash nested", m, "subdir/a/node_modules")
 
-		shouldMatch("slash", m, "subdir/dir_slash/", "subdir/dir_slash/x.ts", "subdir/dir_slash/m/x.ts")
+		shouldMatch("slash", m, "subdir/dir_slash/")
 		shouldMatch("slash star", m, "subdir/dir_slash_star/x.ts", "subdir/dir_slash_star/m/x.ts")
 
 		shouldNotMatch("slash star must have star content", m, "subdir/dir_slash_star")
@@ -198,6 +201,58 @@ func TestGitIgnore(t *testing.T) {
 		shouldMatch("dir pattern", m, "node_modules/", "a/b/node_modules/")
 		shouldMatch("dir pattern that looks like a file", m, "foo.js/", "a/b/foo.js/")
 		shouldNotMatch("ending file that looks like dir", m, "node_modules", "x/node_modules", "foo.js", "x/foo.js")
+	})
+
+	// --- Tests exercising simplePattern (name-only optimization) ---
+
+	t.Run("simple dir-only", func(t *testing.T) {
+		m, _ := addIgnoreFileContent(nil, "", "node_modules/\ndist/\nbuild/")
+		shouldMatch("root dirs", m, "node_modules/", "dist/", "build/")
+		shouldMatch("nested dirs", m, "a/node_modules/", "x/dist/", "a/b/build/")
+		shouldNotMatch("files with same names", m, "node_modules", "dist", "build")
+	})
+
+	t.Run("simple negation", func(t *testing.T) {
+		m, _ := addIgnoreFileContent(nil, "", "*.log\n!important.log")
+		shouldMatch("excluded", m, "debug.log", "error.log", "dir/access.log")
+		shouldNotMatch("negated", m, "important.log", "dir/important.log")
+
+		// Negation with dir-only: !build/ re-includes the directory,
+		// but files named "build" stay excluded.
+		m, _ = addIgnoreFileContent(nil, "", "build\n!build/")
+		shouldNotMatch("dir un-ignored", m, "build/")
+		shouldMatch("file stays ignored", m, "build")
+	})
+
+	t.Run("simple glob syntax", func(t *testing.T) {
+		m, _ := addIgnoreFileContent(nil, "", "[Bb]uild\n?.tmp")
+		shouldMatch("char class", m, "Build", "build", "src/Build")
+		shouldNotMatch("char class miss", m, "auild", "xbuild")
+		shouldMatch("question mark", m, "a.tmp", "dir/x.tmp")
+		shouldNotMatch("question mark miss", m, "ab.tmp", "foo.tmp")
+	})
+
+	t.Run("simple mixed with glob", func(t *testing.T) {
+		m, _ := addIgnoreFileContent(nil, "", "*.js\na/*.ts\n!important.js")
+		shouldMatch("simple wildcard", m, "foo.js", "bar.js")
+		shouldMatch("path glob", m, "a/foo.ts")
+		shouldNotMatch("negated simple", m, "important.js")
+		shouldNotMatch("wrong path for glob", m, "b/foo.ts")
+	})
+
+	t.Run("simple with nested gitignore", func(t *testing.T) {
+		m, p := addIgnoreFileContent(nil, "", "*.log")
+		m, _ = addIgnoreFileContent(p, "sub", "*.tmp")
+
+		shouldMatch("root pattern", m, "debug.log", "x/y/debug.log")
+		shouldMatch("sub pattern in sub", m, "sub/cache.tmp")
+		shouldNotMatch("sub pattern outside sub", m, "cache.tmp", "other/cache.tmp")
+	})
+
+	t.Run("simple and glob negation interaction", func(t *testing.T) {
+		m, _ := addIgnoreFileContent(nil, "", "vendor/**\n!*.go")
+		shouldNotMatch("go files un-ignored", m, "vendor/lib.go")
+		shouldMatch("non-go in vendor", m, "vendor/lib.c")
 	})
 }
 
