@@ -2,6 +2,7 @@ package starlark
 
 import (
 	"fmt"
+	"maps"
 	"path"
 
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -80,7 +81,7 @@ func threadPrint(t *starlark.Thread, msg string) {
 	fmt.Printf("%s: %s\n", t.Name, msg)
 }
 
-func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]interface{}) (starlark.StringDict, error) {
+func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]any) (starlark.StringDict, error) {
 	// Predeclared libs in addition to the go.starlark.net/starlark standard library:
 	// * https://github.com/google/starlark-go/blob/f86470692795f8abcf9f837a3c53cf031c5a3d7e/starlark/library.go#L36-L73
 	// * https://github.com/google/starlark-go/blob/f86470692795f8abcf9f837a3c53cf031c5a3d7e/cmd/starlark/starlark.go#L96-L100
@@ -89,9 +90,7 @@ func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]
 		"json": json.Module,
 	}
 
-	for libName, lib := range libs {
-		predeclared[libName] = lib
-	}
+	maps.Copy(predeclared, libs)
 
 	loader := makeLoadOptions(opts, predeclared)
 	loader = createRepoLoader(rootDir, loader)

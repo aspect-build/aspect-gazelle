@@ -29,13 +29,13 @@ type TargetSymbol struct {
 type TargetDeclaration struct {
 	Name  string
 	Kind  string
-	Attrs map[string]interface{}
+	Attrs map[string]any
 
 	// Names (possibly as paths) exported from this target
 	Symbols []Symbol
 }
 
-type TargetAction interface{}
+type TargetAction any
 
 type AddTargetAction struct {
 	TargetAction

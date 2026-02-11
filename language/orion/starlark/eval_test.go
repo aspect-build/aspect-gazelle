@@ -27,7 +27,7 @@ func run(t *testing.T, code string) (starlark.StringDict, error) {
 		t.Errorf("Temp star close failure: %v", err)
 	}
 
-	return Eval(testDir, testFile, make(map[string]starlark.Value), make(map[string]interface{}))
+	return Eval(testDir, testFile, make(map[string]starlark.Value), make(map[string]any))
 }
 
 func runOk(t *testing.T, code string) starlark.StringDict {

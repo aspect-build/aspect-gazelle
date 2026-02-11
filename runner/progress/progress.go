@@ -68,7 +68,7 @@ func (p *progressLang) run(ctx context.Context) {
 func writeStatus(s *progressStatus) {
 	// NOTE(windows): syscall.Stdout is a `Handle` on windows and `int` on other platforms,
 	// while `term.GetSize` only accepts the `int` type.
-	var sysStdout interface{} = syscall.Stdout
+	var sysStdout any = syscall.Stdout
 
 	width, _, err := term.GetSize(sysStdout.(int))
 	if err != nil {
@@ -130,7 +130,7 @@ func (p *progressLang) DoneGeneratingRules() {
 }
 
 // 5. Indexing done, starting resolving
-func (p *progressLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, imports interface{}, from label.Label) {
+func (p *progressLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, imports any, from label.Label) {
 	p.send(progressPhaseResolve, "dependencies")
 }
 

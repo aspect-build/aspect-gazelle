@@ -36,7 +36,7 @@ func LoadProxy(host plugin.PluginHost, pluginDir, pluginPath string) error {
 		pluginPath: pluginPath,
 		host:       host,
 	}
-	evalState := make(map[string]interface{})
+	evalState := make(map[string]any)
 	evalState[proxyStateKey] = &state
 
 	libs := starlark.StringDict{

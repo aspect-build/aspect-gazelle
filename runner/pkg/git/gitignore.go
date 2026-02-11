@@ -15,7 +15,7 @@ import (
 
 type isGitIgnored func(pathParts []string, isDir bool) bool
 
-func processGitignoreFile(rootDir, gitignorePath string, d interface{}) (func(pathParts []string, isDir bool) bool, interface{}) {
+func processGitignoreFile(rootDir, gitignorePath string, d any) (func(pathParts []string, isDir bool) bool, any) {
 	var ignorePatterns []gitignore.Pattern
 	if d != nil {
 		ignorePatterns = d.([]gitignore.Pattern)

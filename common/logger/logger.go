@@ -89,28 +89,28 @@ func GetOutput() io.Writer {
 	return logger.Writer()
 }
 
-func Tracef(format string, args ...interface{}) {
+func Tracef(format string, args ...any) {
 	if level > TraceLevel {
 		return
 	}
 	logger.Printf(format, args...)
 }
 
-func Debugf(format string, args ...interface{}) {
+func Debugf(format string, args ...any) {
 	if level > DebugLevel {
 		return
 	}
 	logger.Printf(format, args...)
 }
 
-func Infof(format string, args ...interface{}) {
+func Infof(format string, args ...any) {
 	if level > InfoLevel {
 		return
 	}
 	logger.Printf(format, args...)
 }
 
-func Warnf(format string, args ...interface{}) {
+func Warnf(format string, args ...any) {
 	if level > WarnLevel {
 		return
 	}
@@ -123,14 +123,14 @@ func Error(msg string) {
 	}
 	logger.Print(msg)
 }
-func Errorf(format string, args ...interface{}) {
+func Errorf(format string, args ...any) {
 	if level > ErrorLevel {
 		return
 	}
 	logger.Printf(format, args...)
 }
 
-func Fatalf(format string, args ...interface{}) {
+func Fatalf(format string, args ...any) {
 	logger.Fatalf(format+"\n", args...)
 }
 func Fatal(msg string) {

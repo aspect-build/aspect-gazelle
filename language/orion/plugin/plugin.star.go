@@ -249,7 +249,7 @@ func addTarget(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 
 	// TODO: don't create new clones of map/arrays every time
 
-	var attrs map[string]interface{}
+	var attrs map[string]any
 	if starAttrs != nil {
 		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttributeValue)
 		if err != nil {

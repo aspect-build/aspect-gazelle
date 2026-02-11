@@ -3,6 +3,7 @@ package gazelle
 import (
 	"fmt"
 	"io"
+	"maps"
 
 	"gopkg.in/yaml.v3"
 )
@@ -97,9 +98,7 @@ func mergeDependenciesV5(d ...packageInfoV5) map[string]string {
 	result := make(map[string]string)
 
 	for _, m := range d {
-		for k, v := range m {
-			result[k] = v
-		}
+		maps.Copy(result, m)
 	}
 
 	return result

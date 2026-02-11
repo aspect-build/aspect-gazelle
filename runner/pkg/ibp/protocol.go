@@ -84,7 +84,7 @@ type CycleSourcesMessage struct {
 // The versions supported by this host implementation of the protocol.
 var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
 
-type aspectBazelSocket = socket.Server[interface{}, map[string]any]
+type aspectBazelSocket = socket.Server[any, map[string]any]
 
 type aspectBazelProtocol struct {
 	socket     aspectBazelSocket
@@ -102,7 +102,7 @@ func NewServer() IncrementalBazel {
 	socketPath := path.Join(os.TempDir(), fmt.Sprintf("aspect-watch-%v-socket", os.Getpid()))
 	return &aspectBazelProtocol{
 		socketPath: socketPath,
-		socket:     socket.NewJsonServer[interface{}, map[string]interface{}](),
+		socket:     socket.NewJsonServer[any, map[string]any](),
 
 		connectedCh: make(chan ProtocolVersion, 1),
 	}

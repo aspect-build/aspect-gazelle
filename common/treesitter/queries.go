@@ -13,8 +13,7 @@ import (
 
 var ErrorsQuery = `(ERROR) @error`
 
-type TreeQuery interface {
-}
+type TreeQuery any
 
 // A cache of parsed queries per language
 var queryCache = sync.Map{}

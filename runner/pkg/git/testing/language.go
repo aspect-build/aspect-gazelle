@@ -28,7 +28,7 @@ func (p *gitLang) GenerateRules(args language.GenerateArgs) language.GenerateRes
 	return language.GenerateResult{}
 }
 func (p *gitLang) DoneGeneratingRules() {}
-func (p *gitLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, imports interface{}, from label.Label) {
+func (p *gitLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, imports any, from label.Label) {
 }
 func (p *gitLang) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config) {}
 func (p *gitLang) CheckFlags(fs *flag.FlagSet, c *config.Config) error {

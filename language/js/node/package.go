@@ -13,7 +13,7 @@ type npmPackageJSON struct {
 	Main string `json:"main"`
 
 	// exports: https://nodejs.org/docs/latest-v22.x/api/packages.html#exports
-	Exports interface{} `json:"exports"`
+	Exports any `json:"exports"`
 
 	// types/typings: https://www.typescriptlang.org/docs/handbook/declaration-files/publishing.html#including-declarations-in-your-npm-package
 	Types   string `json:"types"`
@@ -51,7 +51,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 		case string:
 			// Single export
 			imports = append(imports, path.Clean(exports))
-		case map[string]interface{}:
+		case map[string]any:
 			// Subpath exports
 			for exportKey, export := range exports {
 				switch e := export.(type) {
@@ -68,7 +68,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 					// 	 }
 					// }
 					break
-				case map[string]interface{}:
+				case map[string]any:
 					// Conditional subpath export
 					for subEKey, subE := range e {
 						switch subE := subE.(type) {
@@ -82,7 +82,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 					BazelLog.Warnf("Unknown package.json exports.%s type: %T", exportKey, export)
 				}
 			}
-		case []interface{}:
+		case []any:
 			// Array of subpath exports
 			for i, subE := range exports {
 				switch subE := subE.(type) {
