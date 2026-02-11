@@ -78,7 +78,7 @@ func TestReadWrite(t *testing.T) {
 	})
 
 	t.Run("List => []interface{}", func(t *testing.T) {
-		a := ([]interface{}{int64(1), "hello", true})
+		a := ([]any{int64(1), "hello", true})
 		l := Write(a).(*starlark.List)
 
 		if len(a) != l.Len() {
@@ -127,7 +127,7 @@ func TestReadWrite(t *testing.T) {
 			t.Errorf("Unexpected error: %v", err)
 		}
 
-		a := av.([]interface{})
+		a := av.([]any)
 		if len(a) != l.Len() {
 			t.Errorf("Expected equal length")
 		}

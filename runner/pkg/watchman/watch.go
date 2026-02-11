@@ -83,7 +83,7 @@ type Watcher interface {
 	Close() error
 }
 
-type watchmanSocket = socket.Socket[[]interface{}, map[string]interface{}]
+type watchmanSocket = socket.Socket[[]any, map[string]any]
 
 type WatchmanWatcher struct {
 	// Root of the bazel workspace being watched
@@ -105,15 +105,15 @@ type WatchmanWatcher struct {
 	watchedRelPath string
 }
 
-func (w *WatchmanWatcher) makeQueryParams(clockspec string, includeHash bool) map[string]interface{} {
+func (w *WatchmanWatcher) makeQueryParams(clockspec string, includeHash bool) map[string]any {
 	bazelignoreDirs, err := bazel.LoadBazelIgnore(w.workspaceDir)
 	if err != nil {
 		fmt.Printf("failed to load bazelignore: %v", err)
 	}
 
-	bazelignoreDirnameExpressions := make([]interface{}, 0, len(bazelignoreDirs))
+	bazelignoreDirnameExpressions := make([]any, 0, len(bazelignoreDirs))
 	for _, ignoredDir := range bazelignoreDirs {
-		bazelignoreDirnameExpressions = append(bazelignoreDirnameExpressions, []interface{}{
+		bazelignoreDirnameExpressions = append(bazelignoreDirnameExpressions, []any{
 			"dirname", ignoredDir,
 		})
 	}
@@ -125,7 +125,7 @@ func (w *WatchmanWatcher) makeQueryParams(clockspec string, includeHash bool) ma
 		fields = []string{"name"}
 	}
 
-	var queryParams = map[string]interface{}{
+	var queryParams = map[string]any{
 		"fields": fields,
 		// Avoid an unnecessarily long response on the first query by omitting the list of potentially
 		// changed (thus at that point, all) files.
@@ -134,13 +134,13 @@ func (w *WatchmanWatcher) makeQueryParams(clockspec string, includeHash bool) ma
 		"empty_on_fresh_instance": true,
 
 		"relative_root": w.watchedRelPath,
-		"expression": []interface{}{
+		"expression": []any{
 			"not",
 			append(
-				[]interface{}{
+				[]any{
 					"anyof",
 					// maybe not exclude directories? or just report directories to determine what directories have changed?
-					[]interface{}{
+					[]any{
 						"type", "d",
 					},
 				},
@@ -197,21 +197,21 @@ func (w *WatchmanWatcher) connect() (watchmanSocket, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get watchman socket: %w", err)
 	}
-	socket, err := socket.ConnectJsonSocket[[]interface{}, map[string]interface{}](sockname)
+	socket, err := socket.ConnectJsonSocket[[]any, map[string]any](sockname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to watchman socket: %w", err)
 	}
 	return socket, nil
 }
 
-func (w *WatchmanWatcher) recv() (map[string]interface{}, error) {
+func (w *WatchmanWatcher) recv() (map[string]any, error) {
 	if w.socket == nil {
 		return nil, fmt.Errorf("watchman socket closed")
 	}
 	return w.socket.Recv()
 }
 
-func (w *WatchmanWatcher) send(args ...interface{}) error {
+func (w *WatchmanWatcher) send(args ...any) error {
 	if w.socket == nil {
 		return fmt.Errorf("watchman socket closed")
 	}
@@ -245,7 +245,7 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 	files := []string{}
 
 	if resp["files"] != nil {
-		rf := resp["files"].([]interface{})
+		rf := resp["files"].([]any)
 		files = make([]string, len(rf))
 		for i, f := range rf {
 			files[i] = f.(string)
@@ -393,7 +393,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			option.apply(queryParams)
 		}
 
-		err = sock.Send([]interface{}{"subscribe", w.watchedRoot, subscriptionName, queryParams})
+		err = sock.Send([]any{"subscribe", w.watchedRoot, subscriptionName, queryParams})
 		if err != nil {
 			yield(nil, fmt.Errorf("failed to send subscribe command: %w", err))
 			return
@@ -416,7 +416,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 		}
 
 		// BEST EFFORT: if the subscriber panics, try to unsubscribe from watchman
-		defer sock.Send([]interface{}{"unsubscribe", w.watchedRoot, subscriptionName})
+		defer sock.Send([]any{"unsubscribe", w.watchedRoot, subscriptionName})
 
 		var prevDiffHashes map[string]string
 		for {
@@ -455,11 +455,11 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			clockSpec := resp["clock"].(string)
 
 			if resp["files"] != nil {
-				rf := resp["files"].([]interface{})
+				rf := resp["files"].([]any)
 				diffHashes := make(map[string]string, len(rf))
 				paths = make([]string, len(rf))
 				for i, f := range rf {
-					fileEntry := f.(map[string]interface{})
+					fileEntry := f.(map[string]any)
 					fileName := fileEntry["name"].(string)
 					paths[i] = fileName
 

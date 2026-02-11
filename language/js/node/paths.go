@@ -25,12 +25,12 @@ func ParseImportPath(imp string) (string, string) {
 	}
 
 	// Imports of package-like paths
-	pkgEnd := strings.IndexByte(imp, '/')
-	if pkgEnd == -1 {
+	before, after, ok := strings.Cut(imp, "/")
+	if !ok {
 		return imp, ""
 	}
 
-	return imp[:pkgEnd], imp[pkgEnd+1:]
+	return before, after
 }
 
 func ToAtTypesPackage(pkg string) string {

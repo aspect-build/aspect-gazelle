@@ -10,7 +10,7 @@ import (
 var EmptyKwArgs = make([]starlark.Tuple, 0)
 var EmptyStrings = make([]string, 0)
 
-func Write(v interface{}) starlark.Value {
+func Write(v any) starlark.Value {
 	if sv, isSV := v.(starlark.Value); isSV {
 		return sv
 	}
@@ -31,9 +31,9 @@ func Write(v interface{}) starlark.Value {
 		return starlark.Float(v)
 	case []string:
 		return WriteList(v, WriteString)
-	case []interface{}:
+	case []any:
 		return WriteList(v, Write)
-	case map[string]interface{}:
+	case map[string]any:
 		return WriteMap(v, Write)
 	}
 
@@ -119,11 +119,11 @@ func ReadStringTuple(l starlark.Tuple) ([]string, error) {
 	return ReadTuple(l, ReadString)
 }
 
-func Read(v starlark.Value) (interface{}, error) {
+func Read(v starlark.Value) (any, error) {
 	return ReadRecurse(v, Read)
 }
 
-func ReadRecurse(v starlark.Value, read func(v starlark.Value) (interface{}, error)) (interface{}, error) {
+func ReadRecurse(v starlark.Value, read func(v starlark.Value) (any, error)) (any, error) {
 	switch v := v.(type) {
 	case starlark.NoneType:
 		return nil, nil
@@ -151,11 +151,11 @@ func ReadRecurse(v starlark.Value, read func(v starlark.Value) (interface{}, err
 	return nil, fmt.Errorf("failed to read starlark value %T", v)
 }
 
-func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) (interface{}, error)) (interface{}, error) {
+func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) (any, error)) (any, error) {
 	iter := v.Iterate()
 	defer iter.Done()
 
-	a := make([]interface{}, 0, len)
+	a := make([]any, 0, len)
 	var x starlark.Value
 	for iter.Next(&x) {
 		val, err := read(x)
@@ -168,9 +168,9 @@ func readIterable(v starlark.Iterable, len int, read func(v starlark.Value) (int
 	return a, nil
 }
 
-func readIndexable(v starlark.Indexable, read func(v starlark.Value) (interface{}, error)) ([]interface{}, error) {
+func readIndexable(v starlark.Indexable, read func(v starlark.Value) (any, error)) ([]any, error) {
 	len := v.Len()
-	a := make([]interface{}, 0, len)
+	a := make([]any, 0, len)
 	for i := range len {
 		val, err := read(v.Index(i))
 		if err != nil {

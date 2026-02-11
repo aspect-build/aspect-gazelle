@@ -111,7 +111,7 @@ func readSymbol(v starlark.Value) (Symbol, error) {
 	return s, nil
 }
 
-func readTargetAttributeValue(v starlark.Value) (interface{}, error) {
+func readTargetAttributeValue(v starlark.Value) (any, error) {
 	// Types that are both starlark.Value and plugin.*
 	switch v := v.(type) {
 	case TargetImport:

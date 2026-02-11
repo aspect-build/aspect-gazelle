@@ -17,7 +17,7 @@ type IncrementalClient interface {
 
 type incClient struct {
 	socketPath string
-	socket     socket.Socket[interface{}, map[string]interface{}]
+	socket     socket.Socket[any, map[string]any]
 
 	// The negotiated protocol version
 	version ProtocolVersion
@@ -35,7 +35,7 @@ func (c *incClient) Connect() error {
 		return fmt.Errorf("client already connected")
 	}
 
-	socket, err := socket.ConnectJsonSocket[interface{}, map[string]interface{}](c.socketPath)
+	socket, err := socket.ConnectJsonSocket[any, map[string]any](c.socketPath)
 	if err != nil {
 		return err
 	}
@@ -59,7 +59,7 @@ func (c *incClient) negotiate() error {
 	if negReq["versions"] == nil {
 		return fmt.Errorf("Received NEGOTIATE without versions: %v", negReq)
 	}
-	rawVersions, isArray := negReq["versions"].([]interface{})
+	rawVersions, isArray := negReq["versions"].([]any)
 	if !isArray {
 		return fmt.Errorf("Invalid versions, expected []int, received type: %T", negReq["versions"])
 	}
@@ -83,7 +83,7 @@ func (c *incClient) negotiate() error {
 	return nil
 }
 
-func negotiateVersion(acceptedVersions []interface{}) (ProtocolVersion, error) {
+func negotiateVersion(acceptedVersions []any) (ProtocolVersion, error) {
 	for _, v := range acceptedVersions {
 		if slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(v.(float64))) {
 			return ProtocolVersion(v.(float64)), nil
@@ -156,7 +156,7 @@ func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
 	}
 }
 
-func convertWireCycle(msg map[string]interface{}) (CycleSourcesMessage, error) {
+func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 	if msg["kind"] != "CYCLE" {
 		return CycleSourcesMessage{}, fmt.Errorf("Expected CYCLE, got %v", msg["kind"])
 	}
@@ -168,14 +168,14 @@ func convertWireCycle(msg map[string]interface{}) (CycleSourcesMessage, error) {
 
 	cycleId := int(cycleIdFloat)
 
-	sources := make(SourceInfoMap, len(msg["sources"].(map[string]interface{})))
-	for k, v := range msg["sources"].(map[string]interface{}) {
+	sources := make(SourceInfoMap, len(msg["sources"].(map[string]any)))
+	for k, v := range msg["sources"].(map[string]any) {
 		if v == nil {
 			sources[k] = nil
 		} else {
 			sources[k] = &SourceInfo{
-				IsSymlink: readOptionalBool(v.(map[string]interface{}), "is_symlink"),
-				IsSource:  readOptionalBool(v.(map[string]interface{}), "is_source"),
+				IsSymlink: readOptionalBool(v.(map[string]any), "is_symlink"),
+				IsSource:  readOptionalBool(v.(map[string]any), "is_source"),
 			}
 		}
 	}
@@ -189,7 +189,7 @@ func convertWireCycle(msg map[string]interface{}) (CycleSourcesMessage, error) {
 	}, nil
 }
 
-func readOptionalBool(m map[string]interface{}, key string) *bool {
+func readOptionalBool(m map[string]any, key string) *bool {
 	if val, ok := m[key]; ok {
 		if boolVal, ok := val.(*bool); ok {
 			return boolVal

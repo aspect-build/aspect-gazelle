@@ -20,21 +20,21 @@ const gazelleContextCancelKey = "aspect:context.cancel"
 //
 // If possible, the gazelle execution is cancelled. If cancellation is not setup, the
 // process may exit.
-func MisconfiguredErrorf(c *config.Config, msg string, args ...interface{}) {
+func MisconfiguredErrorf(c *config.Config, msg string, args ...any) {
 	cancelOrFatal(c, msg, args...)
 }
 
-func GenerationErrorf(c *config.Config, msg string, args ...interface{}) {
+func GenerationErrorf(c *config.Config, msg string, args ...any) {
 	cancelOrFatal(c, msg, args...)
 }
 
-func ImportErrorf(c *config.Config, msg string, args ...interface{}) {
+func ImportErrorf(c *config.Config, msg string, args ...any) {
 	// TODO: only log if running in non-strict mode?
 
 	cancelOrFatal(c, msg, args...)
 }
 
-func cancelOrFatal(c *config.Config, msg string, args ...interface{}) {
+func cancelOrFatal(c *config.Config, msg string, args ...any) {
 	if ctxCancel, ctxExists := c.Exts[gazelleContextCancelKey]; ctxExists {
 		ctxCancel.(context.CancelCauseFunc)(fmt.Errorf(msg, args...))
 		return

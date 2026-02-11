@@ -487,8 +487,8 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 	// Check for pattern matches next
 	possibleMatches := make(matchArray, 0)
 	for key, originalPaths := range pathMap {
-		if starIndex := strings.IndexByte(key, '*'); starIndex != -1 {
-			prefix, suffix := key[:starIndex], key[starIndex+1:]
+		if before, after, ok := strings.Cut(key, "*"); ok {
+			prefix, suffix := before, after
 
 			if strings.HasPrefix(p, prefix) && strings.HasSuffix(p, suffix) {
 				possibleMatches = append(possibleMatches, match{

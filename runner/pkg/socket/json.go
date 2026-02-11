@@ -7,15 +7,15 @@ import (
 	"net"
 )
 
-type jsonSocket[S, R interface{}] struct {
+type jsonSocket[S, R any] struct {
 	conn  net.Conn
 	write *json.Encoder
 	read  *json.Decoder
 }
-type jsonClientSocket[S, R interface{}] struct {
+type jsonClientSocket[S, R any] struct {
 	jsonSocket[S, R]
 }
-type jsonServerSocket[S, R interface{}] struct {
+type jsonServerSocket[S, R any] struct {
 	jsonSocket[S, R]
 
 	serv net.Listener
@@ -24,7 +24,7 @@ type jsonServerSocket[S, R interface{}] struct {
 var _ Socket[any, any] = (*jsonSocket[any, any])(nil)
 var _ Server[any, any] = (*jsonServerSocket[any, any])(nil)
 
-func ConnectJsonSocket[S, R interface{}](socketPath string) (Socket[S, R], error) {
+func ConnectJsonSocket[S, R any](socketPath string) (Socket[S, R], error) {
 	s := &jsonClientSocket[S, R]{}
 	if err := s.connect(socketPath); err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func ConnectJsonSocket[S, R interface{}](socketPath string) (Socket[S, R], error
 	return s, nil
 }
 
-func NewJsonServer[S, R interface{}]() Server[S, R] {
+func NewJsonServer[S, R any]() Server[S, R] {
 	return &jsonServerSocket[S, R]{}
 }
 

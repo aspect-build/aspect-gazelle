@@ -28,6 +28,7 @@ import (
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -140,7 +141,7 @@ func (*bzlLibraryLang) Embeds(r *rule.Rule, from label.Label) []label.Label { re
 // language.GenerateResult.Imports. Resolve generates a "deps" attribute (or
 // the appropriate language-specific equivalent) for each import according to
 // language-specific rules and heuristics.
-func (*bzlLibraryLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importsRaw interface{}, from label.Label) {
+func (*bzlLibraryLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importsRaw any, from label.Label) {
 	imports := importsRaw.([]string)
 
 	r.DelAttr("deps")
@@ -222,7 +223,7 @@ var kinds = map[string]rule.KindInfo{
 // log.Print.
 func (*bzlLibraryLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
 	var rules []*rule.Rule
-	var imports []interface{}
+	var imports []any
 	for _, f := range append(args.RegularFiles, args.GenFiles...) {
 		if !isBzlSourceFile(f) {
 			continue
@@ -326,12 +327,7 @@ func generateEmpty(args language.GenerateArgs) []*rule.Rule {
 type srcsList []string
 
 func (s srcsList) Contains(m string) bool {
-	for _, e := range s {
-		if e == m {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, m)
 }
 
 // checkInternalVisibility overrides the given visibility if the package is

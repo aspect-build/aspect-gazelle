@@ -28,12 +28,12 @@ func NewDiskCache(cacheFilePath string) Cache {
 func init() {
 	// Register some basic types for gob serialization so languages
 	// only have to register custom types.
-	gob.Register(map[string]interface{}{})
+	gob.Register(map[string]any{})
 	gob.Register(map[string]string{})
 	gob.Register(map[string][]string{})
-	gob.Register(map[string]map[string]interface{}{})
+	gob.Register(map[string]map[string]any{})
 	gob.Register(map[string]map[string]string{})
-	gob.Register([]interface{}{})
+	gob.Register([]any{})
 	gob.Register(persistedCacheInfo{})
 }
 
@@ -94,9 +94,9 @@ func (c *diskCache) write() {
 	defer cacheWriter.Close()
 
 	m := make(map[string]map[string]any)
-	c.new.Range(func(p, e interface{}) bool {
+	c.new.Range(func(p, e any) bool {
 		ce := e.(*cacheEntry)
-		ce.values.Range(func(k, v interface{}) bool {
+		ce.values.Range(func(k, v any) bool {
 			if _, ok := m[ce.contentHash]; !ok {
 				m[ce.contentHash] = make(map[string]any)
 			}

@@ -9,7 +9,7 @@ type NamedQueries map[string]QueryDefinition
 
 // Intermediate object to hold a query key+result in a single struct.
 type QueryProcessorResult struct {
-	Result interface{}
+	Result any
 	Key    string
 }
 
@@ -27,7 +27,7 @@ const (
 type QueryDefinition struct {
 	Filter    []string
 	QueryType QueryType
-	Params    interface{}
+	Params    any
 
 	FilterExpr common.GlobExpr
 }
@@ -41,7 +41,7 @@ func (q QueryDefinition) Match(f string) bool {
 }
 
 // TODO: better naming?  QueryMapping?
-type QueryResults map[string]interface{}
+type QueryResults map[string]any
 
 // Multiple matches
 type QueryMatches []QueryMatch
@@ -51,11 +51,11 @@ type QueryCapture map[string]string
 
 // A single match.
 type QueryMatch struct {
-	Result   interface{}
+	Result   any
 	Captures QueryCapture
 }
 
-func NewQueryMatch(captures QueryCapture, result interface{}) QueryMatch {
+func NewQueryMatch(captures QueryCapture, result any) QueryMatch {
 	return QueryMatch{Captures: captures, Result: result}
 }
 

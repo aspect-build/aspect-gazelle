@@ -89,7 +89,7 @@ func closeWatchmanCache(c *watchmanCache) {
 func (c *watchmanCache) populateWalkCache(cfg *config.Config) {
 	// If a walk cache was provided also provide the loader to copy the cached entries
 	// into any fresh walk cache. This must be invoked from a patched gazelle walk.
-	cfg.Exts["aspect:walkCache:load"] = func(m interface{}) {
+	cfg.Exts["aspect:walkCache:load"] = func(m any) {
 		cc := 0
 
 		newWalkCache := m.(*sync.Map)
@@ -196,9 +196,9 @@ func (c *watchmanCache) write() {
 	m := make(map[string]map[string]any)
 
 	// Convert the sync.Map[sync.Map] to a regular map for serialization.
-	c.new.Range(func(key, value interface{}) bool {
+	c.new.Range(func(key, value any) bool {
 		mValue := make(map[string]any)
-		value.(*sync.Map).Range(func(k, v interface{}) bool {
+		value.(*sync.Map).Range(func(k, v any) bool {
 			mValue[k.(string)] = v
 			return true
 		})

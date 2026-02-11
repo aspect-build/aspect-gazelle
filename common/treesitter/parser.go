@@ -56,8 +56,7 @@ const (
 	Ruby                        = "ruby"
 )
 
-type Language interface {
-}
+type Language any
 
 func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 	return &treeLanguage{

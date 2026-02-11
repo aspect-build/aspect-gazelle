@@ -72,20 +72,20 @@ type KindInfo struct {
 type Property struct {
 	Name         string // TODO: drop because it's always specified in a map[Name]?
 	PropertyType PropertyType
-	Default      interface{}
+	Default      any
 }
 
 type PropertyValues struct {
-	values map[string]interface{}
+	values map[string]any
 }
 
 func NewPropertyValues() PropertyValues {
 	return PropertyValues{
-		values: make(map[string]interface{}),
+		values: make(map[string]any),
 	}
 }
 
-func (pv *PropertyValues) Add(name string, value interface{}) {
+func (pv *PropertyValues) Add(name string, value any) {
 	pv.values[name] = value
 }
 
