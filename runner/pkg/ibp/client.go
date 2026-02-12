@@ -10,7 +10,7 @@ import (
 )
 
 type IncrementalClient interface {
-	Connect() error
+	Connect(caps map[WatchCapability]any) error
 	Disconnect() error
 	AwaitCycle() iter.Seq2[*CycleSourcesMessage, error]
 }
@@ -19,8 +19,9 @@ type incClient struct {
 	socketPath string
 	socket     socket.Socket[any, map[string]any]
 
-	// The negotiated protocol version
+	// The negotiated protocol version and capabilities
 	version ProtocolVersion
+	caps    map[WatchCapability]any
 }
 
 var _ IncrementalClient = (*incClient)(nil)
@@ -30,7 +31,7 @@ func NewClient(host string) IncrementalClient {
 		socketPath: host,
 	}
 }
-func (c *incClient) Connect() error {
+func (c *incClient) Connect(caps map[WatchCapability]any) error {
 	if c.socket != nil {
 		return fmt.Errorf("client already connected")
 	}
@@ -44,6 +45,22 @@ func (c *incClient) Connect() error {
 	if err := c.negotiate(); err != nil {
 		return fmt.Errorf("failed to negotiate protocol version: %w", err)
 	}
+
+	if c.version.HasCapMessage() {
+		// Send the CAPS message if the server supports it, no matter if/how many caps are requested.
+		if err := c.cap(caps); err != nil {
+			// Connection setup failed mid-handshake; close/reset so callers can retry.
+			_ = c.Disconnect()
+			return err
+		}
+	} else {
+		// If CAPS are requested but the server doesn't support capabilities negotiation, return an error.
+		if len(caps) > 0 {
+			_ = c.Disconnect()
+			return fmt.Errorf("server negotiated version %d does not support capabilities negotiation", c.version)
+		}
+	}
+
 	return nil
 }
 
@@ -76,7 +93,7 @@ func (c *incClient) negotiate() error {
 		Version: negotiatedVersion,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to negotiate protocol version: %w", err)
+		return err
 	}
 
 	c.version = negotiatedVersion
@@ -90,6 +107,34 @@ func negotiateVersion(acceptedVersions []any) (ProtocolVersion, error) {
 		}
 	}
 	return -1, fmt.Errorf("unsupported versions %v, expected one of %v", acceptedVersions, abazelSupportedProtocolVersions)
+}
+
+func (c *incClient) cap(caps map[WatchCapability]any) error {
+	if caps == nil {
+		caps = map[WatchCapability]any{}
+	}
+
+	err := c.socket.Send(capMessage{
+		Message: Message{
+			Kind: "CAPS",
+		},
+		Caps: caps,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to send CAPS request: %w", err)
+	}
+
+	r, err := c.socket.Recv()
+	if err != nil {
+		return fmt.Errorf("failed to receive CAPS response: %w", err)
+	}
+
+	if r["kind"] != "CAPS_RESPONSE" {
+		return fmt.Errorf("Expected CAPS_RESPONSE, got %v", r)
+	}
+
+	c.caps, err = readCapsResponseMap(r["caps"], c.version)
+	return err
 }
 
 func (c *incClient) Disconnect() error {
@@ -180,11 +225,31 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 		}
 	}
 
+	// Scope: default to blank and simply reflect what came over the wire
+	// which will depend on the negotiated version and capabilities.
+	var scope WatchScope
+	if scopeVal, ok := msg["scope"]; ok {
+		if scopeStr, ok := scopeVal.(string); ok {
+			scope = WatchScope(scopeStr)
+		}
+	}
+
+	// OTEL trace+span IDs may be included depending on protocol version/caps.
+	// Simply pass them along as-is if present, only assuming 'string' type, otherwise leave blank.
+	var traceId, spanId string
+	if v, ok := msg["trace_id"].(string); ok {
+		traceId = v
+	}
+	if v, ok := msg["span_id"].(string); ok {
+		spanId = v
+	}
+
 	return CycleSourcesMessage{
 		CycleMessage: CycleMessage{
-			Message: Message{Kind: "CYCLE"},
+			Message: Message{Kind: "CYCLE", TraceId: traceId, SpanId: spanId},
 			CycleId: cycleId,
 		},
+		Scope:   scope,
 		Sources: sources,
 	}, nil
 }

@@ -212,7 +212,13 @@ func (runner *GazelleRunner) Generate(cmd GazelleCommand, mode GazelleMode, args
 
 func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode GazelleMode, args []string) error {
 	watch := ibp.NewClient(watchAddress)
-	if err := watch.Connect(); err != nil {
+
+	watchCaps := map[ibp.WatchCapability]any{
+		// Only watch for source changes, not runfiles changes
+		ibp.WatchCapability_WatchScope: []ibp.WatchScope{ibp.WatchScope_Sources},
+	}
+
+	if err := watch.Connect(watchCaps); err != nil {
 		return fmt.Errorf("failed to connect to watchman: %w", err)
 	}
 

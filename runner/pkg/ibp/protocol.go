@@ -10,21 +10,48 @@ import (
 
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
 	"github.com/fatih/color"
+	"go.opentelemetry.io/otel/trace"
 )
 
 type ProtocolVersion int
 
 const (
-	PROTOCOL_VERSION ProtocolVersion = 0
+	LEGACY_VERSION_0 ProtocolVersion = 0
+	VERSION_1        ProtocolVersion = 1
+	LATEST_VERSION   ProtocolVersion = VERSION_1
+)
+
+func (v ProtocolVersion) HasCapMessage() bool {
+	// Only "version 0" did not have the CAPS message
+	return v > 0
+}
+
+func (v ProtocolVersion) HasScopeCap() bool {
+	// Only "version 0" did not have the watch-scope capability within the CAPS message
+	return v > 0
+}
+
+type WatchCapability string
+
+const (
+	WatchCapability_WatchScope WatchCapability = "scope"
+	WatchCapability_OTEL       WatchCapability = "otel"
+)
+
+type WatchScope string
+
+const (
+	WatchScope_Sources  WatchScope = "sources"
+	WatchScope_Runfiles WatchScope = "runfiles"
 )
 
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
 type IncrementalBazel interface {
 	// Messaging to the client
-	Init(sources SourceInfoMap) error
-	Cycle(changes SourceInfoMap) error
-	Exit(err error) error
+	Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error
+	Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error
+	Exit(ctx context.Context, err error) error
 
 	// Server + Connection to client
 	Serve(ctx context.Context) error
@@ -32,6 +59,9 @@ type IncrementalBazel interface {
 	HasConnection() bool
 
 	WaitForConnection() <-chan ProtocolVersion
+
+	// If this connection is watching the given scope, e.g. sources or runfiles.
+	WatchingScope(s WatchScope) bool
 
 	// The path/address a client can connect to.
 	Address() string
@@ -42,6 +72,10 @@ type IncrementalBazel interface {
 
 type Message struct {
 	Kind string `json:"kind"`
+
+	// OTEL trace IDs can be added to any message, omitted if empty.
+	TraceId string `json:"trace_id,omitempty"`
+	SpanId  string `json:"span_id,omitempty"`
 }
 
 type negotiateMessage struct {
@@ -55,7 +89,7 @@ type negotiateResponseMessage struct {
 
 type capMessage struct {
 	Message
-	Caps map[string]bool `json:"caps"`
+	Caps map[WatchCapability]any `json:"caps"`
 }
 
 type exitMessage struct {
@@ -78,11 +112,19 @@ type CycleMessage struct {
 
 type CycleSourcesMessage struct {
 	CycleMessage
+	Scope   WatchScope    `json:"scope,omitempty"`
 	Sources SourceInfoMap `json:"sources"`
 }
 
 // The versions supported by this host implementation of the protocol.
-var abazelSupportedProtocolVersions = []ProtocolVersion{PROTOCOL_VERSION}
+// Listed in PRIORITY ORDER, i.e. the first version is the most preferred version to use.
+var abazelSupportedProtocolVersions = []ProtocolVersion{
+	// Latest+preferred version
+	VERSION_1,
+
+	// Fallback for older clients...
+	LEGACY_VERSION_0,
+}
 
 type aspectBazelSocket = socket.Server[any, map[string]any]
 
@@ -90,7 +132,12 @@ type aspectBazelProtocol struct {
 	socket     aspectBazelSocket
 	socketPath string
 
+	// connectedCh is used to signal when a connection has been established and the protocol version that was negotiated.
 	connectedCh chan ProtocolVersion
+
+	// Available once connectedCh emits a version
+	connectedVersion ProtocolVersion
+	caps             map[WatchCapability]any
 
 	// cycle_id is used to track the current cycle number.
 	cycle_id atomic.Int32
@@ -104,12 +151,44 @@ func NewServer() IncrementalBazel {
 		socketPath: socketPath,
 		socket:     socket.NewJsonServer[any, map[string]any](),
 
-		connectedCh: make(chan ProtocolVersion, 1),
+		connectedCh:      make(chan ProtocolVersion, 1),
+		connectedVersion: -1, // Invalid version to indicate not connected
 	}
 }
 
 func (p *aspectBazelProtocol) WaitForConnection() <-chan ProtocolVersion {
 	return p.connectedCh
+}
+
+func (p *aspectBazelProtocol) WatchingScope(s WatchScope) bool {
+	// No caps or no scope cap means default to runfiles only
+	if p.caps == nil || p.caps[WatchCapability_WatchScope] == nil {
+		return s == WatchScope_Runfiles
+	}
+
+	scopes := p.caps[WatchCapability_WatchScope].([]WatchScope)
+	return slices.Contains(scopes, s)
+}
+
+func (p *aspectBazelProtocol) isOTELCapEnabled() bool {
+	if p.caps == nil {
+		return false
+	}
+	return p.caps[WatchCapability_OTEL] == true
+}
+
+func (p *aspectBazelProtocol) otelMessage(ctx context.Context, kind string) Message {
+	m := Message{Kind: kind}
+	if p.isOTELCapEnabled() {
+		sc := trace.SpanContextFromContext(ctx)
+		if sc.HasTraceID() {
+			m.TraceId = sc.TraceID().String()
+		}
+		if sc.HasSpanID() {
+			m.SpanId = sc.SpanID().String()
+		}
+	}
+	return m
 }
 
 func (p *aspectBazelProtocol) Env() []string {
@@ -129,7 +208,7 @@ func (p *aspectBazelProtocol) Serve(ctx context.Context) error {
 
 	go func() {
 		// TODO: cancel the if the context is done or if Close() invoked
-		if err := p.acceptNegotiation(); err != nil {
+		if err := p.acceptNegotiation(ctx); err != nil {
 			select {
 			case <-ctx.Done():
 				// Ignore errors if the context is done, as this is likely due to shutdown.
@@ -151,7 +230,7 @@ func (p *aspectBazelProtocol) HasConnection() bool {
 	return p.socket != nil && p.socket.HasConnection()
 }
 
-func (p *aspectBazelProtocol) acceptNegotiation() error {
+func (p *aspectBazelProtocol) acceptNegotiation(ctx context.Context) error {
 	// Wait for a connection
 	if err := p.socket.Accept(); err != nil {
 		return err
@@ -159,7 +238,7 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 
 	// Negotiate the protocol version
 	m := negotiateMessage{
-		Message:  Message{Kind: "NEGOTIATE"},
+		Message:  p.otelMessage(ctx, "NEGOTIATE"),
 		Versions: abazelSupportedProtocolVersions,
 	}
 	if err := p.socket.Send(m); err != nil {
@@ -181,7 +260,43 @@ func (p *aspectBazelProtocol) acceptNegotiation() error {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected one of %v", negResp["version"], abazelSupportedProtocolVersions)
 	}
 
-	p.connectedCh <- ProtocolVersion(negResp["version"].(float64))
+	version := ProtocolVersion(negResp["version"].(float64))
+
+	if version.HasCapMessage() {
+		if err := p.negotiateCapabilities(ctx, version); err != nil {
+			return fmt.Errorf("Failed to negotiate capabilities: %v", err)
+		}
+	}
+
+	p.connectedVersion = version
+	p.connectedCh <- version
+
+	return nil
+}
+
+func (p *aspectBazelProtocol) negotiateCapabilities(ctx context.Context, version ProtocolVersion) error {
+	capsResp, err := p.socket.Recv()
+	if err != nil {
+		return fmt.Errorf("Error receiving CAPS request: %v", err)
+	}
+	if capsResp["kind"] != "CAPS" {
+		return fmt.Errorf("Expected CAPS, got %v", capsResp)
+	}
+
+	caps, err := readCapsRequestMap(capsResp["caps"], version)
+	if err != nil {
+		return fmt.Errorf("Failed to read capabilities: %v", err)
+	}
+
+	p.caps = caps
+
+	m := capMessage{
+		Message: p.otelMessage(ctx, "CAPS_RESPONSE"),
+		Caps:    caps,
+	}
+	if err := p.socket.Send(m); err != nil {
+		return fmt.Errorf("Failed to send CAPS_RESPONSE: %v", err)
+	}
 
 	return nil
 }
@@ -197,20 +312,27 @@ func (p *aspectBazelProtocol) Close() error {
 	return nil
 }
 
-func (p *aspectBazelProtocol) Init(sources SourceInfoMap) error {
-	return p.Cycle(sources)
+func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error {
+	return p.Cycle(ctx, scope, sources)
 }
 
-func (p *aspectBazelProtocol) Cycle(changes SourceInfoMap) error {
+func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
 	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
 
+	// Support: Protocol0 did not have the concept of scope so remove it from the message if
+	// the connection does not support it to maintain compatibility with older clients.
+	if !p.connectedVersion.HasScopeCap() {
+		scope = ""
+	}
+
 	c := CycleSourcesMessage{
 		CycleMessage: CycleMessage{
-			Message: Message{Kind: "CYCLE"},
+			Message: p.otelMessage(ctx, "CYCLE"),
 			CycleId: cycle_id,
 		},
+		Scope:   scope,
 		Sources: changes,
 	}
 	if err := p.socket.Send(c); err != nil {
@@ -253,15 +375,93 @@ func (p *aspectBazelProtocol) Cycle(changes SourceInfoMap) error {
 	}
 }
 
-func (p *aspectBazelProtocol) Exit(err error) error {
+func (p *aspectBazelProtocol) Exit(ctx context.Context, err error) error {
 	d := ""
 	if err != nil {
 		d = err.Error()
 	}
 
 	c := exitMessage{
-		Message:     Message{Kind: "EXIT"},
+		Message:     p.otelMessage(ctx, "EXIT"),
 		Description: d,
 	}
 	return p.socket.Send(c)
+}
+
+func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
+	caps := map[WatchCapability]any{
+		// Defaults based on ProtocolVersion
+
+		// Watch runfiles only by default to align with previous version behaviour
+		WatchCapability_WatchScope: []WatchScope{WatchScope_Runfiles},
+	}
+
+	if rawCaps == nil {
+		return caps, nil
+	}
+
+	enabledCapsRaw, ok := rawCaps.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("Invalid caps, expected map[WatchCapability]interface{}, received type: %T", rawCaps)
+	}
+
+	for cap, val := range enabledCapsRaw {
+		switch WatchCapability(cap) {
+		case WatchCapability_WatchScope:
+			scopeVal, err := readScopeCapList(val)
+			if err != nil {
+				return nil, err
+			}
+			caps[WatchCapability_WatchScope] = scopeVal
+		case WatchCapability_OTEL:
+			// No additional config for OTEL; it is enabled when this capability is present with a boolean true value.
+			caps[WatchCapability_OTEL] = readCapBool(val)
+		default:
+			// Unknown capabilities are not processed, may still be accessed by the sdk user.
+			caps[WatchCapability(cap)] = val
+		}
+	}
+
+	return caps, nil
+}
+
+func readCapsResponseMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
+	// Today the caps response map is the same as the request, simple deserialization+validation
+	return readCapsRequestMap(rawCaps, version)
+}
+
+func readScopeCapList(val any) ([]WatchScope, error) {
+	listVal, isArr := val.([]interface{})
+	if !isArr {
+		return nil, fmt.Errorf("Invalid value for WatchScope list: %T, expected list", val)
+	}
+
+	scopes := make([]WatchScope, 0, len(listVal))
+	for _, vAny := range listVal {
+		v, isStr := vAny.(string)
+		if !isStr {
+			return nil, fmt.Errorf("Invalid value for WatchScope capability: %T, expected string", vAny)
+		}
+
+		switch WatchScope(v) {
+		case WatchScope_Sources, WatchScope_Runfiles:
+			scopes = append(scopes, WatchScope(v))
+		default:
+			return nil, fmt.Errorf("Unknown WatchScope %q, expected %q or %q", v, WatchScope_Sources, WatchScope_Runfiles)
+		}
+	}
+
+	if len(scopes) == 0 {
+		return nil, fmt.Errorf("WatchScope capability must have at least one scope, got empty list")
+	}
+
+	return scopes, nil
+}
+
+func readCapBool(val any) bool {
+	boolVal, isBool := val.(bool)
+	if !isBool {
+		return false
+	}
+	return boolVal
 }
