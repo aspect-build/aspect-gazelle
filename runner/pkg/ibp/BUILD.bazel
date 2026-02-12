@@ -1,4 +1,5 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "ibp",
@@ -14,4 +15,19 @@ go_library(
         "@com_github_fatih_color//:color",
         "@io_opentelemetry_go_otel_trace//:trace",
     ],
+)
+
+go_test(
+    name = "ibp_test",
+    srcs = [
+        "client_test.go",
+        "protocol_test.go",
+    ],
+    embed = [":ibp"],
+    deps = ["@io_opentelemetry_go_otel_trace//:trace"],
+)
+
+build_test(
+    name = "ibp_test_build_test",
+    targets = [":ibp_test"],
 )
