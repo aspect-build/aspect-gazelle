@@ -18,7 +18,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20251115024249-7cad566bc683
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260202105709-e24971d9d1a7
+	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
 	github.com/bufbuild/rules_buf v0.5.2
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.16.5
@@ -69,7 +69,7 @@ require (
 	github.com/zclconf/go-cty v1.17.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.40.0 // indirect
-	go.starlark.net v0.0.0-20260102030733-3fee463870c9 // indirect
+	go.starlark.net v0.0.0-20260210143700-b62fd896b91b // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
 	golang.org/x/mod v0.33.0 // indirect
 	golang.org/x/net v0.50.0 // indirect

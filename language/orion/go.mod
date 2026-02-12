@@ -7,11 +7,11 @@ replace github.com/aspect-build/aspect-gazelle/common => ../../common
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260202105709-e24971d9d1a7
+	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/itchyny/gojq v0.12.18
 	github.com/mikefarah/yq/v4 v4.52.2
-	go.starlark.net v0.0.0-20260102030733-3fee463870c9
+	go.starlark.net v0.0.0-20260210143700-b62fd896b91b
 	golang.org/x/sync v0.19.0
 )
 
