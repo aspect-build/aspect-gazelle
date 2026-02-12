@@ -25,14 +25,30 @@ func (v ProtocolVersion) HasCapMessage() bool {
 	return v > 0
 }
 
+func (v ProtocolVersion) HasScopeCap() bool {
+	// Only "version 0" did not have the watch-scope capability within the CAPS message
+	return v > 0
+}
+
 type WatchCapability string
+
+const (
+	WatchCapability_WatchScope WatchCapability = "scope"
+)
+
+type WatchScope string
+
+const (
+	WatchScope_Sources  WatchScope = "sources"
+	WatchScope_Runfiles WatchScope = "runfiles"
+)
 
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
 type IncrementalBazel interface {
 	// Messaging to the client
-	Init(sources SourceInfoMap) error
-	Cycle(changes SourceInfoMap) error
+	Init(scope WatchScope, sources SourceInfoMap) error
+	Cycle(scope WatchScope, changes SourceInfoMap) error
 	Exit(err error) error
 
 	// Server + Connection to client
@@ -41,6 +57,9 @@ type IncrementalBazel interface {
 	HasConnection() bool
 
 	WaitForConnection() <-chan ProtocolVersion
+
+	// If this connection is watching the given scope, e.g. sources or runfiles.
+	WatchingScope(s WatchScope) bool
 
 	// The path/address a client can connect to.
 	Address() string
@@ -87,6 +106,7 @@ type CycleMessage struct {
 
 type CycleSourcesMessage struct {
 	CycleMessage
+	Scope   WatchScope    `json:"scope,omitempty"`
 	Sources SourceInfoMap `json:"sources"`
 }
 
@@ -132,6 +152,16 @@ func NewServer() IncrementalBazel {
 
 func (p *aspectBazelProtocol) WaitForConnection() <-chan ProtocolVersion {
 	return p.connectedCh
+}
+
+func (p *aspectBazelProtocol) WatchingScope(s WatchScope) bool {
+	// No caps or no scope cap means default to runfiles only
+	if p.caps == nil || p.caps[WatchCapability_WatchScope] == nil {
+		return s == WatchScope_Runfiles
+	}
+
+	scopes := p.caps[WatchCapability_WatchScope].([]WatchScope)
+	return slices.Contains(scopes, s)
 }
 
 func (p *aspectBazelProtocol) Env() []string {
@@ -255,20 +285,27 @@ func (p *aspectBazelProtocol) Close() error {
 	return nil
 }
 
-func (p *aspectBazelProtocol) Init(sources SourceInfoMap) error {
-	return p.Cycle(sources)
+func (p *aspectBazelProtocol) Init(scope WatchScope, sources SourceInfoMap) error {
+	return p.Cycle(scope, sources)
 }
 
-func (p *aspectBazelProtocol) Cycle(changes SourceInfoMap) error {
+func (p *aspectBazelProtocol) Cycle(scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
 	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
+
+	// Support: Protocol0 did not have the concept of scope so remove it from the message if
+	// the connection does not support it to maintain compatibility with older clients.
+	if !p.connectedVersion.HasScopeCap() {
+		scope = ""
+	}
 
 	c := CycleSourcesMessage{
 		CycleMessage: CycleMessage{
 			Message: Message{Kind: "CYCLE"},
 			CycleId: cycle_id,
 		},
+		Scope:   scope,
 		Sources: changes,
 	}
 	if err := p.socket.Send(c); err != nil {
@@ -327,6 +364,9 @@ func (p *aspectBazelProtocol) Exit(err error) error {
 func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
 	caps := map[WatchCapability]any{
 		// Defaults based on ProtocolVersion
+
+		// Watch runfiles only by default to align with previous version behaviour
+		WatchCapability_WatchScope: []WatchScope{WatchScope_Runfiles},
 	}
 
 	if rawCaps == nil {
@@ -339,7 +379,13 @@ func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapabili
 	}
 
 	for cap, val := range enabledCapsRaw {
-		switch cap {
+		switch WatchCapability(cap) {
+		case WatchCapability_WatchScope:
+			scopeVal, err := readScopeCapList(val)
+			if err != nil {
+				return nil, err
+			}
+			caps[WatchCapability_WatchScope] = scopeVal
 		default:
 			// Unknown capabilities are not processed, may still be accessed by the sdk user.
 			caps[WatchCapability(cap)] = val
@@ -352,4 +398,32 @@ func readCapsRequestMap(rawCaps any, version ProtocolVersion) (map[WatchCapabili
 func readCapsResponseMap(rawCaps any, version ProtocolVersion) (map[WatchCapability]any, error) {
 	// Today the caps response map is the same as the request, simple deserialization+validation
 	return readCapsRequestMap(rawCaps, version)
+}
+
+func readScopeCapList(val any) ([]WatchScope, error) {
+	listVal, isArr := val.([]interface{})
+	if !isArr {
+		return nil, fmt.Errorf("Invalid value for WatchScope list: %T, expected list", val)
+	}
+
+	scopes := make([]WatchScope, 0, len(listVal))
+	for _, vAny := range listVal {
+		v, isStr := vAny.(string)
+		if !isStr {
+			return nil, fmt.Errorf("Invalid value for WatchScope capability: %T, expected string", vAny)
+		}
+
+		switch WatchScope(v) {
+		case WatchScope_Sources, WatchScope_Runfiles:
+			scopes = append(scopes, WatchScope(v))
+		default:
+			return nil, fmt.Errorf("Unknown WatchScope %q, expected %q or %q", v, WatchScope_Sources, WatchScope_Runfiles)
+		}
+	}
+
+	if len(scopes) == 0 {
+		return nil, fmt.Errorf("WatchScope capability must have at least one scope, got empty list")
+	}
+
+	return scopes, nil
 }

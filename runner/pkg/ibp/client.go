@@ -225,11 +225,21 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 		}
 	}
 
+	// Scope: default to blank and simply reflect what came over the wire
+	// which will depend on the negotiated version and capabilities.
+	var scope WatchScope
+	if scopeVal, ok := msg["scope"]; ok {
+		if scopeStr, ok := scopeVal.(string); ok {
+			scope = WatchScope(scopeStr)
+		}
+	}
+
 	return CycleSourcesMessage{
 		CycleMessage: CycleMessage{
 			Message: Message{Kind: "CYCLE"},
 			CycleId: cycleId,
 		},
+		Scope:   scope,
 		Sources: sources,
 	}, nil
 }
