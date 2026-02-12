@@ -63,9 +63,9 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
-    sha256 = "7dd60975786bf9cb4be6a5176f5ccb5fed505f9929a012da30762505b1015669",
-    strip_prefix = "tree-sitter-kotlin-0.3.8",
-    urls = ["https://github.com/fwcd/tree-sitter-kotlin/archive/0.3.8.tar.gz"],
+    sha256 = "666c67f4486d6f7ebeb6418a956f3d7599b3e200e42fe583312c92182ce731d0",
+    strip_prefix = "tree-sitter-kotlin-6b9788578ae23a1bc7c87e8d564e0daf7671dee3",
+    urls = ["https://github.com/fwcd/tree-sitter-kotlin/archive/6b9788578ae23a1bc7c87e8d564e0daf7671dee3.tar.gz"],
 )
 
 http_archive(

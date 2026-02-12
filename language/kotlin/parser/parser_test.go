@@ -52,6 +52,21 @@ import /* fdsa */ d/* asdf */.* // w
 		pkg:      "x",
 		imports:  []string{"a", "c", "d"},
 	},
+	// Fun interfaces (SAM): https://github.com/fwcd/tree-sitter-kotlin/issues/87
+	{
+		desc: "fun-interface",
+		kt: `package com.example
+
+import com.example.dep.Foo
+
+fun interface MyHandler {
+    fun handle(value: String): Boolean
+}
+`,
+		filename: "handler.kt",
+		pkg:      "com.example",
+		imports:  []string{"com.example.dep"},
+	},
 	// Value classes: https://github.com/fwcd/tree-sitter-kotlin/commit/80834a15154448cfa795bfa6b8be3559af1753fc
 	{
 		desc: "value-classes",
