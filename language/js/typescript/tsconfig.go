@@ -440,29 +440,23 @@ func (c TsConfig) stripRootPrependDir(out, f string) string {
 		}
 	}
 
-	if out != "." {
-		f = path.Join(out, f)
-	}
-
-	return f
+	return cleanJoin3("", out, f)
 }
 
 // Expands the path from the project base to the active tsconfig.json file
 func (c TsConfig) expandBaseUrl(importPath string) string {
-	// Absolute paths must never be expanded but everything else must be relative to the bazel-root
-	// and therefore expanded with the path to the current active tsconfig.json
 	if path.IsAbs(importPath) {
-		return path.Join(c.BaseUrl, importPath)
+		return cleanJoin3("", c.BaseUrl, importPath)
 	}
-	return path.Join(c.ConfigDir, c.BaseUrl, importPath)
+	return cleanJoin3(c.ConfigDir, c.BaseUrl, importPath)
 }
 
 // Expands the paths-mapped path relative to the tsconfig.json file
 func (c TsConfig) expandPathsMatch(importPath string) string {
 	if path.IsAbs(importPath) {
-		return path.Join(c.Paths.Rel, importPath)
+		return cleanJoin3("", c.Paths.Rel, importPath)
 	}
-	return path.Join(c.ConfigDir, c.Paths.Rel, importPath)
+	return cleanJoin3(c.ConfigDir, c.Paths.Rel, importPath)
 }
 
 // Expand the given path to all possible mapped paths for this config, in priority order.
@@ -536,10 +530,27 @@ func (c TsConfig) ExpandPaths(from, p string) []string {
 	// Add 'rootDirs' as alternate directories for relative imports
 	// https://www.typescriptlang.org/tsconfig#rootDirs
 	for _, v := range c.VirtualRootDirs {
-		possible = append(possible, path.Join(v, p))
+		possible = append(possible, cleanJoin3(v, "", p))
 	}
 
 	return possible
+}
+
+// Equivalent to path.Join(a, b, c) but uses minimal string concatenation and
+// a single path.Clean() to append 1-3 path segments.
+func cleanJoin3(a, b, c string) string {
+	aEmpty := a == "" || a == "."
+	bEmpty := b == "" || b == "."
+	switch {
+	case aEmpty && bEmpty:
+		return path.Clean(c)
+	case aEmpty:
+		return path.Clean(b + "/" + c)
+	case bEmpty:
+		return path.Clean(a + "/" + c)
+	default:
+		return path.Clean(a + "/" + b + "/" + c)
+	}
 }
 
 type match struct {
