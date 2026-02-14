@@ -321,10 +321,10 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	}
 
 	// Add the package.json if not in the src
+	// BUG: if it was removed from 'dataFiles' and put in a target that the package does not depend on (such as a test ts_project())
 	// TODO: why not always add it?
 	// TODO: declare import on it instead if it's in another rule?
 	if packageIdx := slices.Index(dataFiles, NpmPackageFilename); packageIdx != -1 {
-		dataFiles = slices.Delete(dataFiles, packageIdx, packageIdx+1)
 		npmPackageInfo.sources.Add(NpmPackageFilename)
 	}
 
