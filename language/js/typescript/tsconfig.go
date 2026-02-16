@@ -67,7 +67,7 @@ func (s *StringOrStringArray) UnmarshalJSON(data []byte) error {
 	}
 	var multiple []string
 	if err := json.Unmarshal(data, &multiple); err != nil {
-		return fmt.Errorf("expected string or []string")
+		return fmt.Errorf("expected string or []string: %w", err)
 	}
 	*s = multiple
 	return nil
@@ -396,9 +396,9 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		}
 
 		// Load all base configs
-		baseConfigs := make([]*TsConfig, 0, len(c.Extends))
+		baseConfigs := make([]*TsConfig, 0, len(extendsClean))
 
-		for _, ext := range c.Extends {
+		for _, ext := range extendsClean {
 			var loadedBase *TsConfig
 
 			// Try to resolve and load this extended config
