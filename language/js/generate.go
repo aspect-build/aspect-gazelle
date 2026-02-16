@@ -364,14 +364,14 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 
 	SourcePath := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
 
-	if tsconfig.Extends != "" {
-		if !cfg.IsImportIgnored(tsconfig.Extends) {
+	for _, ext := range tsconfig.Extends {
+		if !cfg.IsImportIgnored(ext) {
 			imports = append(imports, ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  toImportSpecPath("", SourcePath, tsconfig.Extends),
+					Imp:  toImportSpecPath("", SourcePath, ext),
 				},
-				ImportPath: tsconfig.Extends,
+				ImportPath: ext,
 				SourcePath: SourcePath,
 			})
 		}
