@@ -35,7 +35,10 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 		}
 	}
 
-	// TODO: look into running queries in parallel on the same AST
+	// Queries must run sequentially on the same AST because go-tree-sitter's
+	// Tree.cachedNode uses a plain map that is not safe for concurrent access
+	// when collecting AST nodes for captures.
+	// NOTE: could potentially split initial query execution vs capture collection?
 	for key, query := range queries {
 		params := query.Params.(plugin.AstQueryParams)
 		treeQuery, err := treeutils.GetQuery(lang, params.Query)
@@ -43,8 +46,6 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 			return err
 		}
 
-		// TODO: delay collection from channel until first read?
-		// Then it must be cached for later reads...
 		matches := plugin.QueryMatches(nil)
 		for r := range ast.Query(treeQuery) {
 			matches = append(matches, plugin.NewQueryMatch(r.Captures(), nil))
