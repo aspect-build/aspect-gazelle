@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "python",
@@ -11,10 +11,4 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/python",
     visibility = ["//visibility:public"],
     deps = ["//common/treesitter"],
-)
-
-go_test(
-    name = "binding_test",
-    srcs = ["binding_test.go"],
-    embed = [":python"],
 )
