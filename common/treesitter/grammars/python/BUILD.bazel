@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "python",
+    srcs = [
+        "binding.go",
+        "@tree-sitter-python//:srcs",  #keep
+    ],
+    cgo = True,
+    copts = ["-Iexternal/*tree-sitter-python"],  #keep
+    importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/python",
+    visibility = ["//visibility:public"],
+    deps = ["//common/treesitter"],
+)
+
+go_test(
+    name = "binding_test",
+    srcs = ["binding_test.go"],
+    embed = [":python"],
+)
