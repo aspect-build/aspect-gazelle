@@ -8,6 +8,7 @@ go_library(
         "queries.go",
         "regex.go",
         "yq.go",
+        "toml.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/language/orion/queries",
     visibility = ["//visibility:public"],

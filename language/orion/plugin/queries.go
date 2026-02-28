@@ -20,6 +20,7 @@ const (
 	QueryTypeRegex           = "regex"
 	QueryTypeJson            = "json"
 	QueryTypeYaml            = "yaml"
+	QueryTypeToml            = "toml"
 	QueryTypeRaw             = "raw"
 )
 
@@ -69,3 +70,5 @@ type RegexQueryParams = string
 type JsonQueryParams = string
 
 type YamlQueryParams = string
+
+type TomlQueryParams = string
