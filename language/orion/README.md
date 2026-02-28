@@ -363,6 +363,22 @@ YAML queries are implemented using the [yq](https://mikefarah.gitbook.io/yq) too
 
 See the [jq manual](https://jqlang.github.io/jq/manual/#basic-filters) for query expressions.
 
+**aspect.TomlFilter(filter, query)**:
+
+The factory method for a `TomlQuery`.
+
+Args:
+* `filter`: a glob pattern to match file names to query
+* `query`: a filter expression to run on the TOML document
+
+The query result is a list of each matching node in the document.
+
+For queries designed to return a single result the result will be an array of one object, or empty array if no result is found.
+
+TOML queries are implemented using the [yq](https://mikefarah.gitbook.io/yq) tool which borrows syntax from `jq`.
+
+See the [jq manual](https://jqlang.github.io/jq/manual/#basic-filters) for query expressions.
+
 **aspect.QueryMatch**:
 
 The result of a query on a source file.
