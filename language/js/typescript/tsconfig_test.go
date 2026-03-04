@@ -156,6 +156,16 @@ func TestTsconfigLoad(t *testing.T) {
 		assertEqual(t, extender.Extends, "../base.tsconfig.json", "should not fail extending")
 	})
 
+	t.Run("empty paths object overrides base paths", func(t *testing.T) {
+		extender, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-paths-empty.json")
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		_, aliasAExists := extender.Paths.Map["alias-a"]
+		assertTrue(t, !aliasAExists, "paths: {} should override and clear base paths map")
+	})
+
 	t.Run("parse a tsconfig file extending itself", func(t *testing.T) {
 		recursive, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-recursive.json")
 		if err != nil {
