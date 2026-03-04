@@ -395,10 +395,14 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 			}
 		}
 
-		// Load all base configs
-		baseConfigs := make([]*TsConfig, 0, len(extendsClean))
+		// Load all base configs using the original (uncleaned) paths,
+		// since path.Clean strips "./" prefixes which breaks isRelativePath checks.
+		baseConfigs := make([]*TsConfig, 0, len(c.Extends))
 
-		for _, ext := range extendsClean {
+		for _, ext := range c.Extends {
+			if ext == "" {
+				continue
+			}
 			var loadedBase *TsConfig
 
 			// Try to resolve and load this extended config
@@ -508,8 +512,10 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		merged.ConfigDir = configDir
 		merged.ConfigName = configName
 		merged.Extends = extendsClean
-		// RootDir is never inherited from base (TypeScript behavior)
+		// RootDir and BaseUrl are never inherited from base (TypeScript behavior:
+		// these are relative to the config that defines them)
 		merged.RootDir = currentConfig.RootDir
+		merged.BaseUrl = currentConfig.BaseUrl
 		// DeclarationDir falls back to OutDir, not base
 		if c.CompilerOptions.DeclarationDir == nil {
 			merged.DeclarationDir = merged.OutDir
