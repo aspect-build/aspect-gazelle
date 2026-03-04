@@ -558,6 +558,35 @@ func TestTsconfigParse(t *testing.T) {
 			t.Errorf("ParseTsConfigOptions: ImportHelpers\nactual:   %v\nexpected: %v\n", config.ImportHelpers, true)
 		}
 	})
+
+	t.Run("tsconfig importHelpers inheritance", func(t *testing.T) {
+		// inherit true from base
+		inheritTrue, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+		if !inheritTrue.ImportHelpers {
+			t.Errorf("ImportHelpers should be inherited as true from base")
+		}
+
+		// inherit false from base
+		inheritFalse, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-importhelpers-false-base.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+		if inheritFalse.ImportHelpers {
+			t.Errorf("ImportHelpers should be inherited as false from base")
+		}
+
+		// override to false when base has true
+		overrideFalse, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-importhelpers-false.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+		if overrideFalse.ImportHelpers {
+			t.Errorf("ImportHelpers should be overridden to false in child")
+		}
+	})
 }
 
 func TestExpandPathsMatch(t *testing.T) {
