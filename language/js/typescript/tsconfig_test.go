@@ -653,6 +653,63 @@ func TestExpandBaseUrl(t *testing.T) {
 	}
 }
 
+func TestRootDirsInheritance(t *testing.T) {
+	t.Run("inherits rootDirs from base when not set in child", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdirs.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if !reflect.DeepEqual(config.VirtualRootDirs, []string{"src", "generated"}) {
+			t.Errorf("VirtualRootDirs should be inherited from base\n\tactual:   %v\n\texpected: %v", config.VirtualRootDirs, []string{"src", "generated"})
+		}
+	})
+
+	t.Run("empty rootDirs array overrides base rootDirs with empty (matches tsc behavior)", func(t *testing.T) {
+		// tsc treats rootDirs: [] as an explicit override, not inheritance.
+		// Array properties in tsconfig extends are fully replaced, never merged.
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdirs-empty.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if len(config.VirtualRootDirs) != 0 {
+			t.Errorf("VirtualRootDirs should be empty when child explicitly sets rootDirs: []\n\tactual:   %v\n\texpected: []", config.VirtualRootDirs)
+		}
+	})
+
+	t.Run("non-empty rootDirs overrides base rootDirs", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdirs-override.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if !reflect.DeepEqual(config.VirtualRootDirs, []string{"other"}) {
+			t.Errorf("VirtualRootDirs should be overridden by child\n\tactual:   %v\n\texpected: %v", config.VirtualRootDirs, []string{"other"})
+		}
+	})
+}
+
+func TestExpandPathsWithRootDirs(t *testing.T) {
+	t.Run("rootDirs inherited from base expand relative imports", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdirs.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertExpand(t, config, "./foo", "src/foo", "generated/foo")
+	})
+
+	t.Run("empty rootDirs array overrides base so relative imports are not expanded", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdirs-empty.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertExpand(t, config, "./foo")
+	})
+}
+
 func TestTsconfigOutRootDirs(t *testing.T) {
 	t.Run("empty config", func(t *testing.T) {
 		o1 := parseTest(t, ".", `{}`)
