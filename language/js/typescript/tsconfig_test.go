@@ -24,12 +24,14 @@ import (
 )
 
 func assertTrue(t *testing.T, b bool, msg string) {
+	t.Helper()
 	if !b {
 		t.Error(msg)
 	}
 }
 
 func assertEqual(t *testing.T, a, b string, msg string) {
+	t.Helper()
 	assertTrue(t, a == b, msg+"\n\tactual:   "+a+"\n\texpected: "+b)
 }
 
