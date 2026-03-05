@@ -11,5 +11,6 @@ js_library(
         "//exports-js/bin:tsc",
         "//exports-js/lib:tsc",
         "//exports-js/lib2:tsc",
+        "//exports-js/stars:tsc",
     ],
 )

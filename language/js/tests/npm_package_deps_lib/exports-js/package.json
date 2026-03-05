@@ -3,10 +3,10 @@
   "private": true,
   "exports": {
     ".": {
-        "node": "./lib/lib.js",
-        "default": "./lib2/lib2.js"
+      "node": "./lib/lib.js",
+      "default": "./lib2/lib2.js"
     },
     "./bin": "./bin/main.js",
-    "./stars/*": "./other/*.js"
+    "./stars/*": "./stars/*.js"
   }
 }
