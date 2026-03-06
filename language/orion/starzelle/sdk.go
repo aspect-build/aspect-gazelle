@@ -246,6 +246,34 @@ func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 	}, nil
 }
 
+func newTomlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var queryValue starlark.String
+	var filterValue starlark.Value
+
+	err := starlark.UnpackArgs(
+		"TomlQuery",
+		args,
+		kwargs,
+		"query?", &queryValue,
+		"filter??", &filterValue,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	filters, exp, err := readQueryFilters(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	return plugin.QueryDefinition{
+		Filter:     filters,
+		FilterExpr: exp,
+		QueryType:  plugin.QueryTypeToml,
+		Params:     queryValue.GoString(),
+	}, nil
+}
+
 func newSourceExtensions(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	exts, err := starUtils.ReadStringTuple(args)
 	if err != nil {
@@ -465,6 +493,7 @@ var aspectModule = starUtils.CreateModule(
 		"RawQuery":                     newRawQuery,
 		"JsonQuery":                    newJsonQuery,
 		"YamlQuery":                    newYamlQuery,
+		"TomlQuery":                    newTomlQuery,
 		"PrepareResult":                newPrepareResult,
 		"Import":                       newImport,
 		"Symbol":                       newSymbol,

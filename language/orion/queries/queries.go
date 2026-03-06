@@ -16,6 +16,8 @@ func RunQueries(queryType plugin.QueryType, fileName string, sourceCode []byte, 
 		return runJsonQueries(fileName, sourceCode, queries, queryResults)
 	case plugin.QueryTypeYaml:
 		return runYamlQueries(fileName, sourceCode, queries, queryResults)
+	case plugin.QueryTypeToml:
+		return runTomlQueries(fileName, sourceCode, queries, queryResults)
 	case plugin.QueryTypeRaw:
 		return runRawQueries(fileName, sourceCode, queries, queryResults)
 	default:
