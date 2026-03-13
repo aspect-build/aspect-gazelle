@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/language/js
 
-go 1.24.5
+go 1.26.1
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
@@ -13,6 +13,7 @@ require (
 )
 
 require (
+	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect

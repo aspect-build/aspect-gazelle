@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/language/orion
 
-go 1.24.5
+go 1.26.1
 
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593
@@ -18,6 +18,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect

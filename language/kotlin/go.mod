@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/language/kotlin
 
-go 1.24.5
+go 1.26.1
 
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593
@@ -12,6 +12,7 @@ require (
 
 require (
 	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82 // indirect
+	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
