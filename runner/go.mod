@@ -1,21 +1,13 @@
 module github.com/aspect-build/aspect-gazelle/runner
 
-replace github.com/aspect-build/aspect-gazelle/common => ../common
-
-replace github.com/aspect-build/aspect-gazelle/language/js => ../language/js
-
-replace github.com/aspect-build/aspect-gazelle/language/kotlin => ../language/kotlin
-
-replace github.com/aspect-build/aspect-gazelle/language/orion => ../language/orion
-
 go 1.24.5
 
 require (
 	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
-	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20251115024249-7cad566bc683
-	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20251115024249-7cad566bc683
-	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20251115024249-7cad566bc683
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593
+	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593
+	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593
+	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
