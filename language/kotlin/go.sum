@@ -1,3 +1,5 @@
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593 h1:sVG6jlyribee4BVhPeWlR0hY5LkXT6L2JLEEPqhXt/M=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593/go.mod h1:hjcEG3GuvEeCV1OoFhpqXMVNgDWQoYx0OkSV5kAtDiU=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
 github.com/bazelbuild/bazel-gazelle v0.47.0 h1:g3Rr1ZbkC1Pk20aOgBITxSD/efS1WbaSty5jC786Z3Q=

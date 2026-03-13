@@ -2,11 +2,9 @@ module github.com/aspect-build/aspect-gazelle/language/js
 
 go 1.24.5
 
-replace github.com/aspect-build/aspect-gazelle/common => ../../common
-
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20251115024249-7cad566bc683
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb

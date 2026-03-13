@@ -14,6 +14,14 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593 h1:sVG6jlyribee4BVhPeWlR0hY5LkXT6L2JLEEPqhXt/M=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260306195717-555bd7327593/go.mod h1:hjcEG3GuvEeCV1OoFhpqXMVNgDWQoYx0OkSV5kAtDiU=
+github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593 h1:+orcnaFhFefiempxma2LxJAb1By5cubh/s3O6z9tBhw=
+github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593/go.mod h1:Jebg5wavqn2simfxvZ4dEG7tlmHOd9B4DSJPZje4m70=
+github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593 h1:J6w2Wriv9LinUMLeH8TZK5AyPbnQuvx0o9MSSySKnD4=
+github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593/go.mod h1:JYIM1OU5Dk47lHXqKq72uPiJNBnxynucC39QHocp1rQ=
+github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593 h1:1fyHXtRG7HJRghtDF14eQE+v0katYgJ8+UOzGXIEYKE=
+github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593/go.mod h1:+sHktwa6Zb/Woi8wecyQUMZwFbmjYNEeEtFsFo+YAZo=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
 github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f h1:RF7vPXdHA8isKymbNWDifMmUYayLSTXMg0BdSDyP1rs=
