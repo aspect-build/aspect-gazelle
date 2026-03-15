@@ -1,1 +1,1 @@
-common --config=ci
+common --config=ruleset

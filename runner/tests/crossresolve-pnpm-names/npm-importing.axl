@@ -32,7 +32,7 @@ def declare_targets(ctx):
         name = "i",
         kind = "x_lib",
         attrs = {
-            "deps":  [
+            "deps": [
                 # Imports identified by name, not standard paths.
                 # These names align with pnpm workspace:* specifiers
                 # which allows them to be resolved even in lazy mode.

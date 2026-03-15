@@ -7,4 +7,3 @@ aspect.register_rule_kind("props_test", {
 aspect.register_configure_extension(
     id = "deprecated-names-props",
 )
-
