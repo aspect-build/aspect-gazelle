@@ -1,7 +1,41 @@
 diff --git a/toolchain/cc_toolchain_config.bzl b/toolchain/cc_toolchain_config.bzl
 --- a/toolchain/cc_toolchain_config.bzl
 +++ b/toolchain/cc_toolchain_config.bzl
-@@ -365,6 +368,6 @@ def cc_toolchain_config(
+@@ -194,9 +194,11 @@ def cc_toolchain_config(
+         "-fuse-ld=lld",
+     ]
+
+-    if exec_os == "darwin":
+-        # These will get expanded by osx_cc_wrapper's `sanitize_option`
+-        link_flags.append("--ld-path=ld64.lld" if target_os == "darwin" else "--ld-path=ld.lld")
++    if target_os == "darwin":
++        # These will get expanded by cc_wrapper's `sanitize_option`
++        link_flags.append("--ld-path=ld64.lld")
++    elif exec_os == "darwin":
++        link_flags.append("--ld-path=ld.lld")
+
+     stdlib = compiler_configuration["stdlib"]
+     if stdlib != "none":
+@@ -213,14 +215,14 @@ def cc_toolchain_config(
+     is_darwin_exec_and_target = exec_os == "darwin" and target_os == "darwin"
+
+     # Linker flags:
+-    if is_darwin_exec_and_target:
++    if target_os == "darwin":
+         link_flags.extend([
+             "-headerpad_max_install_names",
+             "-fobjc-link-runtime",
+         ])
+
+-        # Use the bundled libtool (llvm-libtool-darwin).
+-        use_libtool = True
++        # Use the bundled libtool (llvm-libtool-darwin) only when exec is also darwin.
++        use_libtool = exec_os == "darwin"
+     elif target_arch in ["wasm32", "wasm64"]:
+         # lld is invoked as wasm-ld for WebAssembly targets.
+         use_libtool = False
+@@ -365,7 +367,7 @@ def cc_toolchain_config(
+         "dwp": tools_path_prefix + "llvm-dwp",
          "gcc": wrapper_bin_prefix + "cc_wrapper.sh",
          "gcov": tools_path_prefix + "llvm-profdata",
 -        "ld": tools_path_prefix + "ld.lld",
@@ -12,7 +46,11 @@ diff --git a/toolchain/cc_toolchain_config.bzl b/toolchain/cc_toolchain_config.b
 diff --git a/toolchain/internal/common.bzl b/toolchain/internal/common.bzl
 --- a/toolchain/internal/common.bzl
 +++ b/toolchain/internal/common.bzl
-@@ -45,2 +45,3 @@ _toolchain_tools_darwin = {
-     "llvm-libtool-darwin": "libtool",
-+    "ld64.lld": "ld64.lld",
- }
+@@ -42,6 +42,7 @@ _toolchain_tools = {
+         "clang-tidy",
+         "clangd",
+         "ld.lld",
++        "ld64.lld",
+         "llvm-ar",
+         "llvm-dwp",
+         "llvm-profdata",
