@@ -6,6 +6,7 @@ load("//:def.bzl", "aspect_gazelle")
 # Use the gazelle bazel modules instead of go.mod modules
 # gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
 # gazelle:resolve_regexp go github.com/bazel-contrib/rules_python/gazelle/(.*) @rules_python_gazelle_plugin//$1
+# gazelle:resolve_regexp go github.com/bufbuild/rules_buf/(.*) @rules_buf//$1
 # gazelle:resolve_regexp go github.com/EngFlow/gazelle_cc/(.*) @gazelle_cc//$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/js @aspect_gazelle_js
@@ -68,7 +69,6 @@ go_library(
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",
-        "@com_github_bufbuild_rules_buf//gazelle/buf",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//language/bazel/visibility",
@@ -79,6 +79,7 @@ go_library(
         "@io_opentelemetry_go_otel//attribute",
         "@io_opentelemetry_go_otel_trace//:trace",
         "@org_golang_x_term//:term",
+        "@rules_buf//gazelle/buf",
         "@rules_python_gazelle_plugin//python",
     ],
 )
