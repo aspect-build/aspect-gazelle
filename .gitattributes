@@ -1,3 +1,4 @@
 **/*.lock linguist-generated
 pnpm-lock.yaml linguist-generated
-language/orion/tests/starzelle/fail-load/bad.axl linguist-generated
+language/orion/tests/starzelle/*/bad.axl linguist-generated
+language/orion/tests/starzelle/bad_axl/*.axl linguist-generated
