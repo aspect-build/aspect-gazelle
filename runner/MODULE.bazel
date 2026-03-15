@@ -174,9 +174,9 @@ filegroup(
     dev_dependency = True,
     # The ruby header has an infinite symlink that we need to remove.
     patch_cmds = ["rm System/Library/Frameworks/Ruby.framework/Versions/Current/Headers/ruby/ruby"],
-    sha256 = "71ae00a90be7a8c382179014969cec30d50e6e627570af283fbe52132958daaf",
-    strip_prefix = "MacOSX11.3.sdk",
-    urls = ["https://s3.us-east-2.amazonaws.com/static.aspect.build/sysroots/MacOSX11.3.sdk.tar.xz"],
+    sha256 = "71ae3a78ab1be6c45cf52ce44cb29a3cc27ed312c9f7884ee88e303a862a1404",
+    strip_prefix = "MacOSX13.3.sdk",
+    urls = ["https://github.com/alexey-lysiuk/macos-sdk/releases/download/13.3/MacOSX13.3.tar.xz"],
 )
 
 execution_oses = [
