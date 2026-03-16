@@ -19,6 +19,7 @@ http
 http2
 https
 inspector
+inspector/promises
 module
 net
 os

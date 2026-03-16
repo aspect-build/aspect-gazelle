@@ -1,6 +1,7 @@
 package gazelle
 
 import (
+	"slices"
 	"strings"
 	"testing"
 )
@@ -37,6 +38,9 @@ func TestParsePackageJsonImports(t *testing.T) {
 
 func assertParsePackageJsonImports(t *testing.T, packageJson string, expectedImports ...string) {
 	imps, err := ParsePackageJsonImports(strings.NewReader(packageJson))
+
+	slices.Sort(expectedImports)
+	slices.Sort(imps)
 
 	if err != nil {
 		t.Errorf("ParsePackageJsonImports failed: %v:\n\t%s", err, packageJson)

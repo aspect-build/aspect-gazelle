@@ -22,7 +22,7 @@ local_path_override(
 )
 
 # Used for generating code via nodejs
-bazel_dep(name = "aspect_rules_js", version = "2.0.0", dev_dependency = True)
+bazel_dep(name = "aspect_rules_js", version = "3.0.3", dev_dependency = True)
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
