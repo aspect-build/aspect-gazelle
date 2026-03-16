@@ -1,3 +1,20 @@
 ########################
 # Import bazelrc presets
 import %workspace%/../tools/preset.bazelrc
+
+# Disable system C++ toolchain auto-detection; use llvm bzlmod instead
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
+
+# llvm bzlmod uses PIE CRT objects; Go's stdlib uses absolute relocations
+# so lld rejects the link in PIE mode. Disable PIE for cgo binaries.
+# Keep this workaround (`--linkopt=-no-pie`) until Go's stdlib and lld reliably support linking cgo binaries as PIE.
+# This seems fixed in golang 1.27 but needs a workaround for now.
+# - https://github.com/golang/go/pull/77601
+# - https://github.com/golang/go/pull/76858
+# One alternative workaround: https://github.com/cerisier/toolchains_llvm_bootstrapped/blob/4d179cbc3c8bbcf24b0d2024900c45ee8c1fbeb5/e2e/wasm/MODULE.bazel#L13-L39
+common --linkopt=-no-pie
+
+# Required by llvm bzlmod
+common --experimental_cc_static_library
+common --experimental_platform_in_output_dir
