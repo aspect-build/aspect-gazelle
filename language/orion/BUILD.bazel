@@ -1,7 +1,8 @@
 load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_library")
 
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
+# gazelle:resolve go github.com/aspect-build/aspect-gazelle/common @aspect_gazelle//:common
+# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common/(.*) @aspect_gazelle//$1
 
 gazelle(
     name = "gazelle",
@@ -38,11 +39,11 @@ go_library(
         "//plugin",
         "//queries",
         "//starzelle",
-        "@aspect_gazelle//common",
-        "@aspect_gazelle//common/bazel/workspace",
-        "@aspect_gazelle//common/cache",
-        "@aspect_gazelle//common/logger",
-        "@aspect_gazelle//common/rule",
+        "@aspect_gazelle//:common",
+        "@aspect_gazelle//bazel/workspace",
+        "@aspect_gazelle//cache",
+        "@aspect_gazelle//logger",
+        "@aspect_gazelle//rule",
         "@com_github_emirpasic_gods_v2//sets/treeset",
         "@gazelle//config",
         "@gazelle//label",

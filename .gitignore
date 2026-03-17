@@ -1,4 +1,5 @@
 /bazel-*
+/common/bazel-*
 /runner/bazel-*
 /runner/e2e/*/bazel-*
 /language/*/bazel-*

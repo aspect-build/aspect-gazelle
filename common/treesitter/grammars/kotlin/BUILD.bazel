@@ -10,5 +10,5 @@ go_library(
     copts = ["-Iexternal/*tree-sitter-kotlin"],  #keep
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin",
     visibility = ["//visibility:public"],
-    deps = ["//common/treesitter"],
+    deps = ["//treesitter"],
 )

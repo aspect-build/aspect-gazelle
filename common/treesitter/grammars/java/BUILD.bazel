@@ -10,5 +10,5 @@ go_library(
     copts = ["-Iexternal/*tree-sitter-java"],  #keep
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/java",
     visibility = ["//visibility:public"],
-    deps = ["//common/treesitter"],
+    deps = ["//treesitter"],
 )

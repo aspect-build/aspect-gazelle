@@ -6,10 +6,10 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/language/js/parser",
     visibility = ["//visibility:public"],
     deps = [
-        "@aspect_gazelle//common/logger",
-        "@aspect_gazelle//common/treesitter",
-        "@aspect_gazelle//common/treesitter/grammars/tsx",
-        "@aspect_gazelle//common/treesitter/grammars/typescript",
+        "@aspect_gazelle//logger",
+        "@aspect_gazelle//treesitter",
+        "@aspect_gazelle//treesitter/grammars/tsx",
+        "@aspect_gazelle//treesitter/grammars/typescript",
     ],
 )
 

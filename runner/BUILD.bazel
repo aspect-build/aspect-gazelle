@@ -8,7 +8,8 @@ load("//:def.bzl", "aspect_gazelle")
 # gazelle:resolve_regexp go github.com/bazel-contrib/rules_python/gazelle/(.*) @rules_python_gazelle_plugin//$1
 # gazelle:resolve_regexp go github.com/bufbuild/rules_buf/(.*) @rules_buf//$1
 # gazelle:resolve_regexp go github.com/EngFlow/gazelle_cc/(.*) @gazelle_cc//$1
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
+# gazelle:resolve go github.com/aspect-build/aspect-gazelle/common @aspect_gazelle//:common
+# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common/(.*) @aspect_gazelle//$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/js @aspect_gazelle_js
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/orion @aspect_gazelle_orion
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/kotlin @aspect_gazelle_kotlin
@@ -65,7 +66,7 @@ go_library(
         "//pkg/ibp",
         "//progress",
         "//vendored/gazelle",
-        "@aspect_gazelle//common/cache",
+        "@aspect_gazelle//cache",
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",

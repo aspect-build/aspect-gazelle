@@ -2,6 +2,13 @@
 workspaces:
   .:
     icon: deer
+    tasks:
+      - gazelle:
+          without: true
+  common:
+    tasks:
+      - buildifier:
+          without: true
   language/js:
     tasks:
       - buildifier:
@@ -20,6 +27,8 @@ workspaces:
           without: true
   runner/e2e/bin:
     tasks:
+      - gazelle:
+          without: true
       - buildifier:
           without: true
 tasks:

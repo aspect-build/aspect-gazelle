@@ -16,7 +16,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//starlark/utils",
-        "@aspect_gazelle//common",
+        "@aspect_gazelle//:common",
         "@com_github_bazelbuild_buildtools//build",
         "@gazelle//rule",
         "@net_starlark_go//starlark",
