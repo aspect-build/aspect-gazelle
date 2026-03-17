@@ -18,3 +18,11 @@ common --linkopt=-no-pie
 # Required by llvm bzlmod
 common --experimental_cc_static_library
 common --experimental_platform_in_output_dir
+
+# Required to enable the java embedded server
+# See https://github.com/bazel-contrib/rules_jvm/commit/639446ee2ba5f90dbd86f8c0983d3647f7c803e3
+common --@contrib_rules_jvm//java/gazelle:embed_server=True
+
+# Use a modern java version
+build --java_runtime_version=remotejdk_17
+build --tool_java_runtime_version=remotejdk_17
