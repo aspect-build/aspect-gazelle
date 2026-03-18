@@ -24,8 +24,8 @@ github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555b
 github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593/go.mod h1:+sHktwa6Zb/Woi8wecyQUMZwFbmjYNEeEtFsFo+YAZo=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
-github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f h1:RF7vPXdHA8isKymbNWDifMmUYayLSTXMg0BdSDyP1rs=
-github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f/go.mod h1:84dcq5fZ/hiQGnpjzH57+Xm7T6uwpPty1KPB7qzHDO0=
+github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260223163720-bac549496f67 h1:jlM6kQTTBEFW8XPwpHwcM+HXQuHKEdkDNGxYon1gS2Q=
+github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260223163720-bac549496f67/go.mod h1:84dcq5fZ/hiQGnpjzH57+Xm7T6uwpPty1KPB7qzHDO0=
 github.com/bazelbuild/bazel-gazelle v0.47.0 h1:g3Rr1ZbkC1Pk20aOgBITxSD/efS1WbaSty5jC786Z3Q=
 github.com/bazelbuild/bazel-gazelle v0.47.0/go.mod h1:8Ozf20jhv+in87nCUHdmUPPcVGTfKg/gotZ/hce3T+w=
 github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82 h1:PmoVmwzAnGb0iCjulb7Mgsaqw2Wj36LQJ8VyYaFe/ak=
