@@ -122,6 +122,7 @@ func (c *GazelleRunner) AddLanguageFactory(lang string, langFactory func() langu
 	c.languages = append(c.languages, langFactory)
 }
 
+// Keep in sync with _VALID_LANGUAGES in runner/def.bzl
 func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 	switch lang {
 	case JavaScript:
