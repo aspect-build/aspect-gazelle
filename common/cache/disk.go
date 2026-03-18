@@ -139,11 +139,10 @@ func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (an
 			return v, true, nil
 		}
 	} else {
-		pCache = &cacheEntry{
+		pCache, _ = c.new.LoadOrStore(p, &cacheEntry{
 			contentHash: contentKey,
 			values:      &sync.Map{},
-		}
-		c.new.LoadOrStore(p, pCache)
+		})
 	}
 
 	// Try loading from the old cache and populate the new.
