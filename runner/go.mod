@@ -8,7 +8,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593
-	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260128021939-0057883aa25f
+	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260223163720-bac549496f67
 	github.com/bazelbuild/bazel-gazelle v0.47.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
 	github.com/bufbuild/rules_buf v0.5.2 // NOTE: keep in sync with MODULE.bazel
