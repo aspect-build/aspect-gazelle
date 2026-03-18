@@ -4,6 +4,8 @@ Aspect enhanced Gazelle
 
 load("@gazelle//:def.bzl", "gazelle")
 
+_GAZELLE_BINARY = Label("@aspect_gazelle_runner//bin/gazelle:gazelle")
+
 def aspect_gazelle(languages = [], extensions = [], **kwargs):
     """Creates a Gazelle target for BUILD file generation and update.
 
@@ -53,14 +55,13 @@ def aspect_gazelle(languages = [], extensions = [], **kwargs):
         extensions: A list of labels pointing to Aspect Gazelle Orion Starlark extensions
             to load. These extensions provide additional BUILD file generation logic.
         **kwargs: Additional arguments passed directly to the underlying `gazelle()` macro including:
-            - `gazelle`: The label of the Gazelle binary to use such as a prebuilt (default: "@aspect_gazelle_runner//bin/gazelle:gazelle")
             - `command`: The Gazelle command to run (e.g., "update", "fix")
             - `mode`: The Gazelle mode (e.g., "diff", "update", "fix")
             - `args`: Additional command-line arguments for Gazelle
     """
 
     gazelle(
-        gazelle = kwargs.pop("gazelle", Label("@aspect_gazelle_runner//bin/gazelle:gazelle")),
+        gazelle = _GAZELLE_BINARY,
         env = kwargs.pop("env", {}) | {
             "ENABLE_LANGUAGES": ",".join(languages),
             "ORION_EXTENSIONS": ",".join(["$(rootpath %s)" % p for p in extensions]),
