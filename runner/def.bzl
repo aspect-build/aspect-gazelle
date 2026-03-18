@@ -6,6 +6,20 @@ load("@gazelle//:def.bzl", "gazelle")
 
 _GAZELLE_BINARY = Label("@aspect_gazelle_runner//bin/gazelle:gazelle")
 
+# Keep in sync with the switch statement in runner/runner.go AddLanguage()
+_VALID_LANGUAGES = [
+    "buf",
+    "cc",
+    "go",
+    "js",
+    "kotlin",
+    "orion",
+    "proto",
+    "python",
+    "starlark",
+    "visibility_extension",
+]
+
 def aspect_gazelle(languages = [], extensions = [], **kwargs):
     """Creates a Gazelle target for BUILD file generation and update.
 
@@ -59,6 +73,10 @@ def aspect_gazelle(languages = [], extensions = [], **kwargs):
             - `mode`: The Gazelle mode (e.g., "diff", "update", "fix")
             - `args`: Additional command-line arguments for Gazelle
     """
+
+    for lang in languages:
+        if lang not in _VALID_LANGUAGES:
+            fail("Invalid language %r in 'languages'. Valid languages are: %s" % (lang, ", ".join(_VALID_LANGUAGES)))
 
     gazelle(
         gazelle = _GAZELLE_BINARY,
