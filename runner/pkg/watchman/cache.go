@@ -25,6 +25,29 @@ type cacheState struct {
 	Entries   map[string]map[string]any
 }
 
+type fileEntry struct {
+	mu   sync.RWMutex
+	data map[string]any
+}
+
+func (e *fileEntry) load(key string) (any, bool) {
+	e.mu.RLock()
+	v, ok := e.data[key]
+	e.mu.RUnlock()
+	return v, ok
+}
+
+func (e *fileEntry) loadOrStore(key string, value any) (any, bool) {
+	e.mu.Lock()
+	if v, ok := e.data[key]; ok {
+		e.mu.Unlock()
+		return v, true
+	}
+	e.data[key] = value
+	e.mu.Unlock()
+	return value, false
+}
+
 type watchmanCache struct {
 	w *WatchmanWatcher
 
@@ -33,7 +56,7 @@ type watchmanCache struct {
 	symlinks *sync.Map
 
 	old           map[string]map[string]any
-	new           *sync.Map
+	new           *sync.Map // string → *fileEntry
 	lastClockSpec string
 
 	// A reference to the walk cache used in the last gazelle invocation
@@ -195,13 +218,15 @@ func (c *watchmanCache) write() {
 
 	m := make(map[string]map[string]any)
 
-	// Convert the sync.Map[sync.Map] to a regular map for serialization.
+	// Convert the sync.Map[fileEntry] to a regular map for serialization.
 	c.new.Range(func(key, value any) bool {
-		mValue := make(map[string]any)
-		value.(*sync.Map).Range(func(k, v any) bool {
-			mValue[k.(string)] = v
-			return true
-		})
+		entry := value.(*fileEntry)
+		entry.mu.RLock()
+		mValue := make(map[string]any, len(entry.data))
+		for k, v := range entry.data {
+			mValue[k] = v
+		}
+		entry.mu.RUnlock()
 		m[key.(string)] = mValue
 		return true
 	})
@@ -238,24 +263,20 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 		return nil, false, err
 	}
 
-	// Load directly from c.new to potentially convert map[] to sync.Map
+	// Load directly from c.new, promoting the persisted map on first access.
 	fileMap, hasFileMap := c.new.Load(realP)
 	if !hasFileMap {
-		// A new map for this file path
-		newMap := &sync.Map{}
-
-		// Potentially load the previously persisted map[]
-		if oldMap, hasOld := c.old[realP]; hasOld {
-			for k, v := range oldMap {
-				newMap.Store(k, v)
-			}
+		data, hasOld := c.old[realP]
+		if !hasOld {
+			data = make(map[string]any)
 		}
-
-		fileMap, _ = c.new.LoadOrStore(realP, newMap)
+		fileMap, _ = c.new.LoadOrStore(realP, &fileEntry{data: data})
 	}
 
-	// Load any cached result from the file specific sync.Map
-	v, found := fileMap.(*sync.Map).Load(key)
+	entry := fileMap.(*fileEntry)
+
+	// Load any cached result from the file specific map
+	v, found := entry.load(key)
 	if found {
 		return v, true, nil
 	}
@@ -269,7 +290,7 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 	// Compute the value and store it in the file specific sync.Map
 	v, err = loader(p, content)
 	if err == nil {
-		v, found = fileMap.(*sync.Map).LoadOrStore(key, v)
+		v, found = entry.loadOrStore(key, v)
 	}
 
 	return v, found, err

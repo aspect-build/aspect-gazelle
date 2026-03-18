@@ -52,7 +52,26 @@ type diskCache struct {
 
 type cacheEntry struct {
 	contentHash string
-	values      *sync.Map
+	mu          sync.RWMutex
+	values      map[string]any
+}
+
+func (e *cacheEntry) load(key string) (any, bool) {
+	e.mu.RLock()
+	v, ok := e.values[key]
+	e.mu.RUnlock()
+	return v, ok
+}
+
+func (e *cacheEntry) loadOrStore(key string, value any) (any, bool) {
+	e.mu.Lock()
+	if v, ok := e.values[key]; ok {
+		e.mu.Unlock()
+		return v, true
+	}
+	e.values[key] = value
+	e.mu.Unlock()
+	return value, false
 }
 
 func computeCacheKey(content []byte) string {
@@ -97,13 +116,14 @@ func (c *diskCache) write() {
 	m := make(map[string]map[string]any)
 	c.new.Range(func(p, e any) bool {
 		ce := e.(*cacheEntry)
-		ce.values.Range(func(k, v any) bool {
+		ce.mu.RLock()
+		for k, v := range ce.values {
 			if _, ok := m[ce.contentHash]; !ok {
 				m[ce.contentHash] = make(map[string]any)
 			}
-			m[ce.contentHash][k.(string)] = v
-			return true
-		})
+			m[ce.contentHash][k] = v
+		}
+		ce.mu.RUnlock()
 		return true
 	})
 
@@ -135,20 +155,22 @@ func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (an
 
 	// Try loading from the cache if exists and content has not changed.
 	if pCacheFound && pCache.(*cacheEntry).contentHash == contentKey {
-		if v, found := pCache.(*cacheEntry).values.Load(key); found {
+		if v, found := pCache.(*cacheEntry).load(key); found {
 			return v, true, nil
 		}
 	} else {
 		pCache, _ = c.new.LoadOrStore(p, &cacheEntry{
 			contentHash: contentKey,
-			values:      &sync.Map{},
+			values:      make(map[string]any),
 		})
 	}
+
+	ce := pCache.(*cacheEntry)
 
 	// Try loading from the old cache and populate the new.
 	if oldCache, found := c.old[contentKey]; found {
 		if v, found := oldCache[key]; found {
-			v, _ := pCache.(*cacheEntry).values.LoadOrStore(key, v)
+			v, _ := ce.loadOrStore(key, v)
 			return v, true, nil
 		}
 	}
@@ -159,7 +181,7 @@ func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (an
 		return nil, false, err
 	}
 
-	v, found := pCache.(*cacheEntry).values.LoadOrStore(key, v)
+	v, found := ce.loadOrStore(key, v)
 	return v, found, nil
 }
 
