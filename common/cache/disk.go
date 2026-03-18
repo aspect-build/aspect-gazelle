@@ -57,10 +57,11 @@ type cacheEntry struct {
 
 func computeCacheKey(content []byte) string {
 	cacheDigest := crypto.MD5.New()
+	cacheDigest.Write(content)
 	if buildinfo.IsStamped() {
 		cacheDigest.Write([]byte(buildinfo.GitCommit))
 	}
-	return hex.EncodeToString(cacheDigest.Sum(content))
+	return hex.EncodeToString(cacheDigest.Sum(nil))
 }
 
 func (c *diskCache) read() {
