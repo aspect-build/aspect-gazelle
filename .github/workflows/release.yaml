@@ -19,7 +19,7 @@ jobs:
       - name: Tag
         id: tag
         run: |
-          TAG=$(git describe --long --match="[0-9][0-9][0-9][0-9].[0-9][0-9]" | sed -e 's/-/./;s/-g/+/')
+          TAG=$(git describe --tags --long --match="[0-9][0-9][0-9][0-9].[0-9][0-9]" | sed -e 's/-/./;s/-g/+/')
           echo "Creating tag: $TAG"
           git tag $TAG
           git push origin $TAG
