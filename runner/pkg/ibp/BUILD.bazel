@@ -11,7 +11,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/socket",
-        "@aspect_gazelle//common/logger",
+        "@aspect_gazelle//logger",
         "@com_github_fatih_color//:color",
         "@io_opentelemetry_go_otel_trace//:trace",
     ],

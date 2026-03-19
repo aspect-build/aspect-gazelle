@@ -11,7 +11,7 @@ go_library(
     deps = [
         "//node",
         "//pnpm",
-        "@aspect_gazelle//common/logger",
+        "@aspect_gazelle//logger",
         "@com_github_goexlib_jsonc//:jsonc",
     ],
 )

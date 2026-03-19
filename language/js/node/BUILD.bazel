@@ -12,7 +12,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/language/js/node",
     visibility = ["//visibility:public"],
     deps = [
-        "@aspect_gazelle//common/logger",
+        "@aspect_gazelle//logger",
         "@com_github_emirpasic_gods_v2//sets/treeset",
         "@com_github_goexlib_jsonc//:jsonc",
     ],

@@ -11,9 +11,9 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//pkg/socket",
-        "@aspect_gazelle//common/bazel",
-        "@aspect_gazelle//common/cache",
-        "@aspect_gazelle//common/logger",
+        "@aspect_gazelle//bazel",
+        "@aspect_gazelle//cache",
+        "@aspect_gazelle//logger",
         "@gazelle//config",
     ],
 )

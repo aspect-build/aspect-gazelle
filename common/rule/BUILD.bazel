@@ -10,7 +10,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common/rule",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/logger",
+        "//logger",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods_v2//sets/treeset",

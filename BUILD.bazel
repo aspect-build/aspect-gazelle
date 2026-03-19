@@ -1,27 +1,3 @@
-load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
-
-gazelle_binary(
-    name = "gazelle_bin",
-    languages = [
-        "@gazelle//language/go:go_default_library",
-    ],
-
-    # Public for use in sub-MODULEs
-    visibility = ["//visibility:public"],
-)
-
-gazelle(
-    name = "gazelle",
-    extra_args = ["-index=lazy"],
-    gazelle = ":gazelle_bin",
-)
-
-gazelle(
-    name = "gazelle.check",
-    gazelle = ":gazelle_bin",
-    mode = "diff",
-)
-
 alias(
     name = "format",
     actual = "//tools/format",

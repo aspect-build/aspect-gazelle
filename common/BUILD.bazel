@@ -1,4 +1,27 @@
+load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
 load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = [
+        "@gazelle//language/go:go_default_library",
+    ],
+
+    # Public for use in sub-MODULEs
+    visibility = ["//visibility:public"],
+)
+
+gazelle(
+    name = "gazelle",
+    extra_args = ["-index=lazy"],
+    gazelle = ":gazelle_bin",
+)
+
+gazelle(
+    name = "gazelle.check",
+    gazelle = ":gazelle_bin",
+    mode = "diff",
+)
 
 go_library(
     name = "common",
@@ -14,7 +37,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/logger",
+        "//logger",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods_v2//sets/treeset",

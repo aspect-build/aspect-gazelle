@@ -11,8 +11,8 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common/cache",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/buildinfo",
-        "//common/logger",
+        "//buildinfo",
+        "//logger",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//rule",
