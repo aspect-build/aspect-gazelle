@@ -53,9 +53,10 @@ nogo(
         "@org_golang_x_tools//go/analysis/passes/stdversion",
         "@org_golang_x_tools//go/analysis/passes/waitgroup",
 
-        # TODO:
+        # NOTE: 'fieldalignment' only worth it in high-impact locations and not worth enabling by default
         # "@org_golang_x_tools//go/analysis/passes/fieldalignment",
 
+        # TODO:
         # modernize exports Suite (multiple analyzers) instead of Analyzer, so
         # it cannot be used directly. Run it via:
         # go run golang.org/x/tools/go/analysis/passes/modernize/cmd/modernize@v0.43.0 -fix ./...

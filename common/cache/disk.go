@@ -51,9 +51,11 @@ type diskCache struct {
 }
 
 type cacheEntry struct {
+	// NOTE: keep map[]/pointer fields first, see nogo 'fieldalignment'
+	values map[string]any
+
 	contentHash string
 	mu          sync.RWMutex
-	values      map[string]any
 }
 
 func (e *cacheEntry) load(key string) (any, bool) {
