@@ -256,8 +256,8 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 
 func readOptionalBool(m map[string]any, key string) *bool {
 	if val, ok := m[key]; ok {
-		if boolVal, ok := val.(*bool); ok {
-			return boolVal
+		if boolVal, ok := val.(bool); ok {
+			return &boolVal
 		}
 	}
 	return nil

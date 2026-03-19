@@ -60,8 +60,6 @@ func TestCap_SendsCapsAndStoresResponse(t *testing.T) {
 }
 
 func TestConvertWireCycle_ParsesScopeAndTraceFields(t *testing.T) {
-	isSource := true
-	isSymlink := false
 	msg := map[string]any{
 		"kind":     "CYCLE",
 		"cycle_id": float64(7),
@@ -70,8 +68,8 @@ func TestConvertWireCycle_ParsesScopeAndTraceFields(t *testing.T) {
 		"span_id":  "span-456",
 		"sources": map[string]any{
 			"a.txt": map[string]any{
-				"is_source":  &isSource,
-				"is_symlink": &isSymlink,
+				"is_source":  true,
+				"is_symlink": false,
 			},
 			"removed.txt": nil,
 		},
@@ -93,6 +91,16 @@ func TestConvertWireCycle_ParsesScopeAndTraceFields(t *testing.T) {
 	}
 	if cycle.Sources["removed.txt"] != nil {
 		t.Fatalf("expected removed source to map to nil, got %#v", cycle.Sources["removed.txt"])
+	}
+	src := cycle.Sources["a.txt"]
+	if src == nil {
+		t.Fatal("expected non-nil SourceInfo for a.txt")
+	}
+	if src.IsSource == nil || *src.IsSource != true {
+		t.Fatalf("expected IsSource=true, got %v", src.IsSource)
+	}
+	if src.IsSymlink == nil || *src.IsSymlink != false {
+		t.Fatalf("expected IsSymlink=false, got %v", src.IsSymlink)
 	}
 }
 
