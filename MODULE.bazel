@@ -130,8 +130,8 @@ use_repo(go_sdk, "go_sdk")
 go_deps2 = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps2.module(
     path = "golang.org/x/tools",
-    sum = "h1:DVSRzp7FwePZW356yEAChSdNcQo6Nsp+fex1SUW09lE=",
-    version = "0.37.0",
+    sum = "h1:12BdW9CeB3Z+J/I/wj34VMl8X+fEXBxVR90JeMX5E7s=",
+    version = "0.43.0",
 )
 go_deps2.module(
     path = "google.golang.org/genproto/googleapis/api",
