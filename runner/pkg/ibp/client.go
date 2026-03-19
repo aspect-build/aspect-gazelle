@@ -147,7 +147,7 @@ func (c *incClient) Disconnect() error {
 		return fmt.Errorf("failed to close socket: %w", err)
 	}
 	c.socket = nil
-	return err
+	return nil
 }
 
 func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
