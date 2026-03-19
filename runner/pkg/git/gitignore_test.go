@@ -55,10 +55,10 @@ func TestGitIgnore(t *testing.T) {
 	})
 
 	t.Run("nested ignore matches", func(t *testing.T) {
-		m, p := addIgnoreFileContent(nil, "", `
+		_, p := addIgnoreFileContent(nil, "", `
 			a.js
 		`)
-		m, _ = addIgnoreFileContent(p, "b", `
+		m, _ := addIgnoreFileContent(p, "b", `
 		    c.js
 		`)
 
@@ -66,11 +66,11 @@ func TestGitIgnore(t *testing.T) {
 	})
 
 	t.Run("overlapping ignore matches", func(t *testing.T) {
-		m, p := addIgnoreFileContent(nil, "", `
+		_, p := addIgnoreFileContent(nil, "", `
 			a.js
 			b/c/d/e.js
 		`)
-		m, _ = addIgnoreFileContent(p, "b", `
+		m, _ := addIgnoreFileContent(p, "b", `
 		    asdf.js
 		`)
 
@@ -241,8 +241,8 @@ func TestGitIgnore(t *testing.T) {
 	})
 
 	t.Run("simple with nested gitignore", func(t *testing.T) {
-		m, p := addIgnoreFileContent(nil, "", "*.log")
-		m, _ = addIgnoreFileContent(p, "sub", "*.tmp")
+		_, p := addIgnoreFileContent(nil, "", "*.log")
+		m, _ := addIgnoreFileContent(p, "sub", "*.tmp")
 
 		shouldMatch("root pattern", m, "debug.log", "x/y/debug.log")
 		shouldMatch("sub pattern in sub", m, "sub/cache.tmp")
