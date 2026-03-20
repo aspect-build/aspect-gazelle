@@ -1,4 +1,7 @@
 name: Release
+# Requires a YYYY.WW base tag to exist on the target commit's history,
+# created weekly by weekly_tag.yaml. The release tag is derived from
+# that base tag via `git describe`.
 on:
   workflow_dispatch:
   push:
@@ -8,31 +11,25 @@ permissions:
   attestations: write
   contents: write
 jobs:
-  tag: # Based on https://blog.aspect.build/versioning-releases-from-a-monorepo
-    runs-on: ubuntu-latest
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          fetch-depth: 0 # Fetch all history for git describe
-      - name: Tag
-        id: tag
-        run: |
-          TAG=$(git describe --tags --long --match="[0-9][0-9][0-9][0-9].[0-9][0-9]" | sed -e 's/-/./;s/-g/+/')
-          echo "Creating tag: $TAG"
-          git tag $TAG
-          git push origin $TAG
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
   release:
     runs-on: ubuntu-latest
-    needs: tag
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
     permissions:
       contents: write
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # Fetch all history for git describe
+      - name: Compute version
+        id: version
+        run: |
+          TAG=$(git describe --tags --long --match="[0-9][0-9][0-9][0-9].[0-9][0-9]" | sed -e 's/-/./;s/-g/+/')
+          MODULE_VERSION="${TAG%%+*}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "module_version=$MODULE_VERSION" >> "$GITHUB_OUTPUT"
       - uses: bazel-contrib/setup-bazel@0.18.0
       - name: Build release artifacts
         working-directory: runner
@@ -44,32 +41,62 @@ jobs:
           shasum -a 256 assets/aspect_gazelle-* > assets/CHECKSUMS
 
           cat <<EOF > $GITHUB_WORKSPACE/release_notes.txt
-          We recommend using with https://github.com/bazel-contrib/rules_multitool.
+          Add to your \`MODULE.bazel\`:
 
-          To upgrade run,
-
-          \`\`\`sh
-          multitool update tools.lock.json
+          \`\`\`starlark
+          bazel_dep(name = "aspect_gazelle_prebuilt", version = "${{ steps.version.outputs.module_version }}")
           \`\`\`
 
-          If it's your initial install, use the following \`tools.lock.json\`:
+          Then in your \`BUILD.bazel\`:
 
-          \`\`\`json
-          $(jq --arg tag "${{ needs.tag.outputs.tag }}" -Rs -f $GITHUB_WORKSPACE/.github/workflows/filter.jq assets/CHECKSUMS)
+          \`\`\`starlark
+          load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
+
+          aspect_gazelle(
+              name = "gazelle",
+              languages = ["js", "python"],
+              extensions = ["//tools/gazelle:my_rule.star"],
+          )
           \`\`\`
           EOF
+      - name: Generate prebuilt/MODULE.bazel and def.bzl
+        run: |
+          python3 prebuilt/generate.py \
+            prebuilt/MODULE.bazel.tmpl \
+            "${{ steps.version.outputs.tag }}" \
+            runner/assets/CHECKSUMS \
+            runner/def.bzl
+      - name: Commit and tag
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f prebuilt/MODULE.bazel prebuilt/def.bzl
+          git diff --staged --quiet || git commit -m "chore: generate prebuilt/ for ${{ steps.version.outputs.tag }}"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
       - name: Generate artifact attestation
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: 'runner/assets/*'
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.tag.outputs.tag }}
+          tag_name: ${{ steps.version.outputs.tag }}
           files: runner/assets/*
           generate_release_notes: true
           body_path: release_notes.txt
           draft: true # https://github.com/softprops/action-gh-release/issues/653
       - name: Promote release to published
-        run: gh release edit ${{ needs.tag.outputs.tag }} --draft=false
+        run: gh release edit ${{ steps.version.outputs.tag }} --draft=false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  publish-to-bcr:
+    needs: release
+    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@main
+    with:
+      tag_name: ${{ needs.release.outputs.tag }}
+      registry_fork: "aspect-build/bazel-central-registry"
+      tag_prefix: ""
+      draft: false
+      attest: false
+    secrets:
+      publish_token: ${{ secrets.BCR_PUBLISH_TOKEN }}

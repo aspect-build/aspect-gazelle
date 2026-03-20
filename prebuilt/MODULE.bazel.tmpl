@@ -1,0 +1,33 @@
+module(
+    name = "aspect_gazelle_prebuilt",
+    version = "0.0.0",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "gazelle", version = "0.47.0")
+bazel_dep(name = "platforms", version = "0.0.10")
+
+http_file = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_file")
+
+http_file(
+    name = "aspect_gazelle_prebuilt_linux_amd64",
+    executable = True,
+    sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+    url = "https://github.com/aspect-build/aspect-gazelle/releases/download/0.0.0/aspect_gazelle-linux_amd64",
+)
+
+http_file(
+    name = "aspect_gazelle_prebuilt_linux_arm64",
+    executable = True,
+    sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+    url = "https://github.com/aspect-build/aspect-gazelle/releases/download/0.0.0/aspect_gazelle-linux_arm64",
+)
+
+http_file(
+    name = "aspect_gazelle_prebuilt_darwin_arm64",
+    executable = True,
+    sha256 = "0000000000000000000000000000000000000000000000000000000000000000",
+    url = "https://github.com/aspect-build/aspect-gazelle/releases/download/0.0.0/aspect_gazelle-darwin_arm64",
+)
+
+register_toolchains("//toolchain:all")

@@ -40,7 +40,8 @@ aspect_gazelle(
     mode = "diff",
 )
 
-# The target used to publish the prebuilt gazelle binary.
+# The target built and uploaded as a release artifact by .github/workflows/release.yaml.
+# The resulting binaries are downloaded by the aspect_gazelle_prebuilt Bazel module (../prebuilt/).
 alias(
     name = "gazelle_prebuilt_bin",
     actual = "//bin/gazelle:gazelle",

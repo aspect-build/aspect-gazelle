@@ -1,0 +1,3 @@
+# Files generated at release time
+MODULE.bazel
+def.bzl

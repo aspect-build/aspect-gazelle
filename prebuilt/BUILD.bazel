@@ -1,0 +1,14 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":rules.bzl", "gazelle_runner")
+
+gazelle_runner(
+    name = "gazelle_prebuilt_bin",
+    visibility = ["//visibility:public"],
+)
+
+bzl_library(
+    name = "def",
+    srcs = ["def.bzl"],
+    visibility = ["//visibility:public"],
+    deps = ["@gazelle//:def"],
+)
