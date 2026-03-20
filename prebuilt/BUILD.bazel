@@ -1,0 +1,21 @@
+load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
+load(":rules.bzl", "gazelle_runner")
+
+gazelle_runner(
+    name = "gazelle_prebuilt_bin",
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)
+
+bzl_library(
+    name = "integrity",
+    srcs = ["integrity.bzl"],
+    visibility = ["//visibility:private"],
+)
+
+bzl_library(
+    name = "extensions",
+    srcs = ["extensions.bzl"],
+    visibility = ["//visibility:public"],
+    deps = [":integrity"],
+)
