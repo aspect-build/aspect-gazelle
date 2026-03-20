@@ -1,3 +1,4 @@
+# Generated from runner/def.bzl by the release process. Do not edit manually.
 """
 Aspect enhanced Gazelle
 """
@@ -37,7 +38,7 @@ def aspect_gazelle(languages = [], extensions = [], **kwargs):
 
     Example:
         ```starlark
-        load("@aspect_gazelle_runner//:def.bzl", "aspect_gazelle")
+        load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
 
         # Basic usage with all default languages
         aspect_gazelle(
