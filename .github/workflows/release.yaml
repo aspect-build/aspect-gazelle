@@ -38,10 +38,10 @@ jobs:
         working-directory: runner
         run: |
           mkdir assets
-          for platform in linux_amd64_cgo linux_arm64_cgo darwin_arm64_cgo; do
-            bazel run --run_under cp --platforms="@rules_go//go/toolchain:$platform" //:gazelle_prebuilt_bin "$PWD/assets/gazelle-$platform"
+          for platform in linux_amd64 linux_arm64 darwin_arm64; do
+            bazel run --run_under cp --platforms="@rules_go//go/toolchain:${platform}_cgo" //:gazelle_prebuilt_bin "$PWD/assets/aspect_gazelle-$platform"
           done
-          shasum -a 256 assets/* > assets/CHECKSUMS
+          shasum -a 256 assets/aspect_gazelle-* > assets/CHECKSUMS
 
           cat <<EOF > $GITHUB_WORKSPACE/release_notes.txt
           We recommend using with https://github.com/bazel-contrib/rules_multitool.
