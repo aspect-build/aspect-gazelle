@@ -266,20 +266,22 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	if hasPackageTarget {
 		// Add the primary source rule by default if it exists
 		var srcLabel *label.Label
-		if srcRule, hasDefaultLib := sourceRules[DefaultLibraryName]; hasDefaultLib {
+		var srcRule *rule.Rule
+		if r, hasDefaultLib := sourceRules[DefaultLibraryName]; hasDefaultLib {
+			srcRule = r
 			srcLabel = &label.Label{
-				Name:     srcRule.Name(),
+				Name:     r.Name(),
 				Repo:     args.Config.RepoName,
 				Pkg:      args.Rel,
 				Relative: true,
 			}
 		}
 
-		ts.addPackageRule(cfg, args, packageName, dataFiles, srcLabel, result)
+		ts.addPackageRule(cfg, args, packageName, dataFiles, srcLabel, srcRule, result)
 	}
 }
 
-func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.GenerateArgs, packageName string, dataFiles []string, srcLabel *label.Label, result *language.GenerateResult) {
+func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.GenerateArgs, packageName string, dataFiles []string, srcLabel *label.Label, srcRule *rule.Rule, result *language.GenerateResult) {
 	npmPackageInfo := newTsPackageInfo(srcLabel)
 
 	packageJsonPath := path.Join(args.Rel, NpmPackageFilename)
@@ -340,6 +342,29 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	npmPackage.SetPrivateAttr("ts_project_info", &npmPackageInfo.TsProjectInfo)
 	npmPackage.SetAttr("srcs", npmPackageInfo.sources.Values())
 	npmPackage.SetAttr("visibility", []string{npmPackageVisibility})
+
+	// Conditionally set types on js_library when the package.json "types" or "typings"
+	// field points to a transpilable source file (e.g. "types": "./src/index.ts").
+	// This supports source-TypeScript monorepo patterns where TypeScript module resolution
+	// needs the source .ts files at the path specified in package.json, and the .d.ts
+	// outputs from ts_project (in dist/) don't satisfy it because they're at different paths.
+	if packageTargetKind == JsLibraryKind && srcRule != nil {
+		typesField, _, typesErr := parserCache.LoadOrStoreFile(args.Config.RepoRoot, packageJsonPath, "parsePackageJsonTypesField", func(path string, content []byte) (any, error) {
+			return node.ParsePackageJsonTypesField(bytes.NewReader(content))
+		})
+		if typesErr != nil {
+			BazelLog.Warnf("Failed to parse %q types field: %v", packageJsonPath, typesErr)
+		} else if typesFieldStr, ok := typesField.(string); ok && isTranspiledSourceFileType(typesFieldStr) {
+			// Only include the specific file referenced by the types field, not all
+			// transpiled sources, since the types attribute should reflect exactly
+			// what the package.json declares as its type entry point.
+			typesFile := path.Base(typesFieldStr)
+			srcFiles := srcRule.AttrStrings("srcs")
+			if slices.Contains(srcFiles, typesFile) {
+				npmPackage.SetAttr("types", []string{typesFile})
+			}
+		}
+	}
 
 	result.Gen = append(result.Gen, npmPackage)
 	result.Imports = append(result.Imports, npmPackageInfo)

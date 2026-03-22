@@ -30,6 +30,8 @@ importers:
 
   types-js-gen: {}
 
+  types-ts-source: {}
+
   typings-js: {}
 
   typings-js-gen: {}

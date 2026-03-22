@@ -1,0 +1,5 @@
+{
+  "name": "types-ts-source",
+  "private": true,
+  "types": "./start.ts"
+}

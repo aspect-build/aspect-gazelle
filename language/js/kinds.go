@@ -72,7 +72,8 @@ var tsKinds = map[string]rule.KindInfo{
 		},
 		SubstituteAttrs: map[string]bool{},
 		MergeableAttrs: map[string]bool{
-			"srcs": true,
+			"srcs":  true,
+			"types": true,
 		},
 		ResolveAttrs: map[string]bool{
 			"deps": true,

@@ -99,3 +99,28 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 
 	return imports, nil
 }
+
+// ParsePackageJsonTypesField returns the resolved types entry point from package.json.
+// It checks the "types" field first, then "typings" as a fallback, returning "" if
+// neither is set. The "main" field is intentionally not used as a fallback here because
+// it typically points to a JavaScript entry point, not a types declaration.
+func ParsePackageJsonTypesField(packageJsonReader io.Reader) (string, error) {
+	packageJsonData, err := io.ReadAll(packageJsonReader)
+	if err != nil {
+		return "", err
+	}
+
+	var c npmPackageJSON
+	if err := jsonc.Unmarshal(packageJsonData, &c); err != nil {
+		return "", err
+	}
+
+	if c.Types != "" {
+		return path.Clean(c.Types), nil
+	}
+	if c.Typings != "" {
+		return path.Clean(c.Typings), nil
+	}
+
+	return "", nil
+}

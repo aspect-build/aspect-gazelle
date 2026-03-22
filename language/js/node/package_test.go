@@ -35,6 +35,50 @@ func TestParsePackageJsonImports(t *testing.T) {
 	})
 }
 
+func TestParsePackageJsonTypesField(t *testing.T) {
+	t.Run("types field", func(t *testing.T) {
+		assertParsePackageJsonTypesField(t, `{"types":"./src/index.ts"}`, "src/index.ts")
+		assertParsePackageJsonTypesField(t, `{"types":"./dist/index.d.ts"}`, "dist/index.d.ts")
+	})
+
+	t.Run("typings fallback", func(t *testing.T) {
+		assertParsePackageJsonTypesField(t, `{"typings":"./src/index.ts"}`, "src/index.ts")
+	})
+
+	t.Run("no types fields", func(t *testing.T) {
+		assertParsePackageJsonTypesField(t, `{}`, "")
+		assertParsePackageJsonTypesField(t, `{"main":"./dist/index.js"}`, "")
+		assertParsePackageJsonTypesField(t, `{"main":"./src/index.ts"}`, "")
+	})
+
+	t.Run("precedence", func(t *testing.T) {
+		assertParsePackageJsonTypesField(t, `{"types":"./src/index.ts","typings":"./other.ts"}`, "src/index.ts")
+		assertParsePackageJsonTypesField(t, `{"types":"./src/index.ts","main":"./other.js"}`, "src/index.ts")
+	})
+
+	t.Run("path normalization", func(t *testing.T) {
+		assertParsePackageJsonTypesField(t, `{"types":"./src/../src/index.ts"}`, "src/index.ts")
+	})
+
+	t.Run("malformed json", func(t *testing.T) {
+		_, err := ParsePackageJsonTypesField(strings.NewReader(`{invalid`))
+		if err == nil {
+			t.Error("ParsePackageJsonTypesField should return error for malformed JSON")
+		}
+	})
+}
+
+func assertParsePackageJsonTypesField(t *testing.T, packageJson string, expected string) {
+	result, err := ParsePackageJsonTypesField(strings.NewReader(packageJson))
+	if err != nil {
+		t.Errorf("ParsePackageJsonTypesField failed: %v:\n\t%s", err, packageJson)
+		return
+	}
+	if result != expected {
+		t.Errorf("ParsePackageJsonTypesField(%q) expected %q, got %q", packageJson, expected, result)
+	}
+}
+
 func assertParsePackageJsonImports(t *testing.T, packageJson string, expectedImports ...string) {
 	imps, err := ParsePackageJsonImports(strings.NewReader(packageJson))
 
