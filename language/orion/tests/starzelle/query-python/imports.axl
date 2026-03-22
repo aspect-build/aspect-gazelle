@@ -1,0 +1,46 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".py")],
+        queries = {
+            "imports": aspect.AstQuery(
+                grammar = "python",
+                filter = "**/*.py",
+                query = "(import_statement name: (dotted_name) @imp)",
+            ),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        rel_modname = file.path[:file.path.rindex(".")].replace("/", ".")
+        ctx.targets.add(
+            name = path.base(file.path[:file.path.rindex(".")]) + "_lib",
+            kind = "x_lib",
+            attrs = {
+                "srcs": [file.path],
+                "deps": [
+                    aspect.Import(
+                        id = i.captures["imp"],
+                        provider = "x",
+                        src = file.path,
+                    )
+                    for i in file.query_results["imports"]
+                ],
+            },
+            symbols = [aspect.Symbol(
+                id = ".".join([ctx.rel, rel_modname]) if ctx.rel else rel_modname,
+                provider = "x",
+            )],
+        )
+
+aspect.orion_extension(
+    id = "python-test",
+    prepare = prepare,
+    declare = declare,
+)
