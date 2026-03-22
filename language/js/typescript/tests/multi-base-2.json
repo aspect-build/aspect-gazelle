@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "importHelpers": false,
+    "baseUrl": "lib2",
+    "sourceMap": true,
+    "paths": {
+      "alias-2": ["src/2"]
+    }
+  }
+}
