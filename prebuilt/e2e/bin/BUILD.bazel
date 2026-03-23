@@ -1,0 +1,20 @@
+load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+
+aspect_gazelle(
+    name = "gazelle",
+    extra_args = ["-index=lazy"],
+)
+
+aspect_gazelle(
+    name = "gazelle.check",
+    mode = "diff",
+)
+
+build_test(
+    name = "build_test",
+    targets = [
+        ":gazelle",
+        ":gazelle.check",
+    ],
+)

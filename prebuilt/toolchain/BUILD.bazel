@@ -1,0 +1,54 @@
+load(":defs.bzl", "gazelle_prebuilt_toolchain")
+
+toolchain_type(
+    name = "type",
+    visibility = ["//visibility:public"],
+)
+
+gazelle_prebuilt_toolchain(
+    name = "linux_amd64_impl",
+    binary = "@aspect_gazelle_prebuilt_linux_amd64//file",
+)
+
+toolchain(
+    name = "linux_amd64",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+    toolchain = ":linux_amd64_impl",
+    toolchain_type = ":type",
+    visibility = ["//visibility:public"],
+)
+
+gazelle_prebuilt_toolchain(
+    name = "linux_arm64_impl",
+    binary = "@aspect_gazelle_prebuilt_linux_arm64//file",
+)
+
+toolchain(
+    name = "linux_arm64",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+        "@platforms//cpu:aarch64",
+    ],
+    toolchain = ":linux_arm64_impl",
+    toolchain_type = ":type",
+    visibility = ["//visibility:public"],
+)
+
+gazelle_prebuilt_toolchain(
+    name = "darwin_arm64_impl",
+    binary = "@aspect_gazelle_prebuilt_darwin_arm64//file",
+)
+
+toolchain(
+    name = "darwin_arm64",
+    exec_compatible_with = [
+        "@platforms//os:osx",
+        "@platforms//cpu:aarch64",
+    ],
+    toolchain = ":darwin_arm64_impl",
+    toolchain_type = ":type",
+    visibility = ["//visibility:public"],
+)
