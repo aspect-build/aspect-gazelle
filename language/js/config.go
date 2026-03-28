@@ -61,7 +61,7 @@ const (
 	// The directive controlling whether asset collection is enabled for import types.
 	Directive_Assets = "js_assets"
 	// Directive_RuleKind overrides the generated rule kind for a specific target group.
-	// Syntax: # gazelle:js_rule_kind <group_name> <kind_name>
+	// Syntax: # gazelle:js_rule_kind <group_name> [kind_name]
 	Directive_RuleKind = "js_rule_kind"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
