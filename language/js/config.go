@@ -60,6 +60,9 @@ const (
 	Directive_TestFiles = "js_test_files"
 	// The directive controlling whether asset collection is enabled for import types.
 	Directive_Assets = "js_assets"
+	// Directive_RuleKind overrides the generated rule kind for a specific target group.
+	// Syntax: # gazelle:js_rule_kind <group_name> <kind_name>
+	Directive_RuleKind = "js_rule_kind"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
 	Directive_CustomTargetFiles = "js_custom_files"
@@ -111,6 +114,10 @@ type TargetGroup struct {
 
 	// If the targets are always testonly
 	testonly bool
+
+	// Per-group rule kind override. Empty string means use the default
+	// (ts_project or js_library based on source content).
+	ruleKind string
 }
 
 var DefaultSourceGlobs = []*TargetGroup{
@@ -235,6 +242,7 @@ func (g *TargetGroup) newChild() *TargetGroup {
 		defaultSources: sources,
 		testonly:       g.testonly,
 		visibility:     g.visibility,
+		ruleKind:       g.ruleKind,
 	}
 }
 
@@ -284,6 +292,25 @@ func (c *JsGazelleConfig) SetVisibility(groupName string, visLabels []string) er
 		target.visibility = append(target.visibility, l)
 	}
 
+	return nil
+}
+
+func (c *JsGazelleConfig) SetRuleKind(groupName, kindName string) error {
+	target := c.GetSourceTarget(groupName)
+	if target == nil {
+		return fmt.Errorf("Target group %q not found in %q", groupName, c.rel)
+	}
+
+	if kindName != "" {
+		switch kindName {
+		case TsProjectKind, JsLibraryKind, JsTestKind:
+			// valid source target kinds
+		default:
+			return fmt.Errorf("unknown rule kind %q; must be one of: ts_project, js_library, js_test. Use map_kind to remap to a custom rule", kindName)
+		}
+	}
+
+	target.ruleKind = kindName
 	return nil
 }
 
