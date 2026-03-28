@@ -1268,12 +1268,15 @@ func stripImportQuery(importPath string) string {
 	//  Vite: https://v6.vite.dev/guide/assets.html#explicit-inline-handling
 	//  Rspack: https://rsbuild.rs/guide/basic/static-assets#inline-assets
 	//  SVG: https://www.w3.org/TR/SVG/linking.html#SVGFragmentIdentifiers
-	queryIndex := strings.IndexAny(importPath, "?#")
-	if queryIndex == -1 {
-		return importPath
+	//
+	// Node.js subpath imports use a leading '#', e.g. #/foo or #utils — these
+	// must not be treated as fragment identifiers:
+	//  https://nodejs.org/api/packages.html#subpath-imports
+	if queryIndex := strings.IndexAny(importPath, "?#"); queryIndex > 0 {
+		importPath = importPath[:queryIndex]
 	}
 
-	return importPath[:queryIndex]
+	return importPath
 }
 
 // Return the default target name for the given language.GenerateArgs.
