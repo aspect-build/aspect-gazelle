@@ -262,7 +262,11 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			parts := strings.Fields(value)
 			if len(parts) == 1 {
 				// Reset to default (auto-detect from source content)
-				config.SetRuleKind(parts[0], "")
+				err := config.SetRuleKind(parts[0], "")
+				if err != nil {
+					common.MisconfiguredErrorf(c, "Invalid %s: %v", Directive_RuleKind, err)
+					return
+				}
 			} else if len(parts) == 2 {
 				err := config.SetRuleKind(parts[0], parts[1])
 				if err != nil {
