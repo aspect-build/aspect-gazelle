@@ -1,0 +1,11 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+# gazelle:js_files **/*.json
+
+js_library(
+    name = "json-pkg",
+    srcs = [
+        "data.json",
+        "schema.json",
+    ],
+)
