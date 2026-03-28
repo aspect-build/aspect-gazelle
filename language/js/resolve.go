@@ -48,9 +48,7 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 		return ts.protoLibraryImports(r, f)
 	case TsConfigKind:
 		return ts.tsconfigImports(r, f)
-	case TsProjectKind:
-		fallthrough
-	case JsLibraryKind:
+	case TsProjectKind, JsLibraryKind, JsTestKind:
 		return ts.sourceFileImports(c, r, f)
 	}
 	return nil
@@ -296,7 +294,7 @@ func (ts *typeScriptLang) Resolve(
 
 	// TsProject imports are resolved as deps
 	switch r.Kind() {
-	case TsProjectKind, JsLibraryKind, TsConfigKind, TsProtoLibraryKind:
+	case TsProjectKind, JsLibraryKind, JsTestKind, TsConfigKind, TsProtoLibraryKind:
 		deps := common.NewLabelSet(from)
 
 		// Support this target representing a project or a package
