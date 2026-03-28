@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_config(
+    name = "tsconfig_custom",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
+
+ts_project(
+    name = "existing_custom_name",
+    srcs = ["index.ts"],
+    tsconfig = ":tsconfig_custom",
+    deps = ["//:node_modules/tslib"],
+)
