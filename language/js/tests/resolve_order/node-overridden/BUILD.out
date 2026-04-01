@@ -13,5 +13,5 @@ npm_link_all_packages(name = "node_modules")
 ts_project(
     name = "node-overridden",
     srcs = ["test.ts"],
-    deps = ["//node-overridden:directive-resolve"],
+    deps = [":directive-resolve"],
 )

@@ -3,7 +3,7 @@ module github.com/aspect-build/aspect-gazelle/common
 go 1.26.1
 
 require (
-	github.com/bazelbuild/bazel-gazelle v0.47.0
+	github.com/bazelbuild/bazel-gazelle v0.48.0
 	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb

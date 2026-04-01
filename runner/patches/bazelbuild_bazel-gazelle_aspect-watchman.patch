@@ -81,5 +81,5 @@ index ae1f513..e28162d 100644
 +	// END-PATCH(watch) ---
 +
  	// Asynchronously populate the walker cache in the background.
- 	go w.populateCache()
+ 	go w.populateCache(mode)
  
