@@ -1,11 +1,11 @@
 load("@aspect_rules_ts//ts:proto.bzl", "ts_proto_library")
-load("@rules_proto//proto:defs.bzl", "proto_library")
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
 
 proto_library(
     name = "a_proto",
     srcs = ["lib.proto"],
     visibility = ["//visibility:public"],
-    deps = ["@com_google_protobuf//:duration_proto"],
+    deps = ["@protobuf//:duration_proto"],
 )
 
 ts_proto_library(

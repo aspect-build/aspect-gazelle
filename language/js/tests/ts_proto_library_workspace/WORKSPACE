@@ -1,0 +1,1 @@
+workspace(name = "ts_proto_library_workspace")

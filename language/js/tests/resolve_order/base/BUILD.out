@@ -31,5 +31,5 @@ ts_project(
         "test.ts",
         "the-import.ts",
     ],
-    deps = ["//base:directive-resolve"],
+    deps = [":directive-resolve"],
 )
