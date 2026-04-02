@@ -11,6 +11,7 @@ ts_project(
         "//lib/a",
         "//lib/b",
         "//lib/c",
+        "//lib/d",
     ],
 )
 
