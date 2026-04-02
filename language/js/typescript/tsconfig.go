@@ -17,6 +17,8 @@
 package typescript
 
 import (
+	"encoding/json"
+	"fmt"
 	"io"
 	"os"
 	"path"
@@ -55,8 +57,24 @@ type tsReferenceJSON struct {
 	Path string `json:"path"`
 }
 
+type StringOrStringArray []string
+
+func (s *StringOrStringArray) UnmarshalJSON(data []byte) error {
+	var single string
+	if err := json.Unmarshal(data, &single); err == nil {
+		*s = []string{single}
+		return nil
+	}
+	var multiple []string
+	if err := json.Unmarshal(data, &multiple); err != nil {
+		return fmt.Errorf("expected string or []string: %w", err)
+	}
+	*s = multiple
+	return nil
+}
+
 type tsConfigJSON struct {
-	Extends         string                `json:"extends"`
+	Extends         StringOrStringArray   `json:"extends"`
 	CompilerOptions tsCompilerOptionsJSON `json:"compilerOptions"`
 	References      *[]tsReferenceJSON    `json:"references"`
 }
@@ -125,8 +143,11 @@ type TsConfig struct {
 	Jsx TsConfigJsxType
 
 	// References to other tsconfig or packages that must be resolved.
-	Types   []string
-	Extends string
+	Types []string
+
+	// Extends lists all tsconfig files that this config directly extends.
+	// Used for dependency tracking in Bazel. Ordered as they appear in the JSON.
+	Extends []string
 
 	// TODO: drop references? Not supported by rules_ts?
 	References []string
@@ -153,6 +174,162 @@ func isRelativePath(p string) bool {
 	}
 
 	return p[0] == '.' && (p == "." || p == ".." || strings.HasPrefix(p, "./") || strings.HasPrefix(p, "../"))
+}
+
+// mergeBaseConfigs merges two parsed TsConfig objects for multiple extends support.
+// The 'right' config overrides the 'left' config (TypeScript 5.0 semantics).
+// Paths are adjusted to be relative to currentConfigDir.
+func mergeBaseConfigs(left, right *TsConfig, currentConfigDir string) *TsConfig {
+	// Compute relative paths from current config to each base config
+	leftRel, leftErr := filepath.Rel(currentConfigDir, left.ConfigDir)
+	if leftErr != nil {
+		leftRel = "."
+	}
+	rightRel, rightErr := filepath.Rel(currentConfigDir, right.ConfigDir)
+	if rightErr != nil {
+		rightRel = "."
+	}
+
+	merged := &TsConfig{
+		ConfigDir:  left.ConfigDir, // Use left's dir (arbitrary choice)
+		ConfigName: left.ConfigName,
+	}
+
+	// For nullable boolean fields: right overrides left
+	merged.AllowJs = right.AllowJs
+	if merged.AllowJs == nil {
+		merged.AllowJs = left.AllowJs
+	}
+
+	merged.Composite = right.Composite
+	if merged.Composite == nil {
+		merged.Composite = left.Composite
+	}
+
+	merged.Declaration = right.Declaration
+	if merged.Declaration == nil {
+		merged.Declaration = left.Declaration
+	}
+
+	merged.DeclarationMap = right.DeclarationMap
+	if merged.DeclarationMap == nil {
+		merged.DeclarationMap = left.DeclarationMap
+	}
+
+	merged.DeclarationOnly = right.DeclarationOnly
+	if merged.DeclarationOnly == nil {
+		merged.DeclarationOnly = left.DeclarationOnly
+	}
+
+	merged.Incremental = right.Incremental
+	if merged.Incremental == nil {
+		merged.Incremental = left.Incremental
+	}
+
+	merged.IsolatedDeclarations = right.IsolatedDeclarations
+	if merged.IsolatedDeclarations == nil {
+		merged.IsolatedDeclarations = left.IsolatedDeclarations
+	}
+
+	merged.NoEmit = right.NoEmit
+	if merged.NoEmit == nil {
+		merged.NoEmit = left.NoEmit
+	}
+
+	merged.SourceMap = right.SourceMap
+	if merged.SourceMap == nil {
+		merged.SourceMap = left.SourceMap
+	}
+
+	merged.ResolveJsonModule = right.ResolveJsonModule
+	if merged.ResolveJsonModule == nil {
+		merged.ResolveJsonModule = left.ResolveJsonModule
+	}
+
+	// For string fields: right overrides left if not default
+	merged.DeclarationDir = right.DeclarationDir
+	if merged.DeclarationDir == "" || merged.DeclarationDir == "." {
+		merged.DeclarationDir = left.DeclarationDir
+	}
+
+	merged.OutDir = right.OutDir
+	if merged.OutDir == "" || merged.OutDir == "." {
+		merged.OutDir = left.OutDir
+	}
+
+	merged.RootDir = right.RootDir
+	if merged.RootDir == "" || merged.RootDir == "." {
+		merged.RootDir = left.RootDir
+	}
+
+	merged.BaseUrl = right.BaseUrl
+	if merged.BaseUrl == "" || merged.BaseUrl == "." {
+		merged.BaseUrl = left.BaseUrl
+	}
+
+	merged.TsBuildInfoFile = right.TsBuildInfoFile
+	if merged.TsBuildInfoFile == "" {
+		merged.TsBuildInfoFile = left.TsBuildInfoFile
+	}
+
+	// Paths: right completely replaces left (TypeScript behavior)
+	if right.Paths != nil && right.Paths != &DefaultConfigPaths && len(right.Paths.Map) > 0 {
+		merged.Paths = &TsConfigPaths{
+			Rel: path.Join(rightRel, right.Paths.Rel),
+			Map: right.Paths.Map,
+		}
+	} else if left.Paths != nil && left.Paths != &DefaultConfigPaths && len(left.Paths.Map) > 0 {
+		merged.Paths = &TsConfigPaths{
+			Rel: path.Join(leftRel, left.Paths.Rel),
+			Map: left.Paths.Map,
+		}
+	} else {
+		merged.Paths = &DefaultConfigPaths
+	}
+
+	// VirtualRootDirs: right completely replaces left
+	if len(right.VirtualRootDirs) > 0 {
+		merged.VirtualRootDirs = make([]string, len(right.VirtualRootDirs))
+		for i, d := range right.VirtualRootDirs {
+			merged.VirtualRootDirs[i] = path.Join(rightRel, d)
+		}
+	} else if len(left.VirtualRootDirs) > 0 {
+		merged.VirtualRootDirs = make([]string, len(left.VirtualRootDirs))
+		for i, d := range left.VirtualRootDirs {
+			merged.VirtualRootDirs[i] = path.Join(leftRel, d)
+		}
+	}
+
+	// ImportHelpers: right overrides left
+	// Since ImportHelpers is a bool (not *bool), we can't distinguish between
+	// "not set" and "set to false". So we trust that the parsed configs have
+	// the correct values and just take the right value.
+	merged.ImportHelpers = right.ImportHelpers
+
+	// Jsx: right overrides left if set
+	merged.Jsx = right.Jsx
+	if merged.Jsx == JsxNone {
+		merged.Jsx = left.Jsx
+	}
+
+	// Types: right completely replaces left
+	if len(right.Types) > 0 {
+		merged.Types = right.Types
+	} else {
+		merged.Types = left.Types
+	}
+
+	// References: right completely replaces left
+	if len(right.References) > 0 {
+		merged.References = right.References
+	} else {
+		merged.References = left.References
+	}
+
+	// Extends: concatenate both extends lists (all dependencies)
+	merged.Extends = append(left.Extends, right.Extends...)
+
+	return merged
 }
 
 // Load a tsconfig.json file and return the compilerOptions config with
@@ -200,28 +377,59 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		return nil, err
 	}
 
+	// Parse and merge all extended configs (if any)
 	var baseConfig *TsConfig
-	var extends string
-	if c.Extends != "" {
-		// Load the extended config if it can be resolved.
-		// Extending external config such as npm packages can not be loaded but should
-		// still be recorderded for computing dependencies.
-		extends = path.Clean(c.Extends)
-
-		for _, potential := range resolver(path.Dir(tsconfig), c.Extends) {
-			base, err := parseTsConfigJSONFile(parsed, resolver, root, potential)
-
-			if err != nil {
-				BazelLog.Warnf("Failed to load base tsconfig file %q from %q: %v", c.Extends, tsconfig, err)
-			} else if base != nil {
-				baseConfig = base
-				break
-			}
-		}
-	}
+	var extendsClean []string
 
 	configDir := path.Dir(tsconfig)
 	configName := path.Base(tsconfig)
+
+	if len(c.Extends) > 0 {
+		extendsClean = make([]string, 0, len(c.Extends))
+
+		// Copy and clean all extends paths for dependency tracking
+		// Filter out empty strings
+		for _, ext := range c.Extends {
+			if ext != "" {
+				extendsClean = append(extendsClean, path.Clean(ext))
+			}
+		}
+
+		// Load all base configs using the original (uncleaned) paths,
+		// since path.Clean strips "./" prefixes which breaks isRelativePath checks.
+		baseConfigs := make([]*TsConfig, 0, len(c.Extends))
+
+		for _, ext := range c.Extends {
+			if ext == "" {
+				continue
+			}
+			var loadedBase *TsConfig
+
+			// Try to resolve and load this extended config
+			for _, potential := range resolver(path.Dir(tsconfig), ext) {
+				base, err := parseTsConfigJSONFile(parsed, resolver, root, potential)
+
+				if err != nil {
+					BazelLog.Warnf("Failed to load base tsconfig file %q from %q: %v", ext, tsconfig, err)
+				} else if base != nil {
+					loadedBase = base
+					break
+				}
+			}
+
+			if loadedBase != nil {
+				baseConfigs = append(baseConfigs, loadedBase)
+			}
+		}
+
+		// Merge all base configs left-to-right (later overrides earlier)
+		if len(baseConfigs) > 0 {
+			baseConfig = baseConfigs[0]
+			for i := 1; i < len(baseConfigs); i++ {
+				baseConfig = mergeBaseConfigs(baseConfig, baseConfigs[i], configDir)
+			}
+		}
+	}
 
 	var types []string
 	if c.CompilerOptions.Types != nil && len(*c.CompilerOptions.Types) > 0 {
@@ -239,191 +447,87 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		}
 	}
 
-	var baseConfigRel = "."
-	if baseConfig != nil {
-		rel, relErr := filepath.Rel(configDir, baseConfig.ConfigDir)
-		if relErr != nil {
-			BazelLog.Warnf("Failed to resolve relative path from %s to %s: %v", configDir, baseConfig.ConfigDir, relErr)
-		} else {
-			baseConfigRel = rel
-		}
-	}
-
-	var allowJs *bool
-	if c.CompilerOptions.AllowJs != nil {
-		allowJs = c.CompilerOptions.AllowJs
-	} else if baseConfig != nil {
-		allowJs = baseConfig.AllowJs
-	}
-
-	var composite *bool
-	if c.CompilerOptions.Composite != nil {
-		composite = c.CompilerOptions.Composite
-	} else if baseConfig != nil {
-		composite = baseConfig.Composite
-	}
-
-	var declaration *bool
-	if c.CompilerOptions.Declaration != nil {
-		declaration = c.CompilerOptions.Declaration
-	} else if baseConfig != nil {
-		declaration = baseConfig.Declaration
-	}
-
-	var declarationMap *bool
-	if c.CompilerOptions.DeclarationMap != nil {
-		declarationMap = c.CompilerOptions.DeclarationMap
-	} else if baseConfig != nil {
-		declarationMap = baseConfig.DeclarationMap
-	}
-
-	var declarationOnly *bool
-	if c.CompilerOptions.DeclarationOnly != nil {
-		declarationOnly = c.CompilerOptions.DeclarationOnly
-	} else if baseConfig != nil {
-		declarationOnly = baseConfig.DeclarationOnly
-	}
-
-	var incremental *bool
-	if c.CompilerOptions.Incremental != nil {
-		incremental = c.CompilerOptions.Incremental
-	} else if baseConfig != nil {
-		incremental = baseConfig.Incremental
-	}
-
-	var isolatedDeclarations *bool
-	if c.CompilerOptions.IsolatedDeclarations != nil {
-		isolatedDeclarations = c.CompilerOptions.IsolatedDeclarations
-	} else if baseConfig != nil {
-		isolatedDeclarations = baseConfig.IsolatedDeclarations
-	}
-
-	var noEmit *bool
-	if c.CompilerOptions.NoEmit != nil {
-		noEmit = c.CompilerOptions.NoEmit
-	} else if baseConfig != nil {
-		noEmit = baseConfig.NoEmit
-	}
-
-	var tsBuildInfoFile string
-	if c.CompilerOptions.TsBuildInfoFile != nil {
-		tsBuildInfoFile = expandConfigDirFile(*c.CompilerOptions.TsBuildInfoFile, configDir)
-	} else if baseConfig != nil {
-		tsBuildInfoFile = baseConfig.TsBuildInfoFile
-	}
-
-	var sourceMap *bool
-	if c.CompilerOptions.SourceMap != nil {
-		sourceMap = c.CompilerOptions.SourceMap
-	} else if baseConfig != nil {
-		sourceMap = baseConfig.SourceMap
-	}
-
-	var resolveJsonModule *bool
-	if c.CompilerOptions.ResolveJsonModule != nil {
-		resolveJsonModule = c.CompilerOptions.ResolveJsonModule
-	} else if baseConfig != nil {
-		resolveJsonModule = baseConfig.ResolveJsonModule
-	}
-
-	var RootDir string
-	if c.CompilerOptions.RootDir != nil {
-		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
-	} else {
-		RootDir = "."
-	}
-
-	var OutDir string
-	if c.CompilerOptions.OutDir != nil {
-		OutDir = expandConfigDirPath(*c.CompilerOptions.OutDir, configDir)
-	} else if baseConfig != nil {
-		OutDir = baseConfig.OutDir
-	} else {
-		OutDir = "."
-	}
-
-	var declarationDir string
-	if c.CompilerOptions.DeclarationDir != nil {
-		declarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
-	} else {
-		declarationDir = OutDir
-	}
-
-	var BaseUrl string
-	if c.CompilerOptions.BaseUrl != nil {
-		BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl, configDir)
-	} else {
-		BaseUrl = "."
-	}
-
-	var Paths *TsConfigPaths
-	if c.CompilerOptions.Paths != nil {
-		Paths = &TsConfigPaths{
-			Rel: BaseUrl,
-			Map: *c.CompilerOptions.Paths,
-		}
-	} else if baseConfig != nil {
-		Paths = &TsConfigPaths{
-			Rel: path.Join(baseConfigRel, baseConfig.Paths.Rel),
-			Map: baseConfig.Paths.Map,
-		}
-	} else {
-		Paths = &DefaultConfigPaths
-	}
-
-	var VirtualRootDirs []string
-	if c.CompilerOptions.RootDirs != nil {
-		for _, d := range *c.CompilerOptions.RootDirs {
-			VirtualRootDirs = append(VirtualRootDirs, path.Clean(d))
-		}
-	} else if baseConfig != nil {
-		for _, d := range baseConfig.VirtualRootDirs {
-			VirtualRootDirs = append(VirtualRootDirs, path.Join(baseConfigRel, d))
-		}
-	}
-
-	var importHelpers = false
-	if c.CompilerOptions.ImportHelpers != nil {
-		importHelpers = *c.CompilerOptions.ImportHelpers
-	} else if baseConfig != nil {
-		importHelpers = baseConfig.ImportHelpers
-	}
-
-	var jsx = JsxNone
-	if c.CompilerOptions.JSX != nil {
-		jsx = *c.CompilerOptions.JSX
-	} else if baseConfig != nil {
-		jsx = baseConfig.Jsx
-	}
-
-	config := TsConfig{
+	// Build a TsConfig from this file's explicitly-set values
+	currentConfig := &TsConfig{
 		ConfigDir:            configDir,
 		ConfigName:           configName,
-		AllowJs:              allowJs,
-		Composite:            composite,
-		Declaration:          declaration,
-		DeclarationDir:       declarationDir,
-		DeclarationMap:       declarationMap,
-		DeclarationOnly:      declarationOnly,
-		Incremental:          incremental,
-		IsolatedDeclarations: isolatedDeclarations,
-		TsBuildInfoFile:      tsBuildInfoFile,
-		SourceMap:            sourceMap,
-		ResolveJsonModule:    resolveJsonModule,
-		NoEmit:               noEmit,
-		OutDir:               OutDir,
-		RootDir:              RootDir,
-		BaseUrl:              BaseUrl,
-		Paths:                Paths,
-		VirtualRootDirs:      VirtualRootDirs,
-		Extends:              extends,
-		ImportHelpers:        importHelpers,
-		Jsx:                  jsx,
+		Extends:              extendsClean,
+		AllowJs:              c.CompilerOptions.AllowJs,
+		Composite:            c.CompilerOptions.Composite,
+		Declaration:          c.CompilerOptions.Declaration,
+		DeclarationMap:       c.CompilerOptions.DeclarationMap,
+		DeclarationOnly:      c.CompilerOptions.DeclarationOnly,
+		Incremental:          c.CompilerOptions.Incremental,
+		IsolatedDeclarations: c.CompilerOptions.IsolatedDeclarations,
+		NoEmit:               c.CompilerOptions.NoEmit,
+		SourceMap:            c.CompilerOptions.SourceMap,
+		ResolveJsonModule:    c.CompilerOptions.ResolveJsonModule,
+		RootDir:              ".",
+		OutDir:               ".",
+		BaseUrl:              ".",
+		Paths:                &DefaultConfigPaths,
+		Jsx:                  JsxNone,
 		Types:                types,
 		References:           references,
 	}
 
-	return &config, nil
+	if c.CompilerOptions.RootDir != nil {
+		currentConfig.RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
+	}
+	if c.CompilerOptions.OutDir != nil {
+		currentConfig.OutDir = expandConfigDirPath(*c.CompilerOptions.OutDir, configDir)
+	}
+	if c.CompilerOptions.DeclarationDir != nil {
+		currentConfig.DeclarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
+	} else {
+		currentConfig.DeclarationDir = currentConfig.OutDir
+	}
+	if c.CompilerOptions.BaseUrl != nil {
+		currentConfig.BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl, configDir)
+	}
+	if c.CompilerOptions.TsBuildInfoFile != nil {
+		currentConfig.TsBuildInfoFile = expandConfigDirFile(*c.CompilerOptions.TsBuildInfoFile, configDir)
+	}
+	if c.CompilerOptions.Paths != nil {
+		currentConfig.Paths = &TsConfigPaths{
+			Rel: currentConfig.BaseUrl,
+			Map: *c.CompilerOptions.Paths,
+		}
+	}
+	if c.CompilerOptions.RootDirs != nil {
+		for _, d := range *c.CompilerOptions.RootDirs {
+			currentConfig.VirtualRootDirs = append(currentConfig.VirtualRootDirs, path.Clean(d))
+		}
+	}
+	if c.CompilerOptions.ImportHelpers != nil {
+		currentConfig.ImportHelpers = *c.CompilerOptions.ImportHelpers
+	}
+	if c.CompilerOptions.JSX != nil {
+		currentConfig.Jsx = *c.CompilerOptions.JSX
+	}
+
+	// Merge with base config if present
+	if baseConfig != nil {
+		merged := mergeBaseConfigs(baseConfig, currentConfig, configDir)
+		merged.ConfigDir = configDir
+		merged.ConfigName = configName
+		merged.Extends = extendsClean
+		// RootDir and BaseUrl are never inherited from base (TypeScript behavior:
+		// these are relative to the config that defines them)
+		merged.RootDir = currentConfig.RootDir
+		merged.BaseUrl = currentConfig.BaseUrl
+		// DeclarationDir falls back to OutDir, not base
+		if c.CompilerOptions.DeclarationDir == nil {
+			merged.DeclarationDir = merged.OutDir
+		}
+		// ImportHelpers: bool not *bool, handle "not set" explicitly
+		if c.CompilerOptions.ImportHelpers == nil {
+			merged.ImportHelpers = baseConfig.ImportHelpers
+		}
+		currentConfig = merged
+	}
+
+	return currentConfig, nil
 }
 
 func (c TsConfig) ToOutDir(f string) string {

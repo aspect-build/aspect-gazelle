@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "baseUrl": "lib1",
+    "declaration": true,
+    "paths": {
+      "alias-1": ["src/1"]
+    }
+  }
+}
