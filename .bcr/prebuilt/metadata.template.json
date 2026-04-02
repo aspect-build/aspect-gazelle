@@ -1,0 +1,20 @@
+{
+    "homepage": "https://github.com/aspect-build/aspect-gazelle",
+    "maintainers": [
+        {
+            "email": "jason@aspect.build",
+            "github": "jbedard",
+            "name": "Jason Bedard"
+        },
+        {
+            "email": "alex@aspect.build",
+            "github": "alexeagle",
+            "name": "Alex Eagle"
+        }
+    ],
+    "repository": [
+        "github:aspect-build/aspect-gazelle"
+    ],
+    "versions": [],
+    "yanked_versions": {}
+}
