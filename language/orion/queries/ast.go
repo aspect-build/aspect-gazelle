@@ -7,6 +7,7 @@ import (
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/golang"
+	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/hcl"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/java"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
@@ -66,6 +67,8 @@ func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Lan
 	switch lang {
 	case treesitter.Go:
 		return golang.NewLanguage()
+	case treesitter.HCL:
+		return hcl.NewLanguage()
 	case treesitter.Java:
 		return java.NewLanguage()
 	case treesitter.JSON:
