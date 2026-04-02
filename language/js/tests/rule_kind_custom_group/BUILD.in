@@ -1,0 +1,3 @@
+# gazelle:js_test_files e2e *.e2e.ts
+# gazelle:js_rule_kind e2e js_test
+# gazelle:map_kind js_test jest_test //:defs.bzl
