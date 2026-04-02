@@ -1,0 +1,24 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+# gazelle:generation_mode update_only
+
+x_lib(
+    name = "a_lib",
+    srcs = ["a.py"],
+    deps = [
+        ":b_lib",
+        ":s_lib",
+    ],
+)
+
+x_lib(
+    name = "b_lib",
+    srcs = ["b.py"],
+    deps = ["//lib:l_lib"],
+)
+
+x_lib(
+    name = "s_lib",
+    srcs = ["sub/s.py"],
+    deps = ["//lib:l_lib"],
+)
