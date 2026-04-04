@@ -162,7 +162,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// Util for adding a file to a source group or the data files.
 	processPotentialSourceFile := func(groups map[string][]string, file string) {
 		fileExt := path.Ext(file)
-		if isSourceFileExt(fileExt) {
+		if isSourceFileExt(fileExt) || isDataFileExt(fileExt) {
 			if target := cfg.GetFileSourceTarget(file, tsconfigRootDir); target != nil {
 				// Source files belonging to a target group.
 				if BazelLog.IsTraceEnabled() {
@@ -845,7 +845,15 @@ func (ts *typeScriptLang) parseFiles(cfg *JsGazelleConfig, args language.Generat
 	rel := args.Rel
 	repoRoot := args.Config.RepoRoot
 
-	return common.Parallelize(sourceFiles, func(sourcePath string) parseResult {
+	// Filter out non-JS/TS files (e.g. .json) that can't be parsed for imports.
+	parsableFiles := make([]string, 0, len(sourceFiles))
+	for _, f := range sourceFiles {
+		if isSourceFileExt(path.Ext(f)) {
+			parsableFiles = append(parsableFiles, f)
+		}
+	}
+
+	return common.Parallelize(parsableFiles, func(sourcePath string) parseResult {
 		return ts.collectImports(cfg, parserCache, repoRoot, joinPkg(rel, sourcePath))
 	})
 }

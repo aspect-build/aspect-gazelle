@@ -1,7 +1,7 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
-# gazelle:js_files **/*.{js,cjs,mjs,jsx}
+# gazelle:js_files **/*.{js,cjs,mjs,jsx,json}
 # gazelle:js_files m **/*.mjs
 # gazelle:js_files c **/*.cjs
 # gazelle:js_test_files **/*.spec.{js,cjs,mjs,jsx}
@@ -11,6 +11,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 ts_project(
     name = "opt-ins",
     srcs = [
+        "config.json",
         "non-typed.js",
         "non-typed.ts.js",
         "non-x-typed.jsx",
