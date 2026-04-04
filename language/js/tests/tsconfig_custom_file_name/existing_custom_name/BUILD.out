@@ -4,6 +4,7 @@ ts_config(
     name = "tsconfig_custom",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
+    deps = ["//:tsconfig"],
 )
 
 ts_project(
