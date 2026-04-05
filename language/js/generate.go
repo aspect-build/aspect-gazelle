@@ -755,11 +755,13 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 			}
 		}
 
-		// Reflect the tsconfig outDir in the ts_project rule
-		if tsconfig != nil && tsconfig.DeclarationDir != tsconfig.OutDir {
-			sourceRule.SetAttr("declaration_dir", tsconfig.DeclarationDir)
-		} else {
-			sourceRule.DelAttr("declaration_dir")
+		// Reflect the tsconfig declarationDir in the ts_project rule
+		if !cfg.IsTsConfigIgnored("declaration_dir") {
+			if tsconfig != nil && tsconfig.DeclarationDir != tsconfig.OutDir {
+				sourceRule.SetAttr("declaration_dir", tsconfig.DeclarationDir)
+			} else {
+				sourceRule.DelAttr("declaration_dir")
+			}
 		}
 
 		// Reflect the tsconfig rootDir in the ts_project rule
