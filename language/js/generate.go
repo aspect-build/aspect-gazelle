@@ -62,6 +62,7 @@ var tsProjectReflectedConfigAttributes = []string{
 	"declaration",
 	"declaration_dir",
 	"declaration_map",
+	"emit_declaration_only",
 	"source_map",
 	"incremental",
 	"ts_build_info_file",
