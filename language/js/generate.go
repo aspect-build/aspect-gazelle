@@ -636,7 +636,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		// If generating ts_config() targets also set the ts_project(tsconfig) and related attributes
 		// unless they have been explicitly opted out of being reflected.
 
-		if !cfg.IsTsConfigIgnored("allow_js") {
+		if !cfg.IsTsConfigIgnored("tsconfig") {
 			if tsconfig != nil {
 				tsconfigLabel := label.New("", tsconfigRel, cfg.RenderTsConfigName(tsconfig.ConfigName))
 				tsconfigLabel = tsconfigLabel.Rel("", args.Rel)
