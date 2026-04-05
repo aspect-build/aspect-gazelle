@@ -6,6 +6,8 @@
         "declaration": true,
         "declarationMap": true,
         "sourceMap": true,
+        "declarationDir": "types",
+        "emitDeclarationOnly": true,
         "outDir": "dist",
         "rootDir": "src",
         "target": "es2018",

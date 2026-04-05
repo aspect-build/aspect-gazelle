@@ -247,6 +247,9 @@ func (c *JsGazelleConfig) NewChild(childPath string) *JsGazelleConfig {
 	cCopy.ignoreDependencies = []common.GlobExpr{}
 	cCopy.resolves = []jsResolve{}
 
+	// Copy the ignored props, any modifications will be local.
+	cCopy.tsconfigIgnoredProps = append([]string{}, c.tsconfigIgnoredProps...)
+
 	// Copy the targets, any modifications will be local.
 	cCopy.targets = make([]*TargetGroup, 0, len(c.targets))
 	for _, target := range c.targets {
