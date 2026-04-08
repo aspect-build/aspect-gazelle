@@ -233,11 +233,19 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 			// No sources for this source group. Remove the rule if it exists.
 			ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
 		} else {
+			// Use the test tsconfig for testonly groups if configured.
+			groupTsconfigRel, groupTsconfig := tsconfigRel, tsconfig
+			if group.testonly {
+				if testRel, testCfg := ts.testTsconfig.FindConfig(args.Rel); testCfg != nil {
+					groupTsconfigRel, groupTsconfig = testRel, testCfg
+				}
+			}
+
 			// Add or edit/merge a rule for this source group.
 			srcRule, srcGenErr := ts.addProjectRule(
 				cfg,
-				tsconfigRel,
-				tsconfig,
+				groupTsconfigRel,
+				groupTsconfig,
 				args,
 				group,
 				ruleName,
@@ -343,23 +351,43 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
 	tsconfig := ts.tsconfig.GetTsConfigFile(args.Rel)
-	if tsconfig == nil {
+	if tsconfig == nil && ts.testTsconfig.GetTsConfigFile(args.Rel) == nil {
 		return
 	}
 
-	imports := newTsProjectInfo()
-	for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
-		imports.AddImport(impt)
+	if tsconfig != nil {
+		imports := newTsProjectInfo()
+		for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
+			imports.AddImport(impt)
+		}
+
+		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
+		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
+		tsconfigRule.SetAttr("src", tsconfig.ConfigName)
+		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
+
+		result.Gen = append(result.Gen, tsconfigRule)
+		result.Imports = append(result.Imports, imports)
+		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
 	}
 
-	tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
-	tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
-	tsconfigRule.SetAttr("src", tsconfig.ConfigName)
-	tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
+	// Generate a separate ts_config rule for the test tsconfig if configured
+	testTsconfig := ts.testTsconfig.GetTsConfigFile(args.Rel)
+	if testTsconfig != nil {
+		imports := newTsProjectInfo()
+		for _, impt := range ts.collectTsConfigImports(cfg, args, testTsconfig) {
+			imports.AddImport(impt)
+		}
 
-	result.Gen = append(result.Gen, tsconfigRule)
-	result.Imports = append(result.Imports, imports)
-	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
+		tsconfigName := cfg.RenderTsConfigName(testTsconfig.ConfigName)
+		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
+		tsconfigRule.SetAttr("src", testTsconfig.ConfigName)
+		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
+
+		result.Gen = append(result.Gen, tsconfigRule)
+		result.Imports = append(result.Imports, imports)
+		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
+	}
 }
 
 func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args language.GenerateArgs, tsconfig *typescript.TsConfig) []ImportStatement {

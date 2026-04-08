@@ -1,0 +1,6 @@
+{
+  "compilerOptions": {
+    "importHelpers": true,
+    "composite": true
+  }
+}
