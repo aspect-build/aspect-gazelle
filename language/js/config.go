@@ -27,6 +27,8 @@ const (
 	Directive_Lockfile = "js_pnpm_lockfile"
 	// The tsconfig.json file.
 	Directive_TsconfigFile = "js_tsconfig_file"
+	// The tsconfig.json file for test targets.
+	Directive_TestTsconfigFile = "js_test_tsconfig_file"
 	// Ignore and do not generate a tsconfig related `ts_project` attribute
 	Directive_TypeScriptConfigIgnore = "js_tsconfig_ignore"
 	// Directive_IgnoreImports represents the directive that controls the
@@ -177,6 +179,7 @@ type JsGazelleConfig struct {
 	pnpmLockPath string
 
 	tsconfigName         string
+	testTsconfigName     string
 	tsconfigIgnoredProps []string
 
 	ignoreDependencies       []common.GlobExpr
@@ -343,6 +346,14 @@ func (c *JsGazelleConfig) SetTsconfigFile(tsconfigName string) {
 }
 func (c *JsGazelleConfig) GetTsconfigFile() string {
 	return c.tsconfigName
+}
+
+// Set the tsconfig.json file name for test targets
+func (c *JsGazelleConfig) SetTestTsconfigFile(tsconfigName string) {
+	c.testTsconfigName = path.Clean(tsconfigName)
+}
+func (c *JsGazelleConfig) GetTestTsconfigFile() string {
+	return c.testTsconfigName
 }
 
 func (c *JsGazelleConfig) AddIgnoredTsConfig(propName string) {

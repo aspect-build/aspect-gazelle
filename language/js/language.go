@@ -30,6 +30,9 @@ type typeScriptLang struct {
 
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
+
+	// TypeScript configuration for test targets across the workspace
+	testTsconfig *typescript.TsWorkspace
 }
 
 var _ language.Language = (*typeScriptLang)(nil)
@@ -45,5 +48,6 @@ func NewLanguage() language.Language {
 		moduleTypes:  make(map[string][]*label.Label),
 		pnpmProjects: pnpmProjects,
 		tsconfig:     typescript.NewTsWorkspace(pnpmProjects),
+		testTsconfig: typescript.NewTsWorkspace(pnpmProjects),
 	}
 }
