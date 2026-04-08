@@ -1,0 +1,19 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "tsconfig_extends_array",
+    srcs = ["main.ts"],
+    declaration = True,
+    source_map = True,
+    tsconfig = ":tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//a:tsconfig",
+        "//b:tsconfig",
+    ],
+)
