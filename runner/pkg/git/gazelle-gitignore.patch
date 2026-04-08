@@ -1,5 +1,5 @@
 diff --git a/walk/config.go b/walk/config.go
-index 53dcabe..eb97da3 100644
+index f02c721..5bcd10e 100644
 --- a/walk/config.go
 +++ b/walk/config.go
 @@ -58,6 +58,12 @@ type walkConfig struct {
@@ -15,17 +15,16 @@ index 53dcabe..eb97da3 100644
  }
  
  const (
-@@ -139,7 +145,8 @@ func (cr *Configurer) CheckFlags(_ *flag.FlagSet, c *config.Config) error {
+@@ -139,7 +145,7 @@ func (cr *Configurer) CheckFlags(_ *flag.FlagSet, c *config.Config) error {
  }
  
  func (*Configurer) KnownDirectives() []string {
--	return []string{"build_file_name", "generation_mode", "exclude", "follow", "ignore"}
-+	// PATCH(gitignore) ---
-+	return []string{"build_file_name", "generation_mode", "exclude", "follow", "ignore", "gitignore"}
+-	return []string{"build_file_name", "directive_file", "generation_mode", "exclude", "follow", "ignore"}
++	return []string{"build_file_name", "directive_file", "generation_mode", "exclude", "follow", "ignore", "gitignore"}
  }
  
  func (cr *Configurer) Configure(c *config.Config, rel string, f *rule.File) {
-@@ -196,6 +203,9 @@ func configureForWalk(parent *walkConfig, rel string, f *rule.File) *walkConfig
+@@ -196,6 +202,9 @@ func configureForWalk(parent *walkConfig, rel string, f *rule.File) *walkConfig
  					log.Printf("the ignore directive does not take any arguments. Did you mean to use gazelle:exclude instead? in //%s '# gazelle:ignore %s'", f.Pkg, d.Value)
  				}
  				wc.ignore = true
@@ -36,10 +35,10 @@ index 53dcabe..eb97da3 100644
  		}
  	}
 diff --git a/walk/dirinfo.go b/walk/dirinfo.go
-index d2f989b..f884e11 100644
+index 97097aa..1dd733b 100644
 --- a/walk/dirinfo.go
 +++ b/walk/dirinfo.go
-@@ -5,6 +5,7 @@ import (
+@@ -6,6 +6,7 @@ import (
  	"os"
  	"path"
  	"path/filepath"
@@ -47,7 +46,7 @@ index d2f989b..f884e11 100644
  	"sync"
  
  	"github.com/bazelbuild/bazel-gazelle/rule"
-@@ -69,14 +70,58 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
+@@ -79,14 +80,58 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
  	}
  
  	info.config = configureForWalk(parentConfig, rel, info.File)
@@ -107,10 +106,10 @@ index d2f989b..f884e11 100644
  			info.Subdirs = append(info.Subdirs, e.Name())
  		} else if !e.IsDir() && !info.config.isExcludedFile(entryRel) {
 diff --git a/walk/walk.go b/walk/walk.go
-index 0e59bcf..ae1f513 100644
+index ca88b43..8c9859a 100644
 --- a/walk/walk.go
 +++ b/walk/walk.go
-@@ -310,6 +310,10 @@ type walker struct {
+@@ -313,6 +313,10 @@ type walker struct {
  	// If the Config.Strict flag is set in the root configuration, we return
  	// quickly after the first error.
  	errs []error
@@ -121,7 +120,7 @@ index 0e59bcf..ae1f513 100644
  }
  
  type visitInfo struct {
-@@ -373,6 +377,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
+@@ -375,6 +379,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
  		relsToVisitSeen: make(map[string]struct{}),
  	}
  
