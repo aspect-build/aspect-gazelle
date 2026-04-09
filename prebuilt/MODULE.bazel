@@ -21,6 +21,13 @@ use_repo(
 
 register_toolchains("//toolchain:all")
 
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.module_override(
+    patch_strip = 1,
+    patches = ["@aspect_gazelle//common/patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)
+
 # Dev only
 
 bazel_dep(name = "aspect_gazelle_runner", dev_dependency = True)

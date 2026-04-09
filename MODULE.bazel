@@ -9,6 +9,15 @@ bazel_dep(name = "gazelle", version = "0.50.0")  # must match go.mod
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//common:go.mod")
+
+# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
+go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps_dev.module_override(
+    patch_strip = 1,
+    patches = ["//common/patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)
+
 go_deps.module(
     path = "golang.org/x/tools",
     sum = "h1:12BdW9CeB3Z+J/I/wj34VMl8X+fEXBxVR90JeMX5E7s=",
