@@ -18,3 +18,12 @@ common --linkopt=-no-pie
 # Required by llvm bzlmod
 common --experimental_cc_static_library
 common --experimental_platform_in_output_dir
+
+# Pull libc++/libc++abi/libunwind static archives into cgo's link inputs for
+# go_libraries with C++ cdeps (currently //common/treesitter/grammars/hcl). The
+# LLVM toolchain passes -nostdlib++ and provides libc++ as direct file inputs
+# via cc_toolchain.static_runtime_lib, which rules_go's cgo link path doesn't
+# consume — without this define those go_binaries fail to link with undefined
+# references to operator new, __cxa_throw, etc. See
+# common/treesitter/grammars/hcl/BUILD.bazel for details.
+common --define=link_llvm_libcxx=true

@@ -1,13 +1,61 @@
 load("@rules_go//go:def.bzl", "go_library")
 
+# tree-sitter-hcl's external scanner is C++ (scanner.cc) and pulls in libc++
+# (operator new, std::string, exception ABI, etc.). rules_go's cgo link path
+# bypasses the cc_toolchain.static_runtime_lib injection that normally adds
+# libc++/libc++abi/libunwind for C++ cc_libraries (see go/private/actions/link.bzl
+# and go/tools/builders/cgo2.go). With the LLVM toolchain (`runner/.bazelrc`),
+# this means linking the cli or any go_binary that transitively depends on this
+# library produces undefined references to operator new, __cxa_throw, etc.
+#
+# Workaround: when `--define=link_llvm_libcxx=true` is set (currently done in
+# `runner/.bazelrc`), pull the real libc++/libc++abi/libunwind static archives
+# from the LLVM module into cgo's link inputs as cdeps. The .a paths flow
+# through cgo.bzl's `_cc_libs_and_flags` into clinkopts and end up on the cgo
+# link line.
+#
+# When the define is not set (e.g. when building aspect-gazelle on its own with
+# the system gcc toolchain), the select picks the empty list and the build
+# falls back to libstdc++ resolution via DT_NEEDED on the tree-sitter-hcl .so,
+# which already works.
+#
+# The @llvm//runtimes/libcxx:libcxx.static targets are `cc_static_library`
+# (terminal) rules that produce a single .a file but do NOT expose CcInfo, so
+# cgo.bzl's `_cc_libs_and_flags` can't consume them directly. Wrap each one in
+# a cc_import to re-expose the static archive as a proper CcInfo target.
+config_setting(
+    name = "link_llvm_libcxx",
+    define_values = {"link_llvm_libcxx": "true"},
+    visibility = ["//visibility:private"],
+)
+
+cc_import(
+    name = "libcxx_imported",
+    static_library = "@llvm//runtimes/libcxx:libcxx.static",
+)
+
+cc_import(
+    name = "libcxxabi_imported",
+    static_library = "@llvm//runtimes/libcxx:libcxxabi.static",
+)
+
+cc_import(
+    name = "libunwind_imported",
+    static_library = "@llvm//runtimes/libunwind:libunwind.static",
+)
+
 go_library(
     name = "hcl",
-    srcs = [
-        "binding.go",
-        "@tree-sitter-hcl//:srcs",  #keep
-    ],
+    srcs = ["binding.go"],
+    cdeps = ["@tree-sitter-hcl"] + select({
+        ":link_llvm_libcxx": [
+            ":libcxx_imported",
+            ":libcxxabi_imported",
+            ":libunwind_imported",
+        ],
+        "//conditions:default": [],
+    }),  #keep
     cgo = True,
-    copts = ["-Iexternal/*tree-sitter-hcl"],  #keep
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/hcl",
     visibility = ["//visibility:public"],
     deps = ["//common/treesitter"],

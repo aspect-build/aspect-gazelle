@@ -6,6 +6,14 @@ module(
 bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "gazelle", version = "0.48.0")  # must match go.mod
 
+# Needed so that //common/treesitter/grammars/hcl can pull libc++/libc++abi/libunwind
+# static archives into cgo's link inputs when building with the LLVM toolchain (see
+# common/treesitter/grammars/hcl/BUILD.bazel). The cdeps reference is gated on a
+# `--define=link_llvm_libcxx=true` config_setting, so non-LLVM builds don't link
+# against any of these targets — but the labels still have to resolve at loading
+# time, which is why this can't be a dev_dependency.
+bazel_dep(name = "llvm", version = "0.7.0")
+
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//common:go.mod")
@@ -109,9 +117,11 @@ visibility = ["//visibility:public"],
 http_archive(
     name = "tree-sitter-hcl",
     build_file_content = """
-filegroup(
-    name = "srcs",
-    srcs = glob(["src/**/*.c", "src/**/*.cc", "src/**/*.h"]),
+cc_library(
+    name = "tree-sitter-hcl",
+    srcs = glob(["src/**/*.c", "src/**/*.cc"]),
+    hdrs = glob(["src/**/*.h"]),
+    includes = ["src"],
     visibility = ["//visibility:public"],
 )
 """,
