@@ -1,4 +1,4 @@
-load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
 # gazelle:js_test_tsconfig_file tsconfig.test.json
@@ -12,26 +12,6 @@ ts_config(
 
 npm_link_all_packages(name = "node_modules")
 
-ts_project(
-    name = "tsconfig_test_file",
-    srcs = ["main.ts"],
-    composite = True,
-    tsconfig = ":tsconfig_lib",
-    deps = [":node_modules/tslib"],
-)
-
-ts_project(
-    name = "tsconfig_test_file_tests",
-    testonly = True,
-    srcs = ["main.spec.ts"],
-    composite = True,
-    tsconfig = ":tsconfig_test",
-    deps = [
-        ":node_modules/tslib",
-        ":tsconfig_test_file",
-    ],
-)
-
 ts_config(
     name = "tsconfig_lib",
     src = "tsconfig.lib.json",
@@ -44,6 +24,7 @@ ts_config(
     src = "tsconfig.test.json",
     visibility = [":__subpackages__"],
     deps = [
+        ":node_modules/jest",
         ":tsconfig_base",
         ":tsconfig_lib",
     ],
