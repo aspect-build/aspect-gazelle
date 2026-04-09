@@ -1,0 +1,7 @@
+load("@deps-test//my:rules.bzl", "rust_library")
+
+rust_library(
+    name = "never_lib",
+    srcs = ["never.rs"],
+    tags = ["diverges-diverge"],
+)
