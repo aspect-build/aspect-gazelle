@@ -13,6 +13,7 @@ ts_project(
     out_dir = "dist",
     source_map = False,
     ts_build_info_file = "dist/tsconfig.tsbuildinfo",
+    tsconfig = ":tsconfig",
 )
 
 ts_config(

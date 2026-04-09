@@ -4,6 +4,7 @@ ts_project(
     name = "removed",
     srcs = ["main.ts"],
     source_map = False,  # keep
+    tsconfig = ":tsconfig",
 )
 
 ts_config(
