@@ -1,6 +1,52 @@
 package cache
 
-import "github.com/bazelbuild/bazel-gazelle/config"
+import (
+	"encoding/gob"
+
+	"github.com/aspect-build/aspect-gazelle/common/buildinfo"
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
+	"github.com/bazelbuild/bazel-gazelle/config"
+)
+
+func init() {
+	gob.Register(persistedCacheInfo{})
+}
+
+type persistedCacheInfo struct {
+	Type    string
+	Version string
+}
+
+func WriteCacheVersion(encoder *gob.Encoder, cacheType string) error {
+	return encoder.Encode(persistedCacheInfo{
+		Type:    cacheType,
+		Version: buildinfo.GitCommit,
+	})
+}
+
+func VerifyCacheVersion(decoder *gob.Decoder, expectedType, file string) bool {
+	var pi persistedCacheInfo
+
+	// Read the cache metadata
+	if err := decoder.Decode(&pi); err != nil {
+		BazelLog.Errorf("Failed to read cache %q: %v", file, err)
+		return false
+	}
+
+	// Assert the type
+	if pi.Type != expectedType {
+		BazelLog.Errorf("Cache type mismatch (expected: %q, actual %q), clearing cache %q", expectedType, pi.Type, file)
+		return false
+	}
+
+	// Assert the version
+	if buildinfo.IsStamped() && pi.Version != buildinfo.GitCommit {
+		BazelLog.Infof("Cache version mismatch (expected: %q, actual %q), clearing cache %q", buildinfo.GitCommit, pi.Version, file)
+		return false
+	}
+
+	return true
+}
 
 type Cache interface {
 	/** Persist any changes to the cache */
