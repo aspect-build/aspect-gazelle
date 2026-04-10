@@ -147,7 +147,9 @@ var extLanguages = map[string]LanguageGrammar{
 	"tf":       HCL,
 	"tfvars":   HCL,
 	"tofu":     HCL,
-	"workflow": HCL,
+
+	// Not commonly used, although linguist says this is HCL.
+	// "workflow": HCL,
 
 	"rb":       Ruby,
 	"rake":     Ruby,
