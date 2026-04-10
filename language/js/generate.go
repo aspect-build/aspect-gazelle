@@ -484,7 +484,11 @@ func hasTranspiledSources(sourceFiles *treeset.Set[string]) bool {
 
 func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
 	// Check for name-collisions with the rule being generated.
-	colError := ruleUtils.CheckCollisionErrors(targetName, TsProjectKind, sourceRuleKinds, args)
+	expectedKind := TsProjectKind
+	if group.ruleKind != "" {
+		expectedKind = group.ruleKind
+	}
+	colError := ruleUtils.CheckCollisionErrors(targetName, expectedKind, sourceRuleKinds, args)
 	if colError != nil {
 		return nil, fmt.Errorf("%v "+
 			"Use the '# aspect:%s' directive to change the naming convention.\n\n"+
@@ -569,9 +573,14 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	// A rule of the same name might already exist
 	existing := ruleUtils.GetFileRuleByName(args, targetName)
 
-	ruleKind := TsProjectKind
+	defaultKind := TsProjectKind
 	if !hasTranspiledSources(info.sources) {
-		ruleKind = JsLibraryKind
+		defaultKind = JsLibraryKind
+	}
+
+	ruleKind := defaultKind
+	if group.ruleKind != "" {
+		ruleKind = group.ruleKind
 	}
 	sourceRule := rule.NewRule(ruleKind, targetName)
 
@@ -604,7 +613,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		sourceRule.DelAttr("assets")
 	}
 
-	if group.testonly {
+	if group.testonly && ruleKind != JsTestKind {
 		sourceRule.SetAttr("testonly", true)
 	}
 
