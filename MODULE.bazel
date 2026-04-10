@@ -33,6 +33,19 @@ filegroup(
 )
 
 http_archive(
+    name = "tree-sitter-rust",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "5bad78dfbad2e7cd6781db726b32fc12a519f89ec0fb5da77d9611f674f45b46",
+    urls = ["https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.23.3/tree-sitter-rust.tar.gz"],
+)
+
+http_archive(
     name = "tree-sitter-java",
     build_file_content = """
 filegroup(
