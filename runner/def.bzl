@@ -4,7 +4,7 @@ Aspect enhanced Gazelle
 
 load("@gazelle//:def.bzl", "gazelle")
 
-_GAZELLE_BINARY = Label("@aspect_gazelle_runner//bin/gazelle:gazelle")
+_GAZELLE_BINARY = Label("//:gazelle_prebuilt_bin")
 
 # Keep in sync with the switch statement in runner/runner.go AddLanguage()
 _VALID_LANGUAGES = [
