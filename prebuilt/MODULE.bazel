@@ -4,7 +4,6 @@ module(
     bazel_compatibility = [">=7.6.0"],
 )
 
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "gazelle", version = "0.50.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 
