@@ -64,12 +64,6 @@ func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 		lang:    sitter.NewLanguage(langPtr),
 	}
 }
-func NewLanguageFromSitter(grammar LanguageGrammar, lang *sitter.Language) Language {
-	return &treeLanguage{
-		grammar: grammar,
-		lang:    lang,
-	}
-}
 
 type treeLanguage struct {
 	grammar LanguageGrammar
