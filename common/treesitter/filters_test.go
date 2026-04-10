@@ -3,6 +3,7 @@ package treesitter_test
 import (
 	"maps"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
@@ -169,6 +170,38 @@ func TestMultiplePredicates_allMustPass(t *testing.T) {
 	}
 }
 
+func TestQueryErrors_validSource(t *testing.T) {
+	ast := mustParseGo(t, goFunctions)
+
+	errs := ast.QueryErrors()
+	if len(errs) != 0 {
+		t.Errorf("expected no errors, got %v", errs)
+	}
+}
+
+func TestQueryErrors_errorFormat(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+
+)
+`)
+	errs := ast.QueryErrors()
+	if len(errs) == 0 {
+		t.Fatal("expected parse errors, got none")
+	}
+
+	msg := errs[0].Error()
+	lines := strings.SplitN(msg, "\n", 2)
+	if len(lines) != 2 {
+		t.Fatalf("expected two-line error, got: %q", msg)
+	}
+	if lines[0] != "     3: )" {
+		t.Errorf("error line: got %q, want %q", lines[0], "     3: )")
+	}
+	if lines[1] != "        ^" {
+		t.Errorf("caret line: got %q, want %q", lines[1], "        ^")
+	}
+}
+
 func TestCapturesMap_allCapturesPresent(t *testing.T) {
 	ast := mustParseGo(t, goFunctions)
 	q := mustQuery(t, `(function_declaration name: (identifier) @name) @func`)
@@ -188,5 +221,27 @@ func TestCapturesMap_allCapturesPresent(t *testing.T) {
 		if _, ok := m["func"]; !ok {
 			t.Errorf("missing @func capture in %v", m)
 		}
+	}
+}
+
+// When a query assigns the same capture name to two nodes in one match,
+// mapQueryMatchCaptures keeps the last value (map assignment overwrites).
+func TestCapturesMap_duplicateCaptureNameLastWins(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+func Foo() {}
+`)
+	// @item captures the function name first, then the parameter list.
+	q := mustQuery(t, `(function_declaration name: (identifier) @item parameters: (parameter_list) @item)`)
+
+	var got []map[string]string
+	for r := range ast.Query(q) {
+		got = append(got, maps.Clone(r.Captures()))
+	}
+
+	if len(got) != 1 {
+		t.Fatalf("expected 1 match, got %d", len(got))
+	}
+	if got[0]["item"] != "()" {
+		t.Errorf("expected parameter list to win, got %q", got[0]["item"])
 	}
 }
