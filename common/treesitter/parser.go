@@ -54,6 +54,7 @@ const (
 	Go                          = "go"
 	Rust                        = "rust"
 	Ruby                        = "ruby"
+	HCL                         = "hcl"
 )
 
 type Language any
@@ -140,6 +141,15 @@ var extLanguages = map[string]LanguageGrammar{
 	"jav":  Java,
 	"jsh":  Java,
 	"json": JSON,
+
+	"hcl":      HCL,
+	"nomad":    HCL,
+	"tf":       HCL,
+	"tfvars":   HCL,
+	"tofu":     HCL,
+
+	// Not commonly used, although linguist says this is HCL.
+	// "workflow": HCL,
 
 	"rb":       Ruby,
 	"rake":     Ruby,

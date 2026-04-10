@@ -18,6 +18,7 @@ go_library(
         "@aspect_gazelle//common/logger",
         "@aspect_gazelle//common/treesitter",
         "@aspect_gazelle//common/treesitter/grammars/golang",
+        "@aspect_gazelle//common/treesitter/grammars/hcl",
         "@aspect_gazelle//common/treesitter/grammars/java",
         "@aspect_gazelle//common/treesitter/grammars/json",
         "@aspect_gazelle//common/treesitter/grammars/kotlin",

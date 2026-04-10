@@ -1,0 +1,35 @@
+aspect.gazelle_rule_kind("hcl_library", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+})
+
+def declare(ctx):
+    for file in ctx.sources:
+        blocks = [m.captures["block_type"] for m in file.query_results["blocks"]]
+        ctx.targets.add(
+            name = file.path[:file.path.rindex(".")] + "_lib",
+            kind = "hcl_library",
+            attrs = {
+                "srcs": [file.path],
+                "blocks": blocks,
+            },
+        )
+
+aspect.orion_extension(
+    id = "hcl-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".tf"),
+        queries = {
+            "blocks": aspect.AstQuery(
+                grammar = "hcl",
+                filter = "*.tf",
+                query = """
+                    (block
+                        (identifier) @block_type
+                    )
+                """,
+            ),
+        },
+    ),
+    declare = declare,
+)
