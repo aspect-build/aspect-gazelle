@@ -129,6 +129,20 @@ visibility = ["//visibility:public"],
 )
 
 http_archive(
+    name = "tree-sitter-hcl",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "a95bc6b00271e08dee9e63b895b2563dac802db0015fdf5a24a1b0244f2cb560",
+    strip_prefix = "tree-sitter-hcl-1.2.0",
+    urls = ["https://github.com/tree-sitter-grammars/tree-sitter-hcl/archive/v1.2.0.tar.gz"],
+)
+
+http_archive(
     name = "tree-sitter-ruby",
     build_file_content = """
 filegroup(
