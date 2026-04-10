@@ -129,6 +129,19 @@ visibility = ["//visibility:public"],
 )
 
 http_archive(
+    name = "tree-sitter-python",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "bc7c1c922b14cb0edd75c0400a63ff260e09bd02684351ed5d38586b5771cd69",
+    urls = ["https://github.com/tree-sitter/tree-sitter-python/releases/download/v0.23.6/tree-sitter-python.tar.xz"],
+)
+
+http_archive(
     name = "tree-sitter-ruby",
     build_file_content = """
 filegroup(

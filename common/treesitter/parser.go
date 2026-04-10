@@ -54,6 +54,7 @@ const (
 	Go                          = "go"
 	Rust                        = "rust"
 	Ruby                        = "ruby"
+	Python                      = "python"
 )
 
 type Language any
@@ -148,6 +149,9 @@ var extLanguages = map[string]LanguageGrammar{
 	"thor":     Ruby,
 	"jbuilder": Ruby,
 	"rabl":     Ruby,
+
+	"py":  Python,
+	"pyi": Python,
 }
 
 // In theory, this is a mirror of
