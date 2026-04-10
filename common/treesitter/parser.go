@@ -167,6 +167,7 @@ func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, er
 	ctx := context.Background()
 
 	parser := sitter.NewParser()
+	defer parser.Close()
 	parser.SetLanguage(lang.(*treeLanguage).lang)
 
 	tree, err := parser.ParseCtx(ctx, nil, sourceCode)
