@@ -1,4 +1,3 @@
-bazel_dep(name = "gazelle", version = "0.47.0")
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "aspect_gazelle_prebuilt")
 local_path_override(
