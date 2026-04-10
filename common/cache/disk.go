@@ -8,18 +8,18 @@ import (
 	"path"
 	"sync"
 
-	"github.com/aspect-build/aspect-gazelle/common/buildinfo"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 )
 
 /**
- * Cache to disk, keyed by file content hash and `buildinfo.GitCommit`.
+ * Cache to disk, keyed by file path. Entries are invalidated when the file's
+ * content hash changes. The full cache is discarded on build version mismatch
+ * (see VerifyCacheVersion).
  */
 func NewDiskCache(cacheFilePath string) Cache {
 	c := &diskCache{
-		file: cacheFilePath,
-		old:  map[string]map[string]any{},
-		new:  &sync.Map{},
+		FileComputeCache: NewFileComputeCache(),
+		file:             cacheFilePath,
 	}
 	c.read()
 	return c
@@ -34,54 +34,29 @@ func init() {
 	gob.Register(map[string]map[string]any{})
 	gob.Register(map[string]map[string]string{})
 	gob.Register([]any{})
-	gob.Register(persistedCacheInfo{})
+	gob.Register(diskCacheState{})
 }
 
 var _ Cache = (*diskCache)(nil)
 
 type diskCache struct {
+	*FileComputeCache
+
 	// Where the cache is persisted to disk.
 	file string
 
-	// A cache mapped by file-content-hash => map[key]value
-	old map[string]map[string]any
-
-	// A cache mapped by file path => cacheEntry
-	new *sync.Map
+	// Maps file path → content hash, used to detect stale entries.
+	contentHashes sync.Map
 }
 
-type cacheEntry struct {
-	// NOTE: keep map[]/pointer fields first, see nogo 'fieldalignment'
-	values map[string]any
-
-	contentHash string
-	mu          sync.RWMutex
-}
-
-func (e *cacheEntry) load(key string) (any, bool) {
-	e.mu.RLock()
-	v, ok := e.values[key]
-	e.mu.RUnlock()
-	return v, ok
-}
-
-func (e *cacheEntry) loadOrStore(key string, value any) (any, bool) {
-	e.mu.Lock()
-	if v, ok := e.values[key]; ok {
-		e.mu.Unlock()
-		return v, true
-	}
-	e.values[key] = value
-	e.mu.Unlock()
-	return value, false
+type diskCacheState struct {
+	Entries       map[string]map[string]any
+	ContentHashes map[string]string
 }
 
 func computeCacheKey(content []byte) string {
 	cacheDigest := crypto.MD5.New()
 	cacheDigest.Write(content)
-	if buildinfo.IsStamped() {
-		cacheDigest.Write([]byte(buildinfo.GitCommit))
-	}
 	return hex.EncodeToString(cacheDigest.Sum(nil))
 }
 
@@ -99,12 +74,18 @@ func (c *diskCache) read() {
 		return
 	}
 
-	if e := cacheDecoder.Decode(&c.old); e != nil {
+	var v diskCacheState
+	if e := cacheDecoder.Decode(&v); e != nil {
 		BazelLog.Errorf("Failed to read cache %q: %v", c.file, e)
 		return
 	}
 
-	BazelLog.Infof("Loaded %d entries from cache %q\n", len(c.old), c.file)
+	c.LoadEntries(v.Entries)
+	for p, hash := range v.ContentHashes {
+		c.contentHashes.Store(p, hash)
+	}
+
+	BazelLog.Infof("Loaded %d entries from cache %q\n", len(v.Entries), c.file)
 }
 
 func (c *diskCache) write() {
@@ -115,19 +96,16 @@ func (c *diskCache) write() {
 	}
 	defer cacheWriter.Close()
 
-	m := make(map[string]map[string]any)
-	c.new.Range(func(p, e any) bool {
-		ce := e.(*cacheEntry)
-		ce.mu.RLock()
-		for k, v := range ce.values {
-			if _, ok := m[ce.contentHash]; !ok {
-				m[ce.contentHash] = make(map[string]any)
-			}
-			m[ce.contentHash][k] = v
-		}
-		ce.mu.RUnlock()
+	contentHashes := make(map[string]string)
+	c.contentHashes.Range(func(k, v any) bool {
+		contentHashes[k.(string)] = v.(string)
 		return true
 	})
+
+	s := diskCacheState{
+		Entries:       c.SnapshotEntries(),
+		ContentHashes: contentHashes,
+	}
 
 	cacheEncoder := gob.NewEncoder(cacheWriter)
 
@@ -136,12 +114,12 @@ func (c *diskCache) write() {
 		return
 	}
 
-	if e := cacheEncoder.Encode(m); e != nil {
+	if e := cacheEncoder.Encode(s); e != nil {
 		BazelLog.Errorf("Failed to write cache %q: %v", c.file, e)
 		return
 	}
 
-	BazelLog.Infof("Wrote %d entries to cache %q\n", len(m), c.file)
+	BazelLog.Infof("Wrote %d entries to cache %q\n", len(s.Entries), c.file)
 }
 
 func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (any, bool, error) {
@@ -150,79 +128,19 @@ func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (an
 		return nil, false, err
 	}
 
-	// Include the file content in the cache key
-	contentKey := computeCacheKey(content)
+	contentHash := computeCacheKey(content)
 
-	pCache, pCacheFound := c.new.Load(p)
-
-	// Try loading from the cache if exists and content has not changed.
-	if pCacheFound && pCache.(*cacheEntry).contentHash == contentKey {
-		if v, found := pCache.(*cacheEntry).load(key); found {
-			return v, true, nil
-		}
-	} else {
-		pCache, _ = c.new.LoadOrStore(p, &cacheEntry{
-			contentHash: contentKey,
-			values:      make(map[string]any),
-		})
-	}
-
-	ce := pCache.(*cacheEntry)
-
-	// Try loading from the old cache and populate the new.
-	if oldCache, found := c.old[contentKey]; found {
-		if v, found := oldCache[key]; found {
-			v, _ := ce.loadOrStore(key, v)
-			return v, true, nil
+	// Invalidate the cached entry if the file content has changed.
+	if existingHash, found := c.contentHashes.Load(p); found {
+		if existingHash.(string) != contentHash {
+			c.Invalidate([]string{p})
 		}
 	}
+	c.contentHashes.Store(p, contentHash)
 
-	// Compute and persist the value.
-	v, err := loader(p, content)
-	if err != nil {
-		return nil, false, err
-	}
-
-	v, found := ce.loadOrStore(key, v)
-	return v, found, nil
+	return c.loadOrStore(p, key, content, loader)
 }
 
 func (c *diskCache) Persist() {
 	c.write()
-}
-
-type persistedCacheInfo struct {
-	Type    string
-	Version string
-}
-
-func WriteCacheVersion(encoder *gob.Encoder, cacheType string) error {
-	return encoder.Encode(persistedCacheInfo{
-		Type:    cacheType,
-		Version: buildinfo.GitCommit,
-	})
-}
-
-func VerifyCacheVersion(decoder *gob.Decoder, expectedType, file string) bool {
-	var pi persistedCacheInfo
-
-	// Read the cache metadata
-	if err := decoder.Decode(&pi); err != nil {
-		BazelLog.Errorf("Failed to read cache %q: %v", file, err)
-		return false
-	}
-
-	// Assert the type
-	if pi.Type != expectedType {
-		BazelLog.Errorf("Cache type mismatch (expected: %q, actual %q), clearing cache %q", expectedType, pi.Type, file)
-		return false
-	}
-
-	// Assert the version
-	if buildinfo.IsStamped() && pi.Version != buildinfo.GitCommit {
-		BazelLog.Infof("Cache version mismatch (expected: %q, actual %q), clearing cache %q", buildinfo.GitCommit, pi.Version, file)
-		return false
-	}
-
-	return true
 }
