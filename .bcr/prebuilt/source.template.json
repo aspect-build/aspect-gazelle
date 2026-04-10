@@ -1,5 +1,5 @@
 {
     "url": "https://github.com/{OWNER}/{REPO}/releases/download/{TAG}/aspect-gazelle-{TAG}.tar.gz",
     "integrity": "**leave this alone**",
-    "strip_prefix": "aspect-gazelle-{TAG}/prebuilt"
+    "strip_prefix": "aspect-gazelle-{TAG}"
 }

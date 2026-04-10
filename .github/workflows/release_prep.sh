@@ -17,7 +17,12 @@ ARCHIVE="aspect-gazelle-${TAG}.tar.gz"
 PLATFORMS=(linux_amd64 linux_arm64 darwin_amd64 darwin_arm64)
 ARCHIVE_TMP=$(mktemp)
 
-git archive --format=tar --prefix="${PREFIX}/" "${TAG}" >"$ARCHIVE_TMP"
+UNPACK_DIR=$(mktemp -d)
+mkdir -p "${UNPACK_DIR}/${PREFIX}"
+git archive --format=tar --prefix="${PREFIX}/" "${TAG}" -- prebuilt |
+	tar --strip-components=2 -xf - -C "${UNPACK_DIR}/${PREFIX}"
+tar -cf "$ARCHIVE_TMP" -C "$UNPACK_DIR" "${PREFIX}"
+rm -rf "$UNPACK_DIR"
 
 # ---- Build prebuilt binaries ----
 mkdir -p artifacts
@@ -36,7 +41,7 @@ done
 
 # ---- Patch files in the archive ----
 PATCH_DIR=$(mktemp -d)
-mkdir -p "${PATCH_DIR}/${PREFIX}/prebuilt"
+mkdir -p "${PATCH_DIR}/${PREFIX}"
 
 # integrity.bzl with real hashes and tag
 {
@@ -49,29 +54,29 @@ mkdir -p "${PATCH_DIR}/${PREFIX}/prebuilt"
 	done
 	echo '}'
 	echo "PREBUILT_TAG = \"${TAG}\""
-} >"${PATCH_DIR}/${PREFIX}/prebuilt/integrity.bzl"
+} >"${PATCH_DIR}/${PREFIX}/integrity.bzl"
 
 # MODULE.bazel with real version
 sed "s/^    version = \"0\.0\.0\"/    version = \"${MODULE_VERSION}\"/" \
-	prebuilt/MODULE.bazel >"${PATCH_DIR}/${PREFIX}/prebuilt/MODULE.bazel"
+	prebuilt/MODULE.bazel >"${PATCH_DIR}/${PREFIX}/MODULE.bazel"
 
 # def.bzl generated from runner/def.bzl
 {
 	echo "# Generated from runner/def.bzl by the release process. Do not edit manually."
 	sed 's/@aspect_gazelle_runner/@aspect_gazelle_prebuilt/g' runner/def.bzl
-} >"${PATCH_DIR}/${PREFIX}/prebuilt/def.bzl"
+} >"${PATCH_DIR}/${PREFIX}/def.bzl"
 
 # Delete placeholder files from the archive and append patched ones
 tar --file "$ARCHIVE_TMP" --delete \
-	"${PREFIX}/prebuilt/integrity.bzl" \
-	"${PREFIX}/prebuilt/MODULE.bazel" \
-	"${PREFIX}/prebuilt/def.bzl"
+	"${PREFIX}/integrity.bzl" \
+	"${PREFIX}/MODULE.bazel" \
+	"${PREFIX}/def.bzl"
 
 tar --file "$ARCHIVE_TMP" --append \
 	-C "$PATCH_DIR" \
-	"${PREFIX}/prebuilt/integrity.bzl" \
-	"${PREFIX}/prebuilt/MODULE.bazel" \
-	"${PREFIX}/prebuilt/def.bzl"
+	"${PREFIX}/integrity.bzl" \
+	"${PREFIX}/MODULE.bazel" \
+	"${PREFIX}/def.bzl"
 
 gzip <"$ARCHIVE_TMP" >"$ARCHIVE"
 
