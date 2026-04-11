@@ -80,8 +80,15 @@ go_library(
 )
 
 bzl_library(
+    name = "rules",
+    srcs = ["rules.bzl"],
+    visibility = ["//visibility:public"],
+    deps = ["@gazelle//:def"],
+)
+
+bzl_library(
     name = "def",
     srcs = ["def.bzl"],
     visibility = ["//visibility:public"],
-    deps = ["@gazelle//:def"],
+    deps = ["//:rules"],
 )

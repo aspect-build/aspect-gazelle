@@ -2,9 +2,7 @@
 Aspect enhanced Gazelle
 """
 
-load("@gazelle//:def.bzl", "gazelle")
-
-_GAZELLE_BINARY = Label("//:gazelle_prebuilt_bin")
+load("//:rules.bzl", "aspect_gazelle_runner")
 
 # Keep in sync with the switch statement in runner/runner.go AddLanguage()
 _VALID_LANGUAGES = [
@@ -83,7 +81,6 @@ def aspect_gazelle(
         fail("Invalid 'command' %r. Must be one of: \"update\", \"fix\"." % command)
 
     common = dict(
-        gazelle = _GAZELLE_BINARY,
         command = command,
         extra_args = extra_args,
         env = kwargs.pop("env", {}) | {
@@ -91,7 +88,8 @@ def aspect_gazelle(
             "ORION_EXTENSIONS": ",".join(["$(rootpath %s)" % p for p in extensions]),
         },
         data = kwargs.pop("data", []) + extensions,
-        tags = kwargs.pop("tags", []) + ["supports_incremental_build_protocol"],
+        tags = kwargs.pop("tags", []) + ["manual", "supports_incremental_build_protocol"],
+        repo_config = kwargs.pop("repo_config", None),
     )
     if "visibility" in kwargs:
         common["visibility"] = kwargs.pop("visibility")
@@ -101,14 +99,14 @@ def aspect_gazelle(
     if kwargs:
         fail("aspect_gazelle() got unexpected keyword argument(s): %s" % ", ".join(kwargs.keys()))
 
-    gazelle(
+    aspect_gazelle_runner(
         name = name,
         mode = "fix",
         **common
     )
 
     if with_check:
-        gazelle(
+        aspect_gazelle_runner(
             name = name + ".check",
             mode = "diff",
             **common
