@@ -75,7 +75,15 @@ go_deps2.module_override(
 )
 go_deps2.module_override(
     patch_strip = 1,
-    patches = ["@aspect_gazelle//common/patches:go-tree-sitter-abi15.patch"],
+    patches = [
+        "@aspect_gazelle//common/patches:go-tree-sitter-bazel.patch",
+        "@aspect_gazelle//common/patches:go-tree-sitter-tree_sitter.patch",
+    ],
+    path = "github.com/tree-sitter/go-tree-sitter",
+)
+go_deps2.module_override(
+    patch_strip = 1,
+    patches = ["@aspect_gazelle//common/patches:go-smacker-bazel.patch"],
     path = "github.com/smacker/go-tree-sitter",
 )
 

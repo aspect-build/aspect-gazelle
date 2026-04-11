@@ -24,6 +24,17 @@ local_path_override(
 # Used for generating code via nodejs
 bazel_dep(name = "aspect_rules_js", version = "3.0.3", dev_dependency = True)
 
+# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
+go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps_dev.module_override(
+    patch_strip = 1,
+    patches = [
+        "@aspect_gazelle//common/patches:go-tree-sitter-bazel.patch",
+        "@aspect_gazelle//common/patches:go-tree-sitter-tree_sitter.patch",
+    ],
+    path = "github.com/tree-sitter/go-tree-sitter",
+)
+
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
 go_sdk2.nogo(nogo = "@aspect_gazelle//bazel/go:nogo")

@@ -17,20 +17,19 @@
 package treesitter
 
 import (
-	"context"
 	"fmt"
 	"iter"
 	"log"
 	"path"
 	"unsafe"
 
-	sitter "github.com/smacker/go-tree-sitter"
+	tree_sitter "github.com/tree-sitter/go-tree-sitter"
 )
 
 // Background tree deletion channel. Trees are sent here from Close() and
 // deleted by a pool of goroutines, so the ts_tree_delete CGo call does not
 // block parsing from completing.
-var treeDeleteCh = make(chan *sitter.Tree, 128)
+var treeDeleteCh = make(chan *tree_sitter.Tree, 128)
 
 func init() {
 	for range 3 {
@@ -62,13 +61,13 @@ type Language any
 func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 	return &treeLanguage{
 		grammar: grammar,
-		lang:    sitter.NewLanguage(langPtr),
+		lang:    tree_sitter.NewLanguage(langPtr),
 	}
 }
 
 type treeLanguage struct {
 	grammar LanguageGrammar
-	lang    *sitter.Language
+	lang    *tree_sitter.Language
 }
 
 func (tree *treeLanguage) String() string {
@@ -92,7 +91,7 @@ type treeAst struct {
 	filePath   string
 	sourceCode []byte
 
-	sitterTree *sitter.Tree
+	sitterTree *tree_sitter.Tree
 }
 
 var _ AST = (*treeAst)(nil)
@@ -108,7 +107,7 @@ func (tree *treeAst) Close() {
 }
 
 func (tree *treeAst) String() string {
-	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().String())
+	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().ToSexp())
 }
 
 func PathToLanguage(p string) LanguageGrammar {
@@ -174,16 +173,14 @@ func extensionToLanguage(ext string) LanguageGrammar {
 }
 
 func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, error) {
-	ctx := context.Background()
-
-	parser := sitter.NewParser()
+	parser := tree_sitter.NewParser()
 	defer parser.Close()
-	parser.SetLanguage(lang.(*treeLanguage).lang)
 
-	tree, err := parser.ParseCtx(ctx, nil, sourceCode)
-	if err != nil {
+	if err := parser.SetLanguage(lang.(*treeLanguage).lang); err != nil {
 		return nil, err
 	}
+
+	tree := parser.Parse(sourceCode, nil)
 
 	return &treeAst{lang: lang.(*treeLanguage), filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
 }
