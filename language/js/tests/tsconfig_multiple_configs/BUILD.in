@@ -1,6 +1,7 @@
 # gazelle:js_tsconfig_file tsconfig.lib.json
 # gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
 # gazelle:js_tsconfig_ignore {dirname}_e2e composite
+# gazelle:js_tsconfig_ignore incremental
 # gazelle:js_test_files {dirname}_tests **/*.{test,spec}.{ts,tsx,mjs,mts}
 # gazelle:js_test_files {dirname}_e2e **/*.e2e.ts
 # gazelle:js_tsconfig_file {dirname}_e2e tsconfig.e2e.json

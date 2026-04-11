@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "importHelpers": true,
-    "composite": true
+    "composite": true,
+    "incremental": true
   }
 }
