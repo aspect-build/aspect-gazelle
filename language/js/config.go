@@ -186,7 +186,6 @@ type JsGazelleConfig struct {
 	pnpmLockDir  string
 	pnpmLockPath string
 
-	// Per-target-group tsconfig settings. The "" key holds the default.
 	groupTsConfigs map[string]*targetTsConfig
 
 	ignoreDependencies       []common.GlobExpr
@@ -326,9 +325,6 @@ func (c *JsGazelleConfig) getOrCreateGroupTsConfig(groupName string) *targetTsCo
 	return tc
 }
 
-// SetTsConfigGenerationEnabled sets whether ts_config generation is enabled.
-// The value may be "enabled|disabled" for the default, or
-// "custom_target_name enabled|disabled" for a per-target override.
 func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(value string) {
 	if before, after, found := strings.Cut(value, " "); found {
 		c.getOrCreateGroupTsConfig(before).enabled = strings.TrimSpace(after) == "enabled"
@@ -337,8 +333,7 @@ func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(value string) {
 	}
 }
 
-// GetTsConfigGenerationEnabled returns whether ts_config generation is enabled
-// for a specific target group, falling back to the default if no override exists.
+// If ts_config extension is enabled for the given group
 func (c *JsGazelleConfig) GetTsConfigGenerationEnabled(groupName string) bool {
 	if tc, ok := c.groupTsConfigs[groupName]; ok {
 		return tc.enabled
@@ -388,8 +383,6 @@ func (c *JsGazelleConfig) SetTsconfigFile(value string) {
 	}
 }
 
-// GetTsconfigFile returns the tsconfig filename for a specific target
-// group, falling back to the default if no override exists.
 func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
 	if tc, ok := c.groupTsConfigs[groupName]; ok {
 		return tc.fileName
@@ -397,9 +390,6 @@ func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
 	return c.groupTsConfigs[""].fileName
 }
 
-// AddIgnoredTsConfig adds a tsconfig property to the ignore list.
-// The value may be a property name (e.g. "tsconfig") for the default,
-// or "custom_target_name property" for a per-target override.
 func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
 	groupName := ""
 	propName := value
