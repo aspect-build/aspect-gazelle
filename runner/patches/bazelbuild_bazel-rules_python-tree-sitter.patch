@@ -1,0 +1,215 @@
+--- a/python/file_parser.go
++++ b/python/file_parser.go
+@@ -22,8 +22,8 @@
+ 	"path/filepath"
+ 	"strings"
+ 
+-	sitter "github.com/smacker/go-tree-sitter"
+-	"github.com/smacker/go-tree-sitter/python"
++	sitter "github.com/tree-sitter/go-tree-sitter"
++	python "github.com/tree-sitter/tree-sitter-python/bindings/go"
+ )
+ 
+ const (
+@@ -62,12 +62,9 @@
+ // It prints a warning if parsing fails.
+ func ParseCode(code []byte, path string) (*sitter.Node, error) {
+ 	parser := sitter.NewParser()
+-	parser.SetLanguage(python.GetLanguage())
++	parser.SetLanguage(sitter.NewLanguage(python.Language()))
+ 
+-	tree, err := parser.ParseCtx(context.Background(), nil, code)
+-	if err != nil {
+-		return nil, err
+-	}
++	tree := parser.Parse(code, nil)
+ 
+ 	root := tree.RootNode()
+ 	if !root.HasError() {
+@@ -83,16 +80,16 @@
+ 		return root, nil
+ 	}
+ 
+-	for i := 0; i < int(root.ChildCount()); i++ {
++	for i := uint(0); i < root.ChildCount(); i++ {
+ 		child := root.Child(i)
+ 		if child.IsError() {
+ 			// Example logs:
+ 			// gazelle: Parse error at {Row:1 Column:0}:
+ 			// def search_one_more_level[T]():
+-			log.Printf("Parse error at %+v:\n%+v", child.StartPoint(), child.Content(code))
++			log.Printf("Parse error at %+v:\n%+v", child.StartPosition(), child.Utf8Text(code))
+ 			// Log the internal tree-sitter representation of what was parsed. Eg:
+ 			// gazelle: The above was parsed as: (ERROR (identifier) (call function: (list (identifier)) arguments: (argument_list)))
+-			log.Printf("The above was parsed as: %v", child.String())
++			log.Printf("The above was parsed as: %v", child.ToSexp())
+ 		}
+ 	}
+ 
+@@ -102,21 +99,21 @@
+ // parseMain returns true if the python file has an `if __name__ == "__main__":` block,
+ // which is a common idiom for python scripts/binaries.
+ func (p *FileParser) parseMain(ctx context.Context, node *sitter.Node) bool {
+-	for i := 0; i < int(node.ChildCount()); i++ {
++	for i := uint(0); i < node.ChildCount(); i++ {
+ 		if err := ctx.Err(); err != nil {
+ 			return false
+ 		}
+ 		child := node.Child(i)
+-		if child.Type() == sitterNodeTypeIfStatement &&
+-			child.Child(1).Type() == sitterNodeTypeComparisonOperator && child.Child(1).Child(1).Type() == "==" {
++		if child.Kind() == sitterNodeTypeIfStatement &&
++			child.Child(1).Kind() == sitterNodeTypeComparisonOperator && child.Child(1).Child(1).Kind() == "==" {
+ 			statement := child.Child(1)
+ 			a, b := statement.Child(0), statement.Child(2)
+ 			// convert "'__main__' == __name__" to "__name__ == '__main__'"
+-			if b.Type() == sitterNodeTypeIdentifier {
++			if b.Kind() == sitterNodeTypeIdentifier {
+ 				a, b = b, a
+ 			}
+-			if a.Type() == sitterNodeTypeIdentifier && a.Content(p.code) == "__name__" &&
+-				b.Type() == sitterNodeTypeString && string(p.code[b.StartByte()+1:b.EndByte()-1]) == "__main__" {
++			if a.Kind() == sitterNodeTypeIdentifier && a.Utf8Text(p.code) == "__name__" &&
++				b.Kind() == sitterNodeTypeString && string(p.code[b.StartByte()+1:b.EndByte()-1]) == "__main__" {
+ 				return true
+ 			}
+ 		}
+@@ -127,18 +124,18 @@
+ // parseImportStatement parses a node for an import statement, returning a `Module` and a boolean
+ // representing if the parse was OK or not.
+ func parseImportStatement(node *sitter.Node, code []byte) (Module, bool) {
+-	switch node.Type() {
++	switch node.Kind() {
+ 	case sitterNodeTypeDottedName:
+ 		return Module{
+-			Name:       node.Content(code),
+-			LineNumber: node.StartPoint().Row + 1,
++			Name:       node.Utf8Text(code),
++			LineNumber: node.StartPosition().Row + 1,
+ 		}, true
+ 	case sitterNodeTypeAliasedImport:
+ 		return parseImportStatement(node.Child(0), code)
+ 	case sitterNodeTypeWildcardImport:
+ 		return Module{
+ 			Name:       "*",
+-			LineNumber: node.StartPoint().Row + 1,
++			LineNumber: node.StartPosition().Row + 1,
+ 		}, true
+ 	}
+ 	return Module{}, false
+@@ -158,8 +155,8 @@
+ // an import statement. It updates FileParser.output.Modules with the `module` that the
+ // import represents.
+ func (p *FileParser) parseImportStatements(node *sitter.Node) bool {
+-	if node.Type() == sitterNodeTypeImportStatement {
+-		for j := 1; j < int(node.ChildCount()); j++ {
++	if node.Kind() == sitterNodeTypeImportStatement {
++		for j := uint(1); j < node.ChildCount(); j++ {
+ 			m, ok := parseImportStatement(node.Child(j), p.code)
+ 			if !ok {
+ 				continue
+@@ -173,15 +170,14 @@
+ 			}
+ 			p.output.Modules = append(p.output.Modules, m)
+ 		}
+-	} else if node.Type() == sitterNodeTypeImportFromStatement {
+-		from := node.Child(1).Content(p.code)
+-		from = cleanImportString(from)
++	} else if node.Kind() == sitterNodeTypeImportFromStatement {
++		from := cleanImportString(node.Child(1).Utf8Text(p.code))
+ 		// If the import is from the current package, we don't need to add it to the modules i.e. from . import Class1.
+ 		// If the import is from a different relative package i.e. from .package1 import foo, we need to add it to the modules.
+ 		if from == "." {
+ 			return true
+ 		}
+-		for j := 3; j < int(node.ChildCount()); j++ {
++		for j := uint(3); j < node.ChildCount(); j++ {
+ 			m, ok := parseImportStatement(node.Child(j), p.code)
+ 			if !ok {
+ 				continue
+@@ -202,8 +198,8 @@
+ // parseComments parses a node for comments, returning true if the node is a comment.
+ // It updates FileParser.output.Comments with the parsed comment.
+ func (p *FileParser) parseComments(node *sitter.Node) bool {
+-	if node.Type() == sitterNodeTypeComment {
+-		p.output.Comments = append(p.output.Comments, Comment(node.Content(p.code)))
++	if node.Kind() == sitterNodeTypeComment {
++		p.output.Comments = append(p.output.Comments, Comment(node.Utf8Text(p.code)))
+ 		return true
+ 	}
+ 	return false
+@@ -217,23 +213,23 @@
+ 
+ // isTypeCheckingBlock returns true if the given node is an `if TYPE_CHECKING:` block.
+ func (p *FileParser) isTypeCheckingBlock(node *sitter.Node) bool {
+-	if node.Type() != sitterNodeTypeIfStatement || node.ChildCount() < 2 {
++	if node.Kind() != sitterNodeTypeIfStatement || node.ChildCount() < 2 {
+ 		return false
+ 	}
+ 
+ 	condition := node.Child(1)
+ 
+ 	// Handle `if TYPE_CHECKING:`
+-	if condition.Type() == sitterNodeTypeIdentifier && condition.Content(p.code) == "TYPE_CHECKING" {
++	if condition.Kind() == sitterNodeTypeIdentifier && condition.Utf8Text(p.code) == "TYPE_CHECKING" {
+ 		return true
+ 	}
+ 
+ 	// Handle `if typing.TYPE_CHECKING:`
+-	if condition.Type() == "attribute" && condition.ChildCount() >= 3 {
++	if condition.Kind() == "attribute" && condition.ChildCount() >= 3 {
+ 		object := condition.Child(0)
+ 		attr := condition.Child(2)
+-		if object.Type() == sitterNodeTypeIdentifier && object.Content(p.code) == "typing" &&
+-			attr.Type() == sitterNodeTypeIdentifier && attr.Content(p.code) == "TYPE_CHECKING" {
++		if object.Kind() == sitterNodeTypeIdentifier && object.Utf8Text(p.code) == "typing" &&
++			attr.Kind() == sitterNodeTypeIdentifier && attr.Utf8Text(p.code) == "TYPE_CHECKING" {
+ 			return true
+ 		}
+ 	}
+@@ -252,7 +248,7 @@
+ 		p.inTypeCheckingBlock = true
+ 	}
+ 
+-	for i := 0; i < int(node.ChildCount()); i++ {
++	for i := uint(0); i < node.ChildCount(); i++ {
+ 		if err := ctx.Err(); err != nil {
+ 			return
+ 		}
+--- a/python/parser.go
++++ b/python/parser.go
+@@ -155,7 +155,7 @@
+ 	// statements.
+ 	Name string `json:"name"`
+ 	// The line number where the import happened.
+-	LineNumber uint32 `json:"lineno"`
++	LineNumber uint `json:"lineno"`
+ 	// The path to the module file relative to the Bazel workspace root.
+ 	Filepath string `json:"filepath"`
+ 	// If this was a from import, e.g. from foo import bar, From indicates the module
+--- a/python/BUILD.bazel
++++ b/python/BUILD.bazel
+@@ -41,8 +41,8 @@
+         "@com_github_emirpasic_gods//lists/singlylinkedlist",
+         "@com_github_emirpasic_gods//sets/treeset",
+         "@com_github_emirpasic_gods//utils",
+-        "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
+-        "@com_github_smacker_go_tree_sitter//python",
++        "@com_github_tree_sitter_go_tree_sitter//:go-tree-sitter",
++        "@com_github_tree_sitter_tree_sitter_python//bindings/go",
+         "@org_golang_x_sync//errgroup",
+     ],
+ )
+--- a/MODULE.bazel
++++ b/MODULE.bazel
+@@ -23,8 +23,9 @@
+     "com_github_bmatcuk_doublestar_v4",
+     "com_github_emirpasic_gods",
+     "com_github_ghodss_yaml",
+-    "com_github_smacker_go_tree_sitter",
+     "com_github_stretchr_testify",
++    "com_github_tree_sitter_go_tree_sitter",
++    "com_github_tree_sitter_tree_sitter_python",
+     "in_gopkg_yaml_v2",
+     "org_golang_x_sync",
+ )

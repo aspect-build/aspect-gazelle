@@ -2,12 +2,12 @@ package python
 
 import (
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
-	sitter_python "github.com/smacker/go-tree-sitter/python"
+	tree_sitter_python "github.com/tree-sitter/tree-sitter-python/bindings/go"
 )
 
 func NewLanguage() treesitter.Language {
-	return treesitter.NewLanguageFromSitter(
+	return treesitter.NewLanguage(
 		treesitter.Python,
-		sitter_python.GetLanguage(),
+		tree_sitter_python.Language(),
 	)
 }

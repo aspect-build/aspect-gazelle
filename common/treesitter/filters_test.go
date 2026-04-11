@@ -357,8 +357,8 @@ func TestGetQuery_unknownNodeErrorCompatibility(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected query error")
 	}
-	want := "invalid node type 'import_' at line 1 column 0"
+	want := "Query error at 1:2. Invalid node type import_"
 	if err.Error() != want {
-		t.Fatalf("got %q, want %q", err.Error(), want)
+		t.Fatalf("got %q, want ~%q", err.Error(), want)
 	}
 }

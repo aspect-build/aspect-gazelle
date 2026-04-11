@@ -2,15 +2,12 @@ package treesitter
 
 import (
 	common "github.com/aspect-build/aspect-gazelle/common"
-	sitter "github.com/smacker/go-tree-sitter"
+	tree_sitter "github.com/tree-sitter/go-tree-sitter"
 )
 
-// An extension of the go-tree-sitter QueryCursor.FilterPredicates() to add additional filtering.
+// An extension of go-tree-sitter predicate filtering.
 //
-// Limited implementation of predicates implemented in go-tree-sitter:
-//   - https://github.com/smacker/go-tree-sitter/blob/c5d1f3f5f99edffd6f1e2f53de46996717717dd2/bindings.go#L1081
-//
-// Examples of additional standard tree-sitter predicates:
+// Examples of standard tree-sitter predicates:
 //   - https://tree-sitter.github.io/tree-sitter/using-parsers#predicates
 //
 // Spec reference:
@@ -21,75 +18,50 @@ import (
 //   - match?, not-match?
 //
 // Not implemented: any-eq?, any-not-eq?, any-match?, any-not-match?, any-of?, not-any-of?, is?, is-not?, set!.
-func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.QueryCursor, input []byte) bool {
-	predicates := q.PredicatesForPattern(uint32(m.PatternIndex))
+func matchesAllPredicates(q *sitterQuery, m *tree_sitter.QueryMatch, input []byte) bool {
+	predicates := q.PredicatesForPattern(uint(m.PatternIndex))
 	if len(predicates) == 0 {
 		return true
 	}
 
-	// check each predicate against the match
-	for _, steps := range predicates {
-		operator := q.StringValueForId(steps[0].ValueId)
-
-		switch operator {
+	for _, pred := range predicates {
+		switch pred.Operator {
 		case "eq?", "not-eq?":
-			isPositive := operator == "eq?"
+			isPositive := pred.Operator == "eq?"
 
-			expectedCaptureNameLeft := q.CaptureNameForId(steps[1].ValueId)
+			leftName := q.CaptureNameForId(*pred.Args[0].CaptureId)
 
-			if steps[2].Type == sitter.QueryPredicateStepTypeCapture {
-				expectedCaptureNameRight := q.CaptureNameForId(steps[2].ValueId)
-
-				// Pairwise + equal-length, per tree-sitter reference impl:
-				// https://github.com/tree-sitter/tree-sitter/blob/master/lib/binding_rust/lib.rs
-				var leftContents, rightContents []string
-				for _, c := range m.Captures {
-					captureName := q.CaptureNameForId(c.Index)
-					if captureName == expectedCaptureNameLeft {
-						leftContents = append(leftContents, c.Node.Content(input))
-					}
-					if captureName == expectedCaptureNameRight {
-						rightContents = append(rightContents, c.Node.Content(input))
-					}
-				}
-
-				if len(leftContents) != len(rightContents) {
-					return false
-				}
-				for i := range leftContents {
-					if (leftContents[i] == rightContents[i]) != isPositive {
+			if pred.Args[1].CaptureId != nil {
+				// capture vs capture
+				rightName := q.CaptureNameForId(*pred.Args[1].CaptureId)
+				leftIdx, _ := captureIndexByName(q.captureNames, leftName)
+				rightIdx, _ := captureIndexByName(q.captureNames, rightName)
+				leftNodes := m.NodesForCaptureIndex(leftIdx)
+				rightNodes := m.NodesForCaptureIndex(rightIdx)
+				if len(leftNodes) > 0 && len(rightNodes) > 0 {
+					if (leftNodes[0].Utf8Text(input) == rightNodes[0].Utf8Text(input)) != isPositive {
 						return false
 					}
 				}
 			} else {
-				expectedValueRight := q.StringValueForId(steps[2].ValueId)
-
-				for _, c := range m.Captures {
-					captureName := q.CaptureNameForId(c.Index)
-
-					if expectedCaptureNameLeft != captureName {
-						continue
-					}
-
-					if (c.Node.Content(input) == expectedValueRight) != isPositive {
+				// capture vs literal
+				expectedValue := *pred.Args[1].String
+				idx, _ := captureIndexByName(q.captureNames, leftName)
+				for _, node := range m.NodesForCaptureIndex(idx) {
+					if (node.Utf8Text(input) == expectedValue) != isPositive {
 						return false
 					}
 				}
 			}
 
 		case "match?", "not-match?":
-			isPositive := operator == "match?"
+			isPositive := pred.Operator == "match?"
 
-			expectedCaptureName := q.CaptureNameForId(steps[1].ValueId)
-			regex := common.ParseRegex(q.StringValueForId(steps[2].ValueId))
-
-			for _, c := range m.Captures {
-				captureName := q.CaptureNameForId(c.Index)
-				if expectedCaptureName != captureName {
-					continue
-				}
-
-				if regex.MatchString(c.Node.Content(input)) != isPositive {
+			captureName := q.CaptureNameForId(*pred.Args[0].CaptureId)
+			regex := common.ParseRegex(*pred.Args[1].String)
+			idx, _ := captureIndexByName(q.captureNames, captureName)
+			for _, node := range m.NodesForCaptureIndex(idx) {
+				if regex.MatchString(node.Utf8Text(input)) != isPositive {
 					return false
 				}
 			}
@@ -97,4 +69,13 @@ func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.Query
 	}
 
 	return true
+}
+
+func captureIndexByName(names []string, name string) (uint, bool) {
+	for i, n := range names {
+		if n == name {
+			return uint(i), true
+		}
+	}
+	return 0, false
 }

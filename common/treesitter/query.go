@@ -1,58 +1,44 @@
 package treesitter
 
-import sitter "github.com/smacker/go-tree-sitter"
+import tree_sitter "github.com/tree-sitter/go-tree-sitter"
 
-// Basic wrapper around sitter.Query to cache tree-sitter cgo calls.
+// Basic wrapper around tree_sitter.Query to cache tree-sitter cgo calls.
 type sitterQuery struct {
-	q *sitter.Query
+	q *tree_sitter.Query
 
 	// Pre-computed and cached query data
-	stringValues      []string
 	captureNames      []string
-	predicatePatterns [][][]sitter.QueryPredicateStep
+	predicatePatterns [][]tree_sitter.QueryPredicate
 }
 
 var _ TreeQuery = (*sitterQuery)(nil)
 
-func newSitterQuery(lang *sitter.Language, query string) (*sitterQuery, error) {
-	q, err := sitter.NewQuery([]byte(query), lang)
+func newSitterQuery(lang *tree_sitter.Language, query string) (*sitterQuery, error) {
+	q, err := tree_sitter.NewQuery(lang, query)
 	if err != nil {
 		return nil, err
 	}
 
-	captureNames := make([]string, q.CaptureCount())
-	for i := uint32(0); i < q.CaptureCount(); i++ {
-		captureNames[i] = q.CaptureNameForId(i)
-	}
+	captureNames := q.CaptureNames()
 
-	stringValues := make([]string, q.StringCount())
-	for i := uint32(0); i < q.StringCount(); i++ {
-		stringValues[i] = q.StringValueForId(i)
-	}
-
-	predicatePatterns := make([][][]sitter.QueryPredicateStep, q.PatternCount())
-	for i := uint32(0); i < q.PatternCount(); i++ {
-		predicatePatterns[i] = q.PredicatesForPattern(i)
+	predicatePatterns := make([][]tree_sitter.QueryPredicate, q.PatternCount())
+	for i := uint(0); i < q.PatternCount(); i++ {
+		predicatePatterns[i] = q.GeneralPredicates(i)
 	}
 
 	return &sitterQuery{
 		q:                 q,
-		stringValues:      stringValues,
 		captureNames:      captureNames,
 		predicatePatterns: predicatePatterns,
 	}, nil
 }
 
-// Cached query data accessors mirroring the tree-sitter Query signatures.
+// Cached query data accessors.
 
-func (q *sitterQuery) StringValueForId(id uint32) string {
-	return q.stringValues[id]
-}
-
-func (q *sitterQuery) CaptureNameForId(id uint32) string {
+func (q *sitterQuery) CaptureNameForId(id uint) string {
 	return q.captureNames[id]
 }
 
-func (q *sitterQuery) PredicatesForPattern(patternIndex uint32) [][]sitter.QueryPredicateStep {
+func (q *sitterQuery) PredicatesForPattern(patternIndex uint) []tree_sitter.QueryPredicate {
 	return q.predicatePatterns[patternIndex]
 }

@@ -8,7 +8,7 @@ import (
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 
-	sitter "github.com/smacker/go-tree-sitter"
+	tree_sitter "github.com/tree-sitter/go-tree-sitter"
 )
 
 var ErrorsQuery = `(ERROR) @error`
@@ -49,22 +49,14 @@ func (tree *treeAst) Query(query TreeQuery) iter.Seq[ASTQueryResult] {
 	return func(yield func(ASTQueryResult) bool) {
 		q := query.(*sitterQuery)
 
-		// Execute the query.
-		qc := sitter.NewQueryCursor()
+		qc := tree_sitter.NewQueryCursor()
 		defer qc.Close()
-		qc.Exec(q.q, tree.sitterTree.RootNode())
 
-		for {
-			m, ok := qc.NextMatch()
-			if !ok {
-				break
-			}
-
-			// Filter the capture results
-			if !matchesAllPredicates(q, m, qc, tree.sourceCode) {
+		matches := qc.Matches(q.q, tree.sitterTree.RootNode(), tree.sourceCode)
+		for m := matches.Next(); m != nil; m = matches.Next() {
+			if !matchesAllPredicates(q, m, tree.sourceCode) {
 				continue
 			}
-
 			r := &queryResult{QueryCaptures: tree.mapQueryMatchCaptures(m, q)}
 			if !yield(r) {
 				break
@@ -73,13 +65,13 @@ func (tree *treeAst) Query(query TreeQuery) iter.Seq[ASTQueryResult] {
 	}
 }
 
-func (tree *treeAst) mapQueryMatchCaptures(m *sitter.QueryMatch, q *sitterQuery) map[string]string {
-	captures := make(map[string]string, len(m.Captures))
-	for _, c := range m.Captures {
-		name := q.CaptureNameForId(c.Index)
-		captures[name] = c.Node.Content(tree.sourceCode)
+func (tree *treeAst) mapQueryMatchCaptures(m *tree_sitter.QueryMatch, q *sitterQuery) map[string]string {
+	captures := make(map[string]string, len(q.captureNames))
+	for i, name := range q.captureNames {
+		for _, node := range m.NodesForCaptureIndex(uint(i)) {
+			captures[name] = node.Utf8Text(tree.sourceCode)
+		}
 	}
-
 	return captures
 }
 
@@ -97,39 +89,34 @@ func (tree *treeAst) QueryErrors() []error {
 		BazelLog.Fatalf("Failed to create util 'ErrorsQuery': %v", err)
 	}
 
-	// Execute the import query
-	qc := sitter.NewQueryCursor()
+	qc := tree_sitter.NewQueryCursor()
 	defer qc.Close()
-	qc.Exec(query.q, node)
 
-	// Collect import statements from the query results
-	for {
-		m, ok := qc.NextMatch()
-		if !ok {
-			break
-		}
-
-		// Apply predicates to filter results.
-		if !matchesAllPredicates(query, m, qc, tree.sourceCode) {
+	matches := qc.Matches(query.q, node, tree.sourceCode)
+	for m := matches.Next(); m != nil; m = matches.Next() {
+		if !matchesAllPredicates(query, m, tree.sourceCode) {
 			continue
 		}
 
-		for _, c := range m.Captures {
-			at := c.Node
-			atStart := at.StartPoint()
-			show := c.Node
+		for _, at := range m.NodesForCaptureIndex(0) {
+			atStart := at.StartPosition()
+			show := at
 
 			// Navigate up the AST to include the full source line
 			if atStart.Column > 0 {
-				for show.StartPoint().Row > 0 && show.StartPoint().Row == atStart.Row && show.Parent() != nil {
-					show = show.Parent()
+				for show.StartPosition().Row > 0 && show.StartPosition().Row == atStart.Row {
+					parent := show.Parent()
+					if parent == nil {
+						break
+					}
+					show = *parent
 				}
 			}
 
 			// Extract only that line from the parent Node
-			lineI := int(atStart.Row - show.StartPoint().Row)
+			lineI := int(atStart.Row - show.StartPosition().Row)
 			colI := int(atStart.Column)
-			line := strings.Split(show.Content(tree.sourceCode), "\n")[lineI]
+			line := strings.Split(show.Utf8Text(tree.sourceCode), "\n")[lineI]
 
 			pre := fmt.Sprintf("     %d: ", atStart.Row+1)
 			msg := pre + line
