@@ -414,8 +414,10 @@ func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
 }
 
 func (c *JsGazelleConfig) IsTsConfigIgnored(groupName, propName string) bool {
-	if tc, ok := c.groupTsConfigs[groupName]; ok && slices.Contains(tc.ignoredProps, propName) {
-		return true
+	for _, key := range []string{"", groupName} {
+		if tc, ok := c.groupTsConfigs[key]; ok && slices.Contains(tc.ignoredProps, propName) {
+			return true
+		}
 	}
 	return false
 }
