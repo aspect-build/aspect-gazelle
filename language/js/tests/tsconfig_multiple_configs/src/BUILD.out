@@ -1,0 +1,36 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "src",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_lib",
+    deps = [
+        "//:node_modules/react",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_project(
+    name = "src_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_test",
+    deps = [
+        ":src",
+        "//:node_modules/@testing-library/react",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_project(
+    name = "src_e2e",
+    testonly = True,
+    srcs = ["main.e2e.ts"],
+    tsconfig = "//:tsconfig_e2e",
+    deps = [
+        "//:node_modules/playwright",
+        "//:node_modules/tslib",
+    ],
+)

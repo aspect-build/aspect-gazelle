@@ -103,8 +103,10 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 	}
 
 	// tsconfig
-	if common.WalkHasPath(rel, config.tsconfigName) {
-		ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, config.tsconfigName)
+	for groupName, tc := range config.groupTsConfigs {
+		if tc.fileName != "" && common.WalkHasPath(rel, tc.fileName) {
+			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, tc.fileName)
+		}
 	}
 }
 
@@ -118,7 +120,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_TypeScriptExtension:
 			config.SetGenerationEnabled(common.ReadEnabled(d))
 		case Directive_TypeScriptConfigExtension:
-			config.SetTsConfigGenerationEnabled(common.ReadEnabled(d))
+			config.SetTsConfigGenerationEnabled(value)
 		case Directive_TypeScriptProtoExtension:
 			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
 		case Directive_NpmPackageExtension:

@@ -86,7 +86,7 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 		srcs = expandedSrcs
 	}
 
-	_, tsconfig := ts.tsconfig.FindConfig(f.Pkg)
+	_, tsconfig := ts.tsconfig.FindConfig(f.Pkg, "")
 
 	provides := make([]resolve.ImportSpec, 0, len(srcs)+1)
 
@@ -362,7 +362,7 @@ func (ts *typeScriptLang) addTsLib(
 	deps *common.LabelSet,
 	from label.Label,
 ) {
-	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg)
+	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, "")
 	if tsconfig != nil && tsconfig.ImportHelpers {
 		if tslibLabel := ts.findPackage(from.Pkg, "tslib"); tslibLabel != nil {
 			deps.Add(tslibLabel)
