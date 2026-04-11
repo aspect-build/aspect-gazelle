@@ -103,9 +103,9 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 	}
 
 	// tsconfig
-	for groupName, fileName := range config.tsconfigNames {
-		if common.WalkHasPath(rel, fileName) {
-			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, fileName)
+	for groupName, tc := range config.groupTsConfigs {
+		if tc.fileName != "" && common.WalkHasPath(rel, tc.fileName) {
+			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, tc.fileName)
 		}
 	}
 }
