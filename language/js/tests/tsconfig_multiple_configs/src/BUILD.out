@@ -23,3 +23,14 @@ ts_project(
         "//:node_modules/tslib",
     ],
 )
+
+ts_project(
+    name = "src_e2e",
+    testonly = True,
+    srcs = ["main.e2e.ts"],
+    tsconfig = "//:tsconfig_e2e",
+    deps = [
+        "//:node_modules/playwright",
+        "//:node_modules/tslib",
+    ],
+)
