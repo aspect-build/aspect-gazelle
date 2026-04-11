@@ -3,10 +3,10 @@ package gazelle
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
-	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
@@ -417,28 +417,12 @@ func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
 		}
 	}
 
-	BazelLog.Warnf("Unknown ts_project attribute to ignore: %q. Ignored attributes must be the ts_project attribute, not the tsconfig.json option name", propName)
+	fmt.Printf("Unknown ts_project attribute to ignore: %q\n\nIgnored attributes must be the ts_project attribute, not the tsconfig.json option name\n", propName)
 }
 
-// IsTsConfigIgnored returns whether a tsconfig property should be ignored
-// for a specific target group. A property is ignored if it appears in
-// either the default list or the group-specific list.
 func (c *JsGazelleConfig) IsTsConfigIgnored(groupName, propName string) bool {
-	if def, ok := c.groupTsConfigs[""]; ok {
-		for _, prop := range def.ignoredProps {
-			if prop == propName {
-				return true
-			}
-		}
-	}
-	if groupName != "" {
-		if tc, ok := c.groupTsConfigs[groupName]; ok {
-			for _, prop := range tc.ignoredProps {
-				if prop == propName {
-					return true
-				}
-			}
-		}
+	if tc, ok := c.groupTsConfigs[groupName]; ok && slices.Contains(tc.ignoredProps, propName) {
+		return true
 	}
 	return false
 }
