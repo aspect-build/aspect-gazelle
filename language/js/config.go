@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
@@ -27,8 +28,6 @@ const (
 	Directive_Lockfile = "js_pnpm_lockfile"
 	// The tsconfig.json file.
 	Directive_TsconfigFile = "js_tsconfig_file"
-	// The tsconfig.json file for test targets.
-	Directive_TestTsconfigFile = "js_test_tsconfig_file"
 	// Ignore and do not generate a tsconfig related `ts_project` attribute
 	Directive_TypeScriptConfigIgnore = "js_tsconfig_ignore"
 	// Directive_IgnoreImports represents the directive that controls the
@@ -171,16 +170,15 @@ type JsGazelleConfig struct {
 	packageTargetKind PackageTargetKind
 
 	protoGenerationEnabled    bool
-	tsconfigGenerationEnabled bool
+	tsconfigGenerationEnabled map[string]bool // target group name → enabled ("" key = default)
 	packageGenerationEnabled  NpmPackageMode
 
 	pnpmLockRel  string
 	pnpmLockDir  string
 	pnpmLockPath string
 
-	tsconfigName         string
-	testTsconfigName     string
-	tsconfigIgnoredProps []string
+	tsconfigNames        map[string]string   // target group name → tsconfig filename ("" key = default)
+	tsconfigIgnoredProps map[string][]string // target group name → ignored props ("" key = default)
 
 	ignoreDependencies       []common.GlobExpr
 	resolves                 []jsResolve
@@ -204,15 +202,15 @@ func newRootConfig() *JsGazelleConfig {
 		rel:                        "",
 		generationEnabled:          true,
 		protoGenerationEnabled:     true,
-		tsconfigGenerationEnabled:  true,
+		tsconfigGenerationEnabled:  map[string]bool{"": true},
 		packageGenerationEnabled:   NpmPackageReferencedMode,
 		packageTargetKind:          PackageTargetKind_Package,
 		pnpmLockRel:                "",
 		pnpmLockDir:                "",
 		pnpmLockPath:               "pnpm-lock.yaml",
-		tsconfigName:               "tsconfig.json",
+		tsconfigNames:              map[string]string{"": "tsconfig.json"},
 		ignoreDependencies:         []common.GlobExpr{},
-		tsconfigIgnoredProps:       []string{},
+		tsconfigIgnoredProps:       map[string][]string{},
 		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,
 		collectAssetImports:        true,
@@ -259,6 +257,24 @@ func (c *JsGazelleConfig) NewChild(childPath string) *JsGazelleConfig {
 		cCopy.targets = append(cCopy.targets, target.newChild())
 	}
 
+	// Copy the tsconfig names, any modifications will be local.
+	cCopy.tsconfigNames = make(map[string]string, len(c.tsconfigNames))
+	for k, v := range c.tsconfigNames {
+		cCopy.tsconfigNames[k] = v
+	}
+
+	// Copy the tsconfig generation enabled map, any modifications will be local.
+	cCopy.tsconfigGenerationEnabled = make(map[string]bool, len(c.tsconfigGenerationEnabled))
+	for k, v := range c.tsconfigGenerationEnabled {
+		cCopy.tsconfigGenerationEnabled[k] = v
+	}
+
+	// Copy the tsconfig ignored props, any modifications will be local.
+	cCopy.tsconfigIgnoredProps = make(map[string][]string, len(c.tsconfigIgnoredProps))
+	for k, v := range c.tsconfigIgnoredProps {
+		cCopy.tsconfigIgnoredProps[k] = append([]string{}, v...)
+	}
+
 	// Copy the overrides, any modifications will be local.
 	cCopy.targetNamingOverrides = make(map[string]string, len(c.targetNamingOverrides))
 	for k, v := range c.targetNamingOverrides {
@@ -303,13 +319,25 @@ func (c *JsGazelleConfig) GenerationEnabled() bool {
 	return c.generationEnabled
 }
 
-func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(enabled bool) {
-	c.tsconfigGenerationEnabled = enabled
+// SetTsConfigGenerationEnabled sets whether ts_config generation is enabled.
+// The value may be "enabled|disabled" for the default, or
+// "custom_target_name enabled|disabled" for a per-target override.
+func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(value string) {
+	if before, after, found := strings.Cut(value, " "); found {
+		groupName := before
+		c.tsconfigGenerationEnabled[groupName] = strings.TrimSpace(after) == "enabled"
+	} else {
+		c.tsconfigGenerationEnabled[""] = value == "enabled"
+	}
 }
 
-// If ts_config extension is enabled.
-func (c *JsGazelleConfig) GetTsConfigGenerationEnabled() bool {
-	return c.tsconfigGenerationEnabled
+// GetTsConfigGenerationEnabled returns whether ts_config generation is enabled
+// for a specific target group, falling back to the default if no override exists.
+func (c *JsGazelleConfig) GetTsConfigGenerationEnabled(groupName string) bool {
+	if override, ok := c.tsconfigGenerationEnabled[groupName]; ok {
+		return override
+	}
+	return c.tsconfigGenerationEnabled[""]
 }
 
 func (c *JsGazelleConfig) SetProtoGenerationEnabled(enabled bool) {
@@ -344,38 +372,61 @@ func (c *JsGazelleConfig) PnpmLockDir() string {
 }
 
 // Set the tsconfig.json file name
-func (c *JsGazelleConfig) SetTsconfigFile(tsconfigName string) {
-	c.tsconfigName = path.Clean(tsconfigName)
-}
-func (c *JsGazelleConfig) GetTsconfigFile() string {
-	return c.tsconfigName
-}
-
-// Set the tsconfig.json file name for test targets
-func (c *JsGazelleConfig) SetTestTsconfigFile(tsconfigName string) {
-	c.testTsconfigName = path.Clean(tsconfigName)
-}
-func (c *JsGazelleConfig) GetTestTsconfigFile() string {
-	return c.testTsconfigName
+func (c *JsGazelleConfig) SetTsconfigFile(value string) {
+	if before, after, found := strings.Cut(value, " "); found {
+		targetGroup := before
+		tsconfigFile := strings.TrimSpace(after)
+		c.tsconfigNames[targetGroup] = path.Clean(tsconfigFile)
+	} else {
+		c.tsconfigNames[""] = path.Clean(value)
+	}
 }
 
-func (c *JsGazelleConfig) AddIgnoredTsConfig(propName string) {
-	// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
+// GetTsconfigFile returns the tsconfig filename for a specific target
+// group, falling back to the default if no override exists.
+func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
+	if override, ok := c.tsconfigNames[groupName]; ok {
+		return override
+	}
+	return c.tsconfigNames[""]
+}
+
+// AddIgnoredTsConfig adds a tsconfig property to the ignore list.
+// The value may be a property name (e.g. "tsconfig") for the default,
+// or "custom_target_name property" for a per-target override.
+func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
+	groupName := ""
+	propName := value
+
+	if before, after, found := strings.Cut(value, " "); found {
+		groupName = before
+		propName = strings.TrimSpace(after)
+	}
 
 	for _, prop := range tsProjectReflectedConfigAttributes {
 		if prop == propName {
-			c.tsconfigIgnoredProps = append(c.tsconfigIgnoredProps, propName)
+			c.tsconfigIgnoredProps[groupName] = append(c.tsconfigIgnoredProps[groupName], propName)
 			return
 		}
 	}
 
-	fmt.Printf("Unknown ts_project attribute to ignore: %q\n\nIgnored attributes must be the ts_project attribute, not the tsconfig.json option name\n", propName)
+	BazelLog.Warnf("Unknown ts_project attribute to ignore: %q. Ignored attributes must be the ts_project attribute, not the tsconfig.json option name", propName)
 }
 
-func (c *JsGazelleConfig) IsTsConfigIgnored(propName string) bool {
-	for _, prop := range c.tsconfigIgnoredProps {
+// IsTsConfigIgnored returns whether a tsconfig property should be ignored
+// for a specific target group. A property is ignored if it appears in
+// either the default list or the group-specific list.
+func (c *JsGazelleConfig) IsTsConfigIgnored(groupName, propName string) bool {
+	for _, prop := range c.tsconfigIgnoredProps[""] {
 		if prop == propName {
 			return true
+		}
+	}
+	if groupName != "" {
+		for _, prop := range c.tsconfigIgnoredProps[groupName] {
+			if prop == propName {
+				return true
+			}
 		}
 	}
 	return false

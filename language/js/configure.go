@@ -44,7 +44,6 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_Visibility,
 		Directive_Lockfile,
 		Directive_TsconfigFile,
-		Directive_TestTsconfigFile,
 		Directive_TypeScriptConfigIgnore,
 		Directive_IgnoreImports,
 		Directive_Resolve,
@@ -104,13 +103,10 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 	}
 
 	// tsconfig
-	if common.WalkHasPath(rel, config.tsconfigName) {
-		ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, config.tsconfigName)
-	}
-
-	// test tsconfig
-	if config.testTsconfigName != "" && common.WalkHasPath(rel, config.testTsconfigName) {
-		ts.testTsconfig.SetTsConfigFile(c.RepoRoot, rel, config.testTsconfigName)
+	for groupName, fileName := range config.tsconfigNames {
+		if common.WalkHasPath(rel, fileName) {
+			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, fileName)
+		}
 	}
 }
 
@@ -124,7 +120,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_TypeScriptExtension:
 			config.SetGenerationEnabled(common.ReadEnabled(d))
 		case Directive_TypeScriptConfigExtension:
-			config.SetTsConfigGenerationEnabled(common.ReadEnabled(d))
+			config.SetTsConfigGenerationEnabled(value)
 		case Directive_TypeScriptProtoExtension:
 			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
 		case Directive_NpmPackageExtension:
@@ -162,8 +158,6 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			config.SetPnpmLockfile(value)
 		case Directive_TsconfigFile:
 			config.SetTsconfigFile(value)
-		case Directive_TestTsconfigFile:
-			config.SetTestTsconfigFile(value)
 		case Directive_TypeScriptConfigIgnore:
 			config.AddIgnoredTsConfig(strings.TrimSpace(value))
 		case Directive_IgnoreImports:

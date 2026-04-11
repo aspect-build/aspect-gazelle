@@ -384,7 +384,7 @@ func (ts *typeScriptLang) addTsLib(
 	deps *common.LabelSet,
 	from label.Label,
 ) {
-	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg)
+	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, "")
 	if tsconfig != nil && tsconfig.ImportHelpers {
 		if tslibLabel := ts.findPackage(from.Pkg, "tslib"); tslibLabel != nil {
 			deps.Add(tslibLabel)
