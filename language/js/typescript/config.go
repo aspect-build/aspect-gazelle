@@ -142,6 +142,13 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 			return dir, c
 		}
 
+		// Fall back to the default group config if a group-specific one isn't found.
+		if groupName != tc.defaultGroupName {
+			if c := tc.GetTsConfigFile(dir, tc.defaultGroupName); c != nil {
+				return dir, c
+			}
+		}
+
 		if dir == "" {
 			break
 		}

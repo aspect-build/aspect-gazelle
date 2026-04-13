@@ -234,10 +234,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 			ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
 		} else {
 			// Resolve the tsconfig for this specific target group.
-			groupTsconfigRel, groupTsconfig := tsconfigRel, tsconfig
-			if cfg.GetTsconfigFile(group.name) != cfg.GetTsconfigFile("") {
-				groupTsconfigRel, groupTsconfig = ts.tsconfig.FindConfig(args.Rel, group.name)
-			}
+			groupTsconfigRel, groupTsconfig := ts.tsconfig.FindConfig(args.Rel, group.name)
 
 			// Add or edit/merge a rule for this source group.
 			srcRule, srcGenErr := ts.addProjectRule(
