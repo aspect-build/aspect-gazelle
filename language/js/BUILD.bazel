@@ -59,6 +59,9 @@ go_library(
 
 go_test(
     name = "js_test",
-    srcs = ["generate_test.go"],
+    srcs = [
+        "generate_test.go",
+        "resolve_test.go",
+    ],
     embed = [":js"],
 )

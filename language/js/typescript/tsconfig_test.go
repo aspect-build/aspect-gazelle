@@ -259,13 +259,6 @@ func TestTsconfigParse(t *testing.T) {
 		if options.RootDir != "." {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, ".")
 		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "src/foo.ts" || out2 != "src/foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
-		}
 	})
 
 	t.Run("parse a tsconfig with rootDir '.'", func(t *testing.T) {
@@ -273,13 +266,6 @@ func TestTsconfigParse(t *testing.T) {
 
 		if options.RootDir != "." {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, ".")
-		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "src/foo.ts" || out2 != "src/foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
 		}
 	})
 
@@ -289,13 +275,6 @@ func TestTsconfigParse(t *testing.T) {
 		if options.RootDir != "." {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, ".")
 		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "src/foo.ts" || out2 != "src/foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
-		}
 	})
 
 	t.Run("parse a tsconfig with rootDir", func(t *testing.T) {
@@ -303,13 +282,6 @@ func TestTsconfigParse(t *testing.T) {
 
 		if options.RootDir != "src" {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, "src")
-		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "foo.ts" || out2 != "foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
 		}
 	})
 
@@ -319,13 +291,6 @@ func TestTsconfigParse(t *testing.T) {
 		if options.RootDir != "src" {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, "src")
 		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "foo.ts" || out2 != "foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
-		}
 	})
 
 	t.Run("parse a tsconfig with ./rootDir relative", func(t *testing.T) {
@@ -334,13 +299,6 @@ func TestTsconfigParse(t *testing.T) {
 		if options.RootDir != "src" {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, "src")
 		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "foo.ts" || out2 != "foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
-		}
 	})
 
 	t.Run("parse a tsconfig with ./rootDir/ relative", func(t *testing.T) {
@@ -348,13 +306,6 @@ func TestTsconfigParse(t *testing.T) {
 
 		if options.RootDir != "src" {
 			t.Errorf("ParseTsConfigOptions: RootDir\nactual:   %s\nexpected:  %s\n", options.RootDir, "src")
-		}
-
-		out1 := options.ToOutDir("src/foo.ts")
-		out2 := options.ToDeclarationOutDir("src/foo.ts")
-		out3 := options.ToOutDir("src")
-		if out1 != "foo.ts" || out2 != "foo.ts" || out3 != "src" {
-			t.Errorf("Failed to compute rootDir output path: %s", out1)
 		}
 	})
 
@@ -746,85 +697,5 @@ func TestExpandPathsWithRootDirs(t *testing.T) {
 		}
 
 		assertExpand(t, config, "./foo")
-	})
-}
-
-func TestTsconfigOutRootDirs(t *testing.T) {
-	t.Run("empty config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{}`)
-		assertEqual(t, o1.ToOutDir("foo.ts"), "foo.ts", "empty config")
-		assertEqual(t, o1.ToDeclarationOutDir("foo.ts"), "foo.ts", "empty config")
-
-		o2 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./"}}`)
-		assertEqual(t, o2.ToOutDir("foo.ts"), "foo.ts", "empty rel config")
-		assertEqual(t, o2.ToDeclarationOutDir("foo.ts"), "foo.ts", "empty rel config")
-	})
-
-	t.Run("rootDir config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./src"}}`)
-		assertEqual(t, o1.ToOutDir("src/foo.ts"), "foo.ts", "empty config")
-		assertEqual(t, o1.ToDeclarationOutDir("src/foo.ts"), "foo.ts", "empty config")
-
-		o2 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "src"}}`)
-		assertEqual(t, o2.ToOutDir("src/foo.ts"), "foo.ts", "empty config")
-		assertEqual(t, o2.ToDeclarationOutDir("src/foo.ts"), "foo.ts", "empty config")
-
-		o3 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "src/foo/.."}}`)
-		assertEqual(t, o3.ToOutDir("src/foo.ts"), "foo.ts", "empty config")
-		assertEqual(t, o3.ToDeclarationOutDir("src/foo.ts"), "foo.ts", "empty config")
-	})
-
-	t.Run("outDir config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"outDir": "dist"}}`)
-		assertEqual(t, o1.ToOutDir("foo.ts"), "dist/foo.ts", "empty config")
-		assertEqual(t, o1.ToDeclarationOutDir("foo.ts"), "dist/foo.ts", "empty config")
-
-		o2 := parseTest(t, ".", `{"compilerOptions": {"outDir": "./dist"}}`)
-		assertEqual(t, o2.ToOutDir("foo.ts"), "dist/foo.ts", "empty config")
-		assertEqual(t, o2.ToDeclarationOutDir("foo.ts"), "dist/foo.ts", "empty config")
-
-		o3 := parseTest(t, ".", `{"compilerOptions": {"outDir": "./dist/"}}`)
-		assertEqual(t, o3.ToOutDir("foo.ts"), "dist/foo.ts", "empty config")
-		assertEqual(t, o3.ToDeclarationOutDir("foo.ts"), "dist/foo.ts", "empty config")
-
-		o4 := parseTest(t, ".", `{"compilerOptions": {"outDir": "./dist/foo/.."}}`)
-		assertEqual(t, o4.ToOutDir("foo.ts"), "dist/foo.ts", "empty config")
-		assertEqual(t, o4.ToDeclarationOutDir("foo.ts"), "dist/foo.ts", "empty config")
-	})
-
-	t.Run("rootDir + outDir config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./src", "outDir": "dist"}}`)
-		assertEqual(t, o1.ToOutDir("src/foo.ts"), "dist/foo.ts", "in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src/foo.ts"), "dist/foo.ts", "in rootdir")
-		assertEqual(t, o1.ToOutDir("src.ts"), "dist/src.ts", "not in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src.ts"), "dist/src.ts", "not in rootdir")
-		assertEqual(t, o1.ToOutDir("src-other/src.ts"), "dist/src-other/src.ts", "has similar rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src-other/src.ts"), "dist/src-other/src.ts", "has similar rootdir")
-		assertEqual(t, o1.ToOutDir("src"), "dist/src", "invalid rootdir prefix")
-		assertEqual(t, o1.ToDeclarationOutDir("src"), "dist/src", "invalid rootdir prefix")
-	})
-
-	t.Run("rootDir + declarationDir config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./src", "declarationDir": "dist"}}`)
-		assertEqual(t, o1.ToDeclarationOutDir("src/foo.ts"), "dist/foo.ts", "in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src.ts"), "dist/src.ts", "not in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src-other/src.ts"), "dist/src-other/src.ts", "has similar rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src"), "dist/src", "invalid rootdir prefix")
-	})
-
-	t.Run("rootDir + outDir + declarationDir config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./src", "outDir": "notMe", "declarationDir": "dist"}}`)
-		assertEqual(t, o1.ToDeclarationOutDir("src/foo.ts"), "dist/foo.ts", "in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src.ts"), "dist/src.ts", "not in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src-other/src.ts"), "dist/src-other/src.ts", "has similar rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src"), "dist/src", "invalid rootdir prefix")
-	})
-
-	t.Run("rootDir + outDir + declarationDir-root config", func(t *testing.T) {
-		o1 := parseTest(t, ".", `{"compilerOptions": {"rootDir": "./src", "outDir": "notMe", "declarationDir": "."}}`)
-		assertEqual(t, o1.ToDeclarationOutDir("src/foo.ts"), "foo.ts", "in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src.ts"), "src.ts", "not in rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src-other/src.ts"), "src-other/src.ts", "has similar rootdir")
-		assertEqual(t, o1.ToDeclarationOutDir("src"), "src", "invalid rootdir prefix")
 	})
 }
