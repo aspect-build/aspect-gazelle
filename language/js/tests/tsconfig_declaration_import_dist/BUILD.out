@@ -1,0 +1,12 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+
+ts_project(
+    name = "tsconfig_declaration_import_dist",
+    srcs = ["main.ts"],
+    deps = [
+        "//lib",
+        "//lib2",
+    ],
+)

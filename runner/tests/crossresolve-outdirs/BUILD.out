@@ -1,0 +1,6 @@
+load("//bazel:defs.bzl", "outdirs_consumer")
+
+outdirs_consumer(
+    name = "consumer",
+    deps = ["//lib"],
+)
