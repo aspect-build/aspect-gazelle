@@ -229,7 +229,7 @@ func TestTsBuildInfoFileConfigDirExpansion(t *testing.T) {
 		}`)
 
 		assertEqual(t, options.BaseUrl, "pkg/lib", "baseUrl should expand configDir")
-		assertEqual(t, options.DeclarationDir, "pkg/types", "declarationDir should expand configDir")
+		assertEqual(t, *options.DeclarationDir, "pkg/types", "declarationDir should expand configDir")
 		assertEqual(t, options.OutDir, "pkg/dist", "outDir should expand configDir")
 		assertEqual(t, options.RootDir, "pkg/src", "rootDir should expand configDir")
 		assertEqual(t, options.TsBuildInfoFile, "pkg/lib-types/.tsbuildinfo", "tsBuildInfoFile should expand configDir")
@@ -697,5 +697,29 @@ func TestExpandPathsWithRootDirs(t *testing.T) {
 		}
 
 		assertExpand(t, config, "./foo")
+	})
+}
+
+func TestTsconfigInheritance(t *testing.T) {
+	t.Run("declarationDir inherited from base", func(t *testing.T) {
+		// When a parent has an explicit declarationDir, the child inherits it.
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-outdir-declarationdir.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+		assertEqual(t, config.OutDir, "dist", "outDir inherited")
+		if config.DeclarationDir == nil {
+			t.Fatalf("declarationDir should be inherited from parent")
+		}
+		assertEqual(t, *config.DeclarationDir, "types", "declarationDir inherited from parent")
+	})
+
+	t.Run("rootDir inherited from base", func(t *testing.T) {
+		// rootDir is inherited from the parent config.
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base-rootdir.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+		assertEqual(t, config.RootDir, "src", "rootDir inherited from parent")
 	})
 }

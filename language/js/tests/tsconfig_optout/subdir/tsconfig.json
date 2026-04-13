@@ -3,6 +3,7 @@
   "compilerOptions": {
     "allowJs": false,
     "declarationMap": false,
+    "rootDir": "",
     "sourceMap": false,
     "resolveJsonModule": true
   }
