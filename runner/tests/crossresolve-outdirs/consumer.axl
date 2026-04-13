@@ -1,0 +1,30 @@
+aspect.gazelle_rule_kind("outdirs_consumer", {
+    "From": "//bazel:defs.bzl",
+    "NonEmptyAttrs": ["deps"],
+    "ResolveAttrs": ["deps"],
+})
+
+def declare(ctx):
+    # Only generate a consumer in the root package
+    if ctx.rel != "":
+        return
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "outdirs_consumer",
+        attrs = {
+            "deps": [
+                # Explicit dep on the compiled output (outDir: "dist")
+                aspect.Import(id = "lib/dist/lib", provider = "js"),
+                aspect.Import(id = "lib/dist/lib.js", provider = "js"),
+                # Explicit dep on the type declarations (declarationDir: "types")
+                aspect.Import(id = "lib/types/lib", provider = "js"),
+                aspect.Import(id = "lib/types/lib.d.ts", provider = "js"),
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "outdirs-consumer",
+    declare = declare,
+)
