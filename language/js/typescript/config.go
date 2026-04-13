@@ -79,7 +79,7 @@ func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []*TsConfig {
 			configs = append(configs, c)
 		}
 	}
-	// Required for deterministic output order
+	// Required for deterministic output order of generated targets
 	slices.SortFunc(configs, func(a, b *TsConfig) int {
 		return strings.Compare(a.ConfigName, b.ConfigName)
 	})
