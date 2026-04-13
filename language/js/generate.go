@@ -402,7 +402,7 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 	}
 
 	for _, reference := range tsconfig.References {
-		referenceFile := cfg.tsconfigName
+		referenceFile := "tsconfig.json"
 		referenceDir := "."
 		if strings.HasSuffix(reference, ".json") {
 			referenceFile = reference
