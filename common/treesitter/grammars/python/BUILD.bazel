@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "python",
+    srcs = ["binding.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/python",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//common/treesitter",
+        # Use go-tree-sitter's bundled Python grammar rather than a standalone
+        # @tree-sitter-python archive. The @rules_python_gazelle_plugin already
+        # links com_github_smacker_go_tree_sitter//python, so adding a second
+        # copy of the same C sources (parser.c / scanner.c) causes duplicate
+        # symbol errors at link time in the runner binary.
+        "@com_github_smacker_go_tree_sitter//python",
+    ],
+)

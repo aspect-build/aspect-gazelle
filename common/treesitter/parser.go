@@ -55,6 +55,7 @@ const (
 	Rust                        = "rust"
 	Ruby                        = "ruby"
 	HCL                         = "hcl"
+	Python                      = "python"
 )
 
 type Language any
@@ -63,6 +64,13 @@ func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 	return &treeLanguage{
 		grammar: grammar,
 		lang:    sitter.NewLanguage(langPtr),
+	}
+}
+
+func NewLanguageFromSitter(grammar LanguageGrammar, lang *sitter.Language) Language {
+	return &treeLanguage{
+		grammar: grammar,
+		lang:    lang,
 	}
 }
 
@@ -158,6 +166,10 @@ var extLanguages = map[string]LanguageGrammar{
 	"thor":     Ruby,
 	"jbuilder": Ruby,
 	"rabl":     Ruby,
+
+	"py":  Python,
+	"pyw": Python,
+	"pyi": Python,
 }
 
 // In theory, this is a mirror of
