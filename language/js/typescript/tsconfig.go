@@ -426,23 +426,6 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	return &config, nil
 }
 
-func (c TsConfig) ToOutDir(f string) string {
-	return c.stripRootPrependDir(c.OutDir, f)
-}
-func (c TsConfig) ToDeclarationOutDir(f string) string {
-	return c.stripRootPrependDir(c.DeclarationDir, f)
-}
-
-func (c TsConfig) stripRootPrependDir(out, f string) string {
-	if c.RootDir != "." {
-		if strings.HasPrefix(f, c.RootDir) && len(f) > len(c.RootDir) && f[len(c.RootDir)] == '/' {
-			f = f[len(c.RootDir)+1:]
-		}
-	}
-
-	return cleanJoin3("", out, f)
-}
-
 // Expands the path from the project base to the active tsconfig.json file
 func (c TsConfig) expandBaseUrl(importPath string) string {
 	if path.IsAbs(importPath) {

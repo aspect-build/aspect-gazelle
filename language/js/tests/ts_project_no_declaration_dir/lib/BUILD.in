@@ -1,0 +1,13 @@
+# gazelle:generation_mode update_only
+
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# ts_project with out_dir and root_dir but no declaration_dir.
+# When declaration_dir is absent it should default to out_dir (not "."),
+# so the root-stripped path "lib/util" must NOT be indexed as a provided import.
+ts_project(
+    name = "lib",
+    srcs = ["src/util.ts"],
+    out_dir = "dist",
+    root_dir = "src",
+)

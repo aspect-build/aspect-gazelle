@@ -86,31 +86,39 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 		srcs = expandedSrcs
 	}
 
-	_, tsconfig := ts.tsconfig.FindConfig(f.Pkg)
+	// Potential ts_project attributes affecting the provided rule outputs.
+	// TODO: support ts_project(tsconfig) dictionary attributes where out/root/declaration_dir will not be set
+	outDir := path.Clean(r.AttrString("out_dir"))
+	declarationDir := outDir
+	if r.Attr("declaration_dir") != nil {
+		declarationDir = path.Clean(r.AttrString("declaration_dir"))
+	}
+	rootDir := path.Clean(r.AttrString("root_dir"))
 
 	provides := make([]resolve.ImportSpec, 0, len(srcs)+1)
 
 	// Sources that produce importable paths.
 	for _, src := range srcs {
 		// The raw source path
-		srcs = []string{joinPkg(f.Pkg, src)}
+		srcPaths := []string{joinPkg(f.Pkg, src)}
 
-		// Also add tsconfig-mapped directories for references
-		// to the output files of the ts_project rule.
-		if tsconfig != nil {
-			outSrc := tsconfig.ToOutDir(src)
+		// Potential additional output paths based on ts_project attributes.
+		if outDir != "." || rootDir != "." {
+			outSrc := toOutDirPath(rootDir, outDir, src)
 			if outSrc != src {
-				srcs = append(srcs, joinPkg(f.Pkg, outSrc))
-			}
-
-			declarationOutDir := tsconfig.ToDeclarationOutDir(src)
-			if outSrc != declarationOutDir && declarationOutDir != src {
-				srcs = append(srcs, joinPkg(f.Pkg, declarationOutDir))
+				srcPaths = append(srcPaths, joinPkg(f.Pkg, outSrc))
 			}
 		}
 
-		for _, src := range srcs {
-			for impt := range toImportPaths(src) {
+		if (declarationDir != "." || rootDir != ".") && declarationDir != outDir {
+			declarationSrc := toOutDirPath(rootDir, declarationDir, src)
+			if declarationSrc != src {
+				srcPaths = append(srcPaths, joinPkg(f.Pkg, declarationSrc))
+			}
+		}
+
+		for _, s := range srcPaths {
+			for impt := range toImportPaths(s) {
 				provides = append(provides, resolve.ImportSpec{
 					Lang: LanguageName,
 					Imp:  impt,
@@ -124,6 +132,20 @@ func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *r
 	}
 
 	return provides
+}
+
+// Map a source file path to its output path by stripping the rootDir and prepending outDir.
+// rootDir and outDir must already be path.Clean'd.
+func toOutDirPath(rootDir, outDir, src string) string {
+	if rootDir != "." {
+		if strings.HasPrefix(src, rootDir) && len(src) > len(rootDir) && src[len(rootDir)] == '/' {
+			src = src[len(rootDir)+1:]
+		}
+	}
+	if outDir != "." {
+		src = joinPkg(outDir, src)
+	}
+	return src
 }
 
 func (ts *typeScriptLang) tsconfigImports(r *rule.Rule, f *rule.File) []resolve.ImportSpec {
