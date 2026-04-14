@@ -345,6 +345,8 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	var declarationDir string
 	if c.CompilerOptions.DeclarationDir != nil {
 		declarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
+	} else if baseConfig != nil && baseConfig.DeclarationDir != baseConfig.OutDir {
+		declarationDir = baseConfig.DeclarationDir
 	} else {
 		declarationDir = OutDir
 	}
