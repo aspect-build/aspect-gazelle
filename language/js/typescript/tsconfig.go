@@ -80,15 +80,15 @@ func (j TsConfigJsxType) IsReact() bool {
 	return s == "react" || strings.HasPrefix(s, "react-")
 }
 
-func expandConfigDirPath(value, configDir string) string {
-	return path.Clean(strings.ReplaceAll(value, "${configDir}", configDir))
+func expandConfigDirPath(value string) string {
+	return path.Clean(strings.ReplaceAll(value, "${configDir}", "."))
 }
 
-func expandConfigDirFile(value, configDir string) string {
+func expandConfigDirFile(value string) string {
 	if value == "" {
 		return value
 	}
-	return path.Clean(strings.ReplaceAll(value, "${configDir}", configDir))
+	return path.Clean(strings.ReplaceAll(value, "${configDir}", "."))
 }
 
 type TsConfig struct {
@@ -307,7 +307,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var tsBuildInfoFile string
 	if c.CompilerOptions.TsBuildInfoFile != nil {
-		tsBuildInfoFile = expandConfigDirFile(*c.CompilerOptions.TsBuildInfoFile, configDir)
+		tsBuildInfoFile = expandConfigDirFile(*c.CompilerOptions.TsBuildInfoFile)
 	} else if baseConfig != nil {
 		tsBuildInfoFile = baseConfig.TsBuildInfoFile
 	}
@@ -328,7 +328,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var RootDir string
 	if c.CompilerOptions.RootDir != nil {
-		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
+		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir)
 	} else if baseConfig != nil {
 		RootDir = baseConfig.RootDir
 	} else {
@@ -337,7 +337,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var OutDir string
 	if c.CompilerOptions.OutDir != nil {
-		OutDir = expandConfigDirPath(*c.CompilerOptions.OutDir, configDir)
+		OutDir = expandConfigDirPath(*c.CompilerOptions.OutDir)
 	} else if baseConfig != nil {
 		OutDir = baseConfig.OutDir
 	} else {
@@ -346,7 +346,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var declarationDir *string
 	if c.CompilerOptions.DeclarationDir != nil {
-		expanded := expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
+		expanded := expandConfigDirPath(*c.CompilerOptions.DeclarationDir)
 		declarationDir = &expanded
 	} else if baseConfig != nil {
 		declarationDir = baseConfig.DeclarationDir
@@ -354,7 +354,7 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 
 	var BaseUrl string
 	if c.CompilerOptions.BaseUrl != nil {
-		BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl, configDir)
+		BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl)
 	} else {
 		BaseUrl = "."
 	}
