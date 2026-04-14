@@ -327,12 +327,8 @@ func (c *JsGazelleConfig) getOrCreateGroupTsConfig(groupName string) *targetTsCo
 	return tc
 }
 
-func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(value string) {
-	if before, after, found := strings.Cut(value, " "); found {
-		c.getOrCreateGroupTsConfig(before).enabled = boolPtr(strings.TrimSpace(after) == "enabled")
-	} else {
-		c.getOrCreateGroupTsConfig("").enabled = boolPtr(value == "enabled")
-	}
+func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(groupName string, enabled bool) {
+	c.getOrCreateGroupTsConfig(groupName).enabled = boolPtr(enabled)
 }
 
 // If ts_config extension is enabled for the given group.

@@ -120,7 +120,11 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_TypeScriptExtension:
 			config.SetGenerationEnabled(common.ReadEnabled(d))
 		case Directive_TypeScriptConfigExtension:
-			config.SetTsConfigGenerationEnabled(value)
+			if groupName, groupValue, found := strings.Cut(value, " "); found {
+				config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
+			} else {
+				config.SetTsConfigGenerationEnabled("", strings.TrimSpace(value) == "enabled")
+			}
 		case Directive_TypeScriptProtoExtension:
 			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
 		case Directive_NpmPackageExtension:
