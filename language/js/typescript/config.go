@@ -158,6 +158,36 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 	return "", nil
 }
 
+// IsWithinRootDir checks whether filePath (relative to pkgRel) is within the
+// tsconfig rootDir for the given group. Returns true when there is no
+// applicable rootDir constraint.
+func (tc *TsWorkspace) IsWithinRootDir(pkgRel, groupName, filePath string) bool {
+	tsconfigRel, tsconfig := tc.FindConfig(pkgRel, groupName)
+	if tsconfig == nil || tsconfig.RootDir == "." {
+		return true
+	}
+
+	// Compute rootDir as an absolute path (relative to the workspace root).
+	absRootDir := path.Join(tsconfigRel, tsconfig.RootDir)
+
+	// If this package is already within or equal to the rootDir, all files pass.
+	if pkgRel == absRootDir || strings.HasPrefix(pkgRel, absRootDir+"/") {
+		return true
+	}
+
+	// If rootDir is within this package, only files under that prefix pass.
+	if pkgRel == "" {
+		return strings.HasPrefix(filePath, absRootDir+"/")
+	}
+	if strings.HasPrefix(absRootDir, pkgRel+"/") {
+		rootDir := absRootDir[len(pkgRel)+1:]
+		return strings.HasPrefix(filePath, rootDir+"/")
+	}
+
+	// The package and rootDir don't overlap — rootDir doesn't apply here.
+	return true
+}
+
 func (tc *TsWorkspace) ExpandPaths(from, f string) []string {
 	d, _ := path.Split(from)
 	_, c := tc.FindConfig(d, "")

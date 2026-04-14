@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
+	"github.com/aspect-build/aspect-gazelle/language/js/typescript"
 	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
@@ -118,20 +119,18 @@ var DefaultSourceGlobs = []*TargetGroup{
 	&TargetGroup{
 		name:           DefaultLibraryName,
 		customSources:  []string{},
-		defaultSources: []string{fmt.Sprintf("%s/**/*.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
+		defaultSources: []string{fmt.Sprintf("**/*.{%s}", strings.Join(defaultTypescriptFileExtensionsArray, ","))},
 		testonly:       false,
 	},
 	&TargetGroup{
 		name:           DefaultTestsName,
 		customSources:  []string{},
-		defaultSources: []string{fmt.Sprintf("%s/**/*.{spec,test}.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
+		defaultSources: []string{fmt.Sprintf("**/*.{spec,test}.{%s}", strings.Join(defaultTypescriptFileExtensionsArray, ","))},
 		testonly:       true,
 	},
 }
 
 var (
-	rootDirVar = "${rootDir}"
-
 	// Array of default typescript source file extensions
 	defaultTypescriptFileExtensionsArray = []string{"ts", "tsx", "mts", "cts"}
 )
@@ -253,9 +252,6 @@ func (c *JsGazelleConfig) NewChild(childPath string) *JsGazelleConfig {
 	cCopy.parent = c
 	cCopy.ignoreDependencies = []common.GlobExpr{}
 	cCopy.resolves = []jsResolve{}
-
-	// Copy the ignored props, any modifications will be local.
-	cCopy.tsconfigIgnoredProps = append([]string{}, c.tsconfigIgnoredProps...)
 
 	// Copy the targets, any modifications will be local.
 	cCopy.targets = make([]*TargetGroup, 0, len(c.targets))
@@ -577,7 +573,7 @@ func (c *JsGazelleConfig) RenderSourceTargetName(groupName, packageName string, 
 }
 
 // Determine if and which target the passed file belongs in.
-func (c *JsGazelleConfig) GetFileSourceTarget(filePath, rootDir string) *TargetGroup {
+func (c *JsGazelleConfig) GetFileSourceTarget(filePath string, tsWorkspace *typescript.TsWorkspace) *TargetGroup {
 	// Rules are evaluated in reverse order, so we want to
 	for i := len(c.targets) - 1; i >= 0; i-- {
 		target := c.targets[i]
@@ -588,11 +584,13 @@ func (c *JsGazelleConfig) GetFileSourceTarget(filePath, rootDir string) *TargetG
 			sources = target.defaultSources
 		}
 
-		for _, globTmpl := range sources {
-			globExpr := path.Clean(strings.Replace(globTmpl, rootDirVar, rootDir, 1))
+		for _, globExpr := range sources {
 			glob, _ := common.ParseGlobExpression(globExpr)
 
 			if glob(filePath) {
+				if tsWorkspace != nil && !tsWorkspace.IsWithinRootDir(c.rel, target.name, filePath) {
+					continue
+				}
 				return target
 			}
 		}

@@ -343,7 +343,8 @@ func (ts *typeScriptLang) Resolve(
 		}
 
 		if r.Kind() == TsProjectKind {
-			ts.addTsLib(c, ix, deps, from)
+			groupName, _ := r.PrivateAttr("ts_group_name").(string)
+			ts.addTsLib(c, ix, deps, from, groupName)
 		}
 
 		if !deps.Empty() {
@@ -383,8 +384,9 @@ func (ts *typeScriptLang) addTsLib(
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
 	from label.Label,
+	groupName string,
 ) {
-	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, "")
+	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, groupName)
 	if tsconfig != nil && tsconfig.ImportHelpers {
 		if tslibLabel := ts.findPackage(from.Pkg, "tslib"); tslibLabel != nil {
 			deps.Add(tslibLabel)

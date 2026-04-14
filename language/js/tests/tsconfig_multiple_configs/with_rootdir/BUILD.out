@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+
+ts_config(
+    name = "tsconfig_lib",
+    src = "tsconfig.lib.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

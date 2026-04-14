@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+
+# gazelle:js_project_naming_convention {dirname}_lib
+# gazelle:js_tests_naming_convention {dirname}_unit_tests
+
+ts_config(
+    name = "tsconfig_lib",
+    src = "tsconfig.lib.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

@@ -1,0 +1,23 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "lib",
+    srcs = ["util.ts"],
+    composite = True,
+    root_dir = "lib",
+    tsconfig = "//with_rootdir:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "lib_tests",
+    testonly = True,
+    srcs = ["util.spec.ts"],
+    composite = True,
+    root_dir = "lib",
+    tsconfig = "//with_rootdir:tsconfig_lib",
+    deps = [
+        ":lib",
+        "//:node_modules/tslib",
+    ],
+)
