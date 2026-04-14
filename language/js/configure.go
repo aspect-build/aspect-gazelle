@@ -166,7 +166,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 
 			if before, after, found := strings.Cut(value, " "); found {
 				groupName = path.Clean(before)
-				value = path.Clean(after)
+				fileName = path.Clean(after)
 			}
 			config.SetTsconfigFile(groupName, fileName)
 		case Directive_TypeScriptConfigIgnore:

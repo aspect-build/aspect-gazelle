@@ -1,7 +1,7 @@
 # gazelle:js_tsconfig_file tsconfig.lib.json
 # gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
 
-# Test ignore for a group 
+# Test ignore for a group
 # gazelle:js_tsconfig_ignore {dirname}_e2e composite
 # Test ignore for all groups
 # gazelle:js_tsconfig_ignore incremental
