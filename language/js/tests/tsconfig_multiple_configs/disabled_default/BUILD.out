@@ -1,0 +1,32 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_tsconfig disabled
+# gazelle:js_tsconfig {dirname}_tests enabled
+
+ts_project(
+    name = "disabled_default",
+    srcs = ["main.ts"],
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "disabled_default_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_test",
+    deps = [
+        ":disabled_default",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_project(
+    name = "disabled_default_e2e",
+    testonly = True,
+    srcs = ["main.e2e.ts"],
+    deps = [
+        "//:node_modules/playwright",
+        "//:node_modules/tslib",
+    ],
+)

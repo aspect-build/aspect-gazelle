@@ -342,6 +342,10 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
 	for _, entry := range ts.tsconfig.GetAllTsConfigFiles(args.Rel) {
+		if !cfg.GetTsConfigGenerationEnabled(entry.GroupName) {
+			continue
+		}
+
 		tsconfig := entry.Config
 
 		imports := newTsProjectInfo()

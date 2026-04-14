@@ -115,6 +115,8 @@ type TargetGroup struct {
 	testonly bool
 }
 
+func boolPtr(b bool) *bool { return &b }
+
 var DefaultSourceGlobs = []*TargetGroup{
 	&TargetGroup{
 		name:           DefaultLibraryName,
@@ -162,7 +164,8 @@ type jsResolve struct {
 // targetTsConfig holds per-target-group tsconfig settings.
 type targetTsConfig struct {
 	// Whether ts_config generation and attribute reflection is enabled.
-	enabled bool
+	// When nil, inherits from the default group at read time.
+	enabled *bool
 	// The tsconfig filename (e.g. "tsconfig.json", "tsconfig.test.json").
 	fileName string
 	// ts_project attributes that should not be generated from the tsconfig.
@@ -214,7 +217,7 @@ func newRootConfig() *JsGazelleConfig {
 		pnpmLockRel:                "",
 		pnpmLockDir:                "",
 		pnpmLockPath:               "pnpm-lock.yaml",
-		groupTsConfigs:             map[string]*targetTsConfig{"": {enabled: true, fileName: "tsconfig.json"}},
+		groupTsConfigs:             map[string]*targetTsConfig{"": {enabled: boolPtr(true), fileName: "tsconfig.json"}},
 		ignoreDependencies:         []common.GlobExpr{},
 		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,
@@ -317,27 +320,31 @@ func (c *JsGazelleConfig) getOrCreateGroupTsConfig(groupName string) *targetTsCo
 	if tc, ok := c.groupTsConfigs[groupName]; ok {
 		return tc
 	}
-	// Inherit defaults from the "" entry.
+	// Inherit fileName from the default; enabled is nil so it falls back at read time.
 	def := c.groupTsConfigs[""]
-	tc := &targetTsConfig{enabled: def.enabled, fileName: def.fileName}
+	tc := &targetTsConfig{fileName: def.fileName}
 	c.groupTsConfigs[groupName] = tc
 	return tc
 }
 
 func (c *JsGazelleConfig) SetTsConfigGenerationEnabled(value string) {
 	if before, after, found := strings.Cut(value, " "); found {
-		c.getOrCreateGroupTsConfig(before).enabled = strings.TrimSpace(after) == "enabled"
+		c.getOrCreateGroupTsConfig(before).enabled = boolPtr(strings.TrimSpace(after) == "enabled")
 	} else {
-		c.getOrCreateGroupTsConfig("").enabled = value == "enabled"
+		c.getOrCreateGroupTsConfig("").enabled = boolPtr(value == "enabled")
 	}
 }
 
-// If ts_config extension is enabled for the given group
+// If ts_config extension is enabled for the given group.
+// Falls back to the default group if the group has no explicit setting.
 func (c *JsGazelleConfig) GetTsConfigGenerationEnabled(groupName string) bool {
-	if tc, ok := c.groupTsConfigs[groupName]; ok {
-		return tc.enabled
+	if tc, ok := c.groupTsConfigs[groupName]; ok && tc.enabled != nil {
+		return *tc.enabled
 	}
-	return c.groupTsConfigs[""].enabled
+	if def := c.groupTsConfigs[""]; def != nil && def.enabled != nil {
+		return *def.enabled
+	}
+	return true
 }
 
 func (c *JsGazelleConfig) SetProtoGenerationEnabled(enabled bool) {
