@@ -112,16 +112,8 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 	return result
 }
 
-func importsToRelsToIndex(info *TsProjectInfo) []string {
-	i := make([]string, 0, info.imports.Size())
-	for it := info.imports.Iterator(); it.Next(); {
-		i = append(i, it.Value().Imp)
-	}
-	return i
-}
-
 func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo, groupName string) []string {
-	i := importsToRelsToIndex(info)
+	i := []string{}
 
 	if p := ts.pnpmProjects.GetProject(cfg.rel); p != nil {
 		for _, pkg := range p.GetLocalReferences() {
@@ -131,6 +123,9 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 
 	for it := info.imports.Iterator(); it.Next(); {
 		impt := it.Value()
+
+		// Might be a direct import of a file or dir
+		i = append(i, impt.Imp)
 
 		// Might require tsconfig path expansion (rootDir[s], paths etc.)
 		i = append(i, ts.tsconfig.ExpandPaths(impt.SourcePath, impt.Imp, groupName)...)
@@ -464,9 +459,14 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 		imports.AddImport(impt)
 	}
 
+	relsToIndex := make([]string, 0, imports.imports.Size())
+	for it := imports.imports.Iterator(); it.Next(); {
+		relsToIndex = append(relsToIndex, it.Value().Imp)
+	}
+
 	result.Gen = append(result.Gen, tsProtoLibrary)
 	result.Imports = append(result.Imports, imports)
-	result.RelsToIndex = append(result.RelsToIndex, importsToRelsToIndex(imports)...)
+	result.RelsToIndex = append(result.RelsToIndex, relsToIndex...)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", tsProtoLibrary.Kind(), args.Rel, tsProtoLibrary.Name())
 }
