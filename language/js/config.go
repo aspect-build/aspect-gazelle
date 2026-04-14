@@ -580,7 +580,7 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 			}
 
 			if _, err := common.ParseGlobExpression(glob); err != nil {
-				return fmt.Errorf("Invalid target (%s) glob: %v", target.name, glob)
+				return fmt.Errorf("Invalid target (%s) glob %q: %w", target.name, glob, err)
 			}
 
 			target.customSources = append(target.customSources, glob)
