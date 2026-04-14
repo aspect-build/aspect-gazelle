@@ -371,7 +371,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 }
 
 func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args language.GenerateArgs, tsconfig *typescript.TsConfig) []ImportStatement {
-	imports := make([]ImportStatement, 0)
+	var imports []ImportStatement
 
 	SourcePath := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
 
@@ -584,7 +584,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)
 	if ruleKind == TsProjectKind {
-		assetFiles := make([]string, 0)
+		var assetFiles []string
 		srcFiles := make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
 			sourceFile := it.Value()
@@ -802,7 +802,7 @@ type parseResult struct {
 }
 
 func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) ([]ImportStatement, error) {
-	results := make([]ImportStatement, 0)
+	var results []ImportStatement
 
 	for _, sourceFile := range sourceFiles {
 		imports, err := proto.GetProtoImports(path.Join(args.Dir, sourceFile))
