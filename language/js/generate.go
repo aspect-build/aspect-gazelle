@@ -149,15 +149,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// Calculate the tsconfig rootDir relative to the current directory being walked
 	tsconfigRootDir := "."
 	if tsconfig != nil {
-		tsconfigRootDir = path.Join(tsconfigRel, tsconfig.RootDir)
-
-		// Ignore rootDirs not within args.Rel
-		if args.Rel != "" && !strings.HasPrefix(tsconfigRootDir, args.Rel+"/") {
-			tsconfigRootDir = "."
-		} else if args.Rel != "" {
-			// Make the rootDir relative to the current directory being walked
-			tsconfigRootDir = tsconfigRootDir[len(args.Rel)+1:]
-		}
+		tsconfigRootDir = tsconfigRootDirRelative(tsconfigRel, tsconfig.RootDir, args.Rel)
 	}
 
 	// Util for adding a file to a source group or the data files.
@@ -765,10 +757,16 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 			}
 		}
 
-		// Reflect the tsconfig rootDir in the ts_project rule
+		// Reflect the tsconfig rootDir in the ts_project rule.
+		// rules_ts computes the effective rootDir as (package + root_dir), so
+		// root_dir must be relative to the package, not the workspace root.
 		if !cfg.IsTsConfigIgnored("root_dir") {
-			if tsconfig != nil && tsconfig.RootDir != "" && tsconfig.RootDir != "." {
-				sourceRule.SetAttr("root_dir", tsconfig.RootDir)
+			pkgRelRootDir := "."
+			if tsconfig != nil {
+				pkgRelRootDir = tsconfigRootDirRelative(tsconfigRel, tsconfig.RootDir, args.Rel)
+			}
+			if pkgRelRootDir != "" && pkgRelRootDir != "." {
+				sourceRule.SetAttr("root_dir", pkgRelRootDir)
 			} else {
 				sourceRule.DelAttr("root_dir")
 			}
@@ -969,6 +967,23 @@ func (ts *typeScriptLang) addModuleDeclaration(module string, moduleLabel *label
 	}
 
 	ts.moduleTypes[module] = append(ts.moduleTypes[module], moduleLabel)
+}
+
+// tsconfigRootDirRelative returns the tsconfig rootDir relative to pkgRel (a
+// workspace-relative package path). Returns "." when rootDir is unset or when
+// the effective rootDir does not fall inside pkgRel.
+func tsconfigRootDirRelative(tsconfigRel, rootDir, pkgRel string) string {
+	if rootDir == "" {
+		return "."
+	}
+	wsRelRootDir := path.Join(tsconfigRel, rootDir)
+	if pkgRel == "" {
+		return wsRelRootDir
+	}
+	if strings.HasPrefix(wsRelRootDir, pkgRel+"/") {
+		return wsRelRootDir[len(pkgRel)+1:]
+	}
+	return "."
 }
 
 // path.Join() for cases where the 2 parts are already normalized and simply need concatenation.
