@@ -1,8 +1,9 @@
 # gazelle:js_tsconfig_file tsconfig.lib.json
 # gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
 
-# These are ignored to validate that they're removed from output
+# Test ignore for a group 
 # gazelle:js_tsconfig_ignore {dirname}_e2e composite
+# Test ignore for all groups
 # gazelle:js_tsconfig_ignore incremental
 
 # gazelle:js_test_files {dirname}_tests **/*.{test,spec}.{ts,tsx,mjs,mts}
