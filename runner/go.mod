@@ -55,7 +55,7 @@ require (
 	github.com/mikefarah/yq/v4 v4.52.4 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/rs/zerolog v1.34.0 // indirect
+	github.com/rs/zerolog v1.35.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zclconf/go-cty v1.18.0 // indirect
