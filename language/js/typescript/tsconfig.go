@@ -102,7 +102,7 @@ type TsConfig struct {
 	ResolveJsonModule *bool
 	Composite         *bool
 	Declaration       *bool
-	DeclarationDir    string
+	DeclarationDir    *string
 	DeclarationMap    *bool
 	DeclarationOnly   *bool
 	Incremental       *bool
@@ -329,6 +329,8 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	var RootDir string
 	if c.CompilerOptions.RootDir != nil {
 		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
+	} else if baseConfig != nil {
+		RootDir = baseConfig.RootDir
 	} else {
 		RootDir = "."
 	}
@@ -342,13 +344,12 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		OutDir = "."
 	}
 
-	var declarationDir string
+	var declarationDir *string
 	if c.CompilerOptions.DeclarationDir != nil {
-		declarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
-	} else if baseConfig != nil && baseConfig.DeclarationDir != baseConfig.OutDir {
+		expanded := expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
+		declarationDir = &expanded
+	} else if baseConfig != nil {
 		declarationDir = baseConfig.DeclarationDir
-	} else {
-		declarationDir = OutDir
 	}
 
 	var BaseUrl string
