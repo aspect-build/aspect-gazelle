@@ -28,7 +28,7 @@ func RunQueries(queryType plugin.QueryType, fileName string, sourceCode []byte, 
 
 func runRawQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
 	sourceCodeStr := string(sourceCode)
-	for key, _ := range queries {
+	for key := range queries {
 		queryResults <- &plugin.QueryProcessorResult{
 			Key:    key,
 			Result: sourceCodeStr,

@@ -117,7 +117,7 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 
 	// Build the TargetSource for each file for each plugin.
 	pluginTargetSources := make(map[plugin.PluginId]map[string]plugin.TargetSource, len(cfg.pluginPrepareResults))
-	for pluginId, _ := range cfg.pluginPrepareResults {
+	for pluginId := range cfg.pluginPrepareResults {
 		pluginSrcs := pluginSourceFiles[pluginId]
 
 		queryPrefix := pluginId + "|"
@@ -179,7 +179,7 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 			// Group the TargetSource's into the source groups for the plugin.
 			pluginTargetGroups := plugin.TargetSources{}
 
-			for groupId, _ := range prep.Sources {
+			for groupId := range prep.Sources {
 				files := pluginSourceGroupFiles[pluginId][groupId]
 
 				// Add the TargetSource for each file in the group, even if empty.
