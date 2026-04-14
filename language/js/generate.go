@@ -112,7 +112,7 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 	return result
 }
 
-func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo, groupName string) []string {
+func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo) []string {
 	i := []string{}
 
 	if p := ts.pnpmProjects.GetProject(cfg.rel); p != nil {
@@ -128,7 +128,7 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 		i = append(i, impt.Imp)
 
 		// Might require tsconfig path expansion (rootDir[s], paths etc.)
-		i = append(i, ts.tsconfig.ExpandPaths(impt.SourcePath, impt.Imp, groupName)...)
+		i = append(i, ts.tsconfig.ExpandPaths(impt.SourcePath, impt.Imp, info.groupName)...)
 	}
 
 	return i
@@ -330,7 +330,7 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 	result.Gen = append(result.Gen, npmPackage)
 	result.Imports = append(result.Imports, npmPackageInfo)
-	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, &npmPackageInfo.TsProjectInfo, "")...)
+	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, &npmPackageInfo.TsProjectInfo)...)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", cfg.packageTargetKind, args.Rel, packageTargetName)
 }
@@ -343,7 +343,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 
 		tsconfig := entry.Config
 
-		imports := newTsProjectInfo()
+		imports := newTsProjectInfo(entry.GroupName)
 		for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
 			imports.AddImport(impt)
 		}
@@ -355,7 +355,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 
 		result.Gen = append(result.Gen, tsconfigRule)
 		result.Imports = append(result.Imports, imports)
-		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports, entry.GroupName)...)
+		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
 	}
 }
 
@@ -454,7 +454,7 @@ func (ts *typeScriptLang) addTsProtoRule(cfg *JsGazelleConfig, args language.Gen
 		return
 	}
 
-	imports := newTsProjectInfo()
+	imports := newTsProjectInfo("")
 	for _, impt := range protoImports {
 		imports.AddImport(impt)
 	}
@@ -494,7 +494,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	}
 
 	// Project data combined from all files.
-	info := newTsProjectInfo()
+	info := newTsProjectInfo(group.name)
 	for _, f := range sourceFiles {
 		info.sources.Add(f)
 	}
@@ -577,7 +577,6 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	}
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)
-	sourceRule.SetPrivateAttr("ts_group_name", group.name)
 	if ruleKind == TsProjectKind {
 		var assetFiles []string
 		srcFiles := make([]string, 0, info.sources.Size())
@@ -788,7 +787,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	result.Gen = append(result.Gen, sourceRule)
 	result.Imports = append(result.Imports, info)
-	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info, group.name)...)
+	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info)...)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", sourceRule.Kind(), args.Rel, sourceRule.Name())
 

@@ -65,6 +65,9 @@ func newTsPackageInfo(source *label.Label) *TsPackageInfo {
 
 // TsProject rule import data
 type TsProjectInfo struct {
+	// The name of the target group this project belongs to
+	groupName string
+
 	// `ImportStatement`s in ths project
 	imports *treeset.Set[ImportStatement]
 
@@ -72,10 +75,11 @@ type TsProjectInfo struct {
 	sources *treeset.Set[string]
 }
 
-func newTsProjectInfo() *TsProjectInfo {
+func newTsProjectInfo(groupName string) *TsProjectInfo {
 	return &TsProjectInfo{
-		imports: treeset.NewWith(importStatementComparator),
-		sources: treeset.NewWith(strings.Compare),
+		groupName: groupName,
+		imports:   treeset.NewWith(importStatementComparator),
+		sources:   treeset.NewWith(strings.Compare),
 	}
 }
 func (i *TsProjectInfo) AddImport(impt ImportStatement) {

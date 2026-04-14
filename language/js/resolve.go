@@ -323,20 +323,21 @@ func (ts *typeScriptLang) Resolve(
 
 		// Support this target representing a project or a package
 		var imports *treeset.Set[ImportStatement]
+		var groupName string
 		if packageInfo, isPackageInfo := importData.(*TsPackageInfo); isPackageInfo {
 			imports = packageInfo.imports
+			groupName = packageInfo.groupName
 
 			if packageInfo.source != nil {
 				deps.Add(packageInfo.source)
 			}
 		} else if projectInfo, isProjectInfo := importData.(*TsProjectInfo); isProjectInfo {
 			imports = projectInfo.imports
+			groupName = projectInfo.groupName
 		} else {
 			BazelLog.Infof("%s //%s:%s with no/unknown package info", r.Kind(), from.Pkg, r.Name())
 			break
 		}
-
-		groupName, _ := r.PrivateAttr("ts_group_name").(string)
 
 		err := ts.resolveImports(c, ix, deps, imports, from, groupName)
 		if err != nil {
@@ -361,7 +362,7 @@ func (ts *typeScriptLang) Resolve(
 		srcs := packageInfo.sources.Values()
 
 		deps := common.NewLabelSet(from)
-		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from, "")
+		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from, packageInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
