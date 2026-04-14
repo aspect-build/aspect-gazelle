@@ -1,0 +1,22 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "inherited",
+    srcs = ["main.ts"],
+    composite = True,
+    declaration = True,
+    declaration_dir = "types",
+    emit_declaration_only = True,
+    incremental = True,
+    out_dir = "dist",
+    source_map = False,
+    ts_build_info_file = "dist/tsconfig.tsbuildinfo",
+    tsconfig = ":tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//subdir:tsconfig"],
+)
