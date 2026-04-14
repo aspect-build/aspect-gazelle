@@ -71,17 +71,22 @@ func (tc *TsWorkspace) GetTsConfigFile(rel, groupName string) *TsConfig {
 	return tc.getTsConfigFromPath(p)
 }
 
-func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []*TsConfig {
+type TsConfigWithGroup struct {
+	Config    *TsConfig
+	GroupName string
+}
+
+func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
 	inner := tc.cm.configFiles[rel]
-	configs := make([]*TsConfig, 0, len(inner))
-	for _, p := range inner {
+	configs := make([]TsConfigWithGroup, 0, len(inner))
+	for groupName, p := range inner {
 		if c := tc.getTsConfigFromPath(p); c != nil {
-			configs = append(configs, c)
+			configs = append(configs, TsConfigWithGroup{Config: c, GroupName: groupName})
 		}
 	}
 	// Required for deterministic output order of generated targets
-	slices.SortFunc(configs, func(a, b *TsConfig) int {
-		return strings.Compare(a.ConfigName, b.ConfigName)
+	slices.SortFunc(configs, func(a, b TsConfigWithGroup) int {
+		return strings.Compare(a.Config.ConfigName, b.Config.ConfigName)
 	})
 	return configs
 }
@@ -188,9 +193,9 @@ func (tc *TsWorkspace) IsWithinRootDir(pkgRel, groupName, filePath string) bool 
 	return true
 }
 
-func (tc *TsWorkspace) ExpandPaths(from, f string) []string {
+func (tc *TsWorkspace) ExpandPaths(from, f, groupName string) []string {
 	d, _ := path.Split(from)
-	_, c := tc.FindConfig(d, "")
+	_, c := tc.FindConfig(d, groupName)
 	if c == nil {
 		return []string{}
 	}

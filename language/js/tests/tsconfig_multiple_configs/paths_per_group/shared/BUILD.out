@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "shared",
+    srcs = ["util.ts"],
+    composite = True,
+    tsconfig = "//paths_per_group:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
