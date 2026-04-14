@@ -749,7 +749,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		}
 
 		// Reflect the tsconfig declarationDir in the ts_project rule
-		if !cfg.IsTsConfigIgnored("declaration_dir") {
+		if !cfg.IsTsConfigIgnored(group.name, "declaration_dir") {
 			if tsconfig != nil && tsconfig.DeclarationDir != nil {
 				sourceRule.SetAttr("declaration_dir", *tsconfig.DeclarationDir)
 			} else {
