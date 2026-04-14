@@ -239,7 +239,7 @@ type declareTargetActionsImpl struct {
 
 func NewDeclareTargetActions() DeclareTargetActions {
 	return &declareTargetActionsImpl{
-		actions: make([]TargetAction, 0),
+		actions: []TargetAction{},
 	}
 }
 func (ctx *declareTargetActionsImpl) Actions() []TargetAction {

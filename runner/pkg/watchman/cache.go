@@ -25,38 +25,14 @@ type cacheState struct {
 	Entries   map[string]map[string]any
 }
 
-type fileEntry struct {
-	mu   sync.RWMutex
-	data map[string]any
-}
-
-func (e *fileEntry) load(key string) (any, bool) {
-	e.mu.RLock()
-	v, ok := e.data[key]
-	e.mu.RUnlock()
-	return v, ok
-}
-
-func (e *fileEntry) loadOrStore(key string, value any) (any, bool) {
-	e.mu.Lock()
-	if v, ok := e.data[key]; ok {
-		e.mu.Unlock()
-		return v, true
-	}
-	e.data[key] = value
-	e.mu.Unlock()
-	return value, false
-}
-
 type watchmanCache struct {
-	w *WatchmanWatcher
+	*cache.FileComputeCache
 
+	w    *WatchmanWatcher
 	file string
 
 	symlinks *sync.Map
 
-	old           map[string]map[string]any
-	new           *sync.Map // string → *fileEntry
 	lastClockSpec string
 
 	// A reference to the walk cache used in the last gazelle invocation
@@ -90,12 +66,10 @@ var previousWalkCache *sync.Map
 
 func newWatchmanCache(c *config.Config, w *WatchmanWatcher, diskCachePath string) *watchmanCache {
 	wc := &watchmanCache{
-		w:    w,
-		file: diskCachePath,
-		old:  map[string]map[string]any{},
-		new:  &sync.Map{},
-
-		symlinks: &sync.Map{},
+		FileComputeCache: cache.NewFileComputeCache(),
+		w:                w,
+		file:             diskCachePath,
+		symlinks:         &sync.Map{},
 	}
 	wc.populateWalkCache(c)
 	wc.read()
@@ -195,17 +169,17 @@ func (c *watchmanCache) read() {
 	}
 
 	// Persist the still valid entries as the "old" cache state
-	c.old = v.Entries
+	c.FileComputeCache.LoadEntries(v.Entries)
 	c.lastClockSpec = cs.ClockSpec
 	c.walkCache = previousWalkCache
 
 	// Persist the fact that all persisted paths are not symlinks.
 	// Only new paths with no cache entries will require a stat call.
-	for k := range c.old {
+	for k := range v.Entries {
 		c.symlinks.LoadOrStore(k, k)
 	}
 
-	BazelLog.Infof("Watchman cache: %d/%d entries at clock spec %q", len(c.old), loadedEntriesCount, c.lastClockSpec)
+	BazelLog.Infof("Watchman cache: %d/%d entries at clock spec %q", len(v.Entries), loadedEntriesCount, c.lastClockSpec)
 }
 
 func (c *watchmanCache) write() {
@@ -216,25 +190,9 @@ func (c *watchmanCache) write() {
 	}
 	defer cacheWriter.Close()
 
-	m := make(map[string]map[string]any)
-
-	// Convert the sync.Map[fileEntry] to a regular map for serialization.
-	c.new.Range(func(key, value any) bool {
-		entry := value.(*fileEntry)
-		entry.mu.RLock()
-		mValue := make(map[string]any, len(entry.data))
-		for k, v := range entry.data {
-			mValue[k] = v
-		}
-		entry.mu.RUnlock()
-		m[key.(string)] = mValue
-		return true
-	})
-
-	// Include the clock spec and build id in the cache.
 	s := cacheState{
 		ClockSpec: c.lastClockSpec,
-		Entries:   m,
+		Entries:   c.FileComputeCache.SnapshotEntries(),
 	}
 
 	cacheEncoder := gob.NewEncoder(cacheWriter)
@@ -249,7 +207,7 @@ func (c *watchmanCache) write() {
 		return
 	}
 
-	BazelLog.Debugf("Wrote %d entries at clockspec %q to cache %q\n", len(m), c.lastClockSpec, c.file)
+	BazelLog.Debugf("Wrote %d entries at clockspec %q to cache %q\n", len(s.Entries), c.lastClockSpec, c.file)
 }
 
 func (c *watchmanCache) Persist() {
@@ -262,38 +220,7 @@ func (c *watchmanCache) LoadOrStoreFile(root, p, key string, loader cache.FileCo
 	if err != nil {
 		return nil, false, err
 	}
-
-	// Load directly from c.new, promoting the persisted map on first access.
-	fileMap, hasFileMap := c.new.Load(realP)
-	if !hasFileMap {
-		data, hasOld := c.old[realP]
-		if !hasOld {
-			data = make(map[string]any)
-		}
-		fileMap, _ = c.new.LoadOrStore(realP, &fileEntry{data: data})
-	}
-
-	entry := fileMap.(*fileEntry)
-
-	// Load any cached result from the file specific map
-	v, found := entry.load(key)
-	if found {
-		return v, true, nil
-	}
-
-	// Uncached and must be computed from file content
-	content, err := os.ReadFile(path.Join(root, realP))
-	if err != nil {
-		return nil, false, err
-	}
-
-	// Compute the value and store it in the file specific sync.Map
-	v, err = loader(p, content)
-	if err == nil {
-		v, found = entry.loadOrStore(key, v)
-	}
-
-	return v, found, err
+	return c.FileComputeCache.LoadOrStoreFile(root, realP, key, loader)
 }
 
 func (c *watchmanCache) resolveSymlink(root, p string) (string, error) {

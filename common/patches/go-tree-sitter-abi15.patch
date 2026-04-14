@@ -1,0 +1,154 @@
+diff --git a/api.h b/api.h
+index de12228..2e3286f 100644
+--- a/api.h
++++ b/api.h
+@@ -26,7 +26,7 @@ extern "C" {
+  * The Tree-sitter library is generally backwards-compatible with languages
+  * generated using older CLI versions, but is not forwards-compatible.
+  */
+-#define TREE_SITTER_LANGUAGE_VERSION 14
++#define TREE_SITTER_LANGUAGE_VERSION 15
+
+ /**
+  * The earliest ABI version that is supported by the current version of the
+@@ -42,6 +42,13 @@ typedef uint16_t TSStateId;
+ typedef uint16_t TSSymbol;
+ typedef uint16_t TSFieldId;
+ typedef struct TSLanguage TSLanguage;
++
++typedef struct {
++  uint8_t major_version;
++  uint8_t minor_version;
++  uint8_t patch_version;
++} TSLanguageMetadata;
++
+ typedef struct TSParser TSParser;
+ typedef struct TSTree TSTree;
+ typedef struct TSQuery TSQuery;
+@@ -1083,6 +1090,18 @@ TSSymbolType ts_language_symbol_type(const TSLanguage *self, TSSymbol symbol);
+  */
+ uint32_t ts_language_version(const TSLanguage *self);
+
++/**
++ * Get the ABI version number for this language. This is the same as
++ * ts_language_version, introduced for ABI 15 compatibility.
++ */
++uint32_t ts_language_abi_version(const TSLanguage *self);
++
++/**
++ * Get the metadata for this language. Returns NULL for languages with
++ * ABI version < 15.
++ */
++const TSLanguageMetadata *ts_language_metadata(const TSLanguage *self);
++
+ /**
+  * Get the next parse state. Combine this with lookahead iterators to generate
+  * completion suggestions or valid symbols in error nodes. Use
+diff --git a/language.c b/language.c
+index 84b15c0..7bf1f54 100644
+--- a/language.c
++++ b/language.c
+@@ -28,6 +28,17 @@ uint32_t ts_language_version(const TSLanguage *self) {
+   return self->version;
+ }
+
++uint32_t ts_language_abi_version(const TSLanguage *self) {
++  return self->version;
++}
++
++const TSLanguageMetadata *ts_language_metadata(const TSLanguage *self) {
++  if (self->version >= 15) {
++    return &self->metadata;
++  }
++  return NULL;
++}
++
+ uint32_t ts_language_field_count(const TSLanguage *self) {
+   return self->field_count;
+ }
+diff --git a/parser.c b/parser.c
+index a72983d..25e44a4 100644
+--- a/parser.c
++++ b/parser.c
+@@ -461,16 +461,29 @@ static bool ts_parser__external_scanner_scan(
+   }
+ }
+
++static inline TSLexMode ts_language_lex_mode(const TSLanguage *language, TSStateId state) {
++  if (language->version >= 15) {
++    const TSLexerMode *mode = &((const TSLexerMode *)language->lex_modes)[state];
++    TSLexMode result;
++    result.lex_state = mode->lex_state;
++    result.external_lex_state = mode->external_lex_state;
++    // reserved_word_set_id (ABI 15) is intentionally not copied: this ABI 14 parser has no
++    // reserved-word-set logic, so the field would be unused regardless.
++    return result;
++  }
++  return language->lex_modes[state];
++}
++
+ static bool ts_parser__can_reuse_first_leaf(
+   TSParser *self,
+   TSStateId state,
+   Subtree tree,
+   TableEntry *table_entry
+ ) {
+-  TSLexMode current_lex_mode = self->language->lex_modes[state];
++  TSLexMode current_lex_mode = ts_language_lex_mode(self->language, state);
+   TSSymbol leaf_symbol = ts_subtree_leaf_symbol(tree);
+   TSStateId leaf_state = ts_subtree_leaf_parse_state(tree);
+-  TSLexMode leaf_lex_mode = self->language->lex_modes[leaf_state];
++  TSLexMode leaf_lex_mode = ts_language_lex_mode(self->language, leaf_state);
+
+   // At the end of a non-terminal extra node, the lexer normally returns
+   // NULL, which indicates that the parser should look for a reduce action
+@@ -501,7 +514,7 @@ static Subtree ts_parser__lex(
+   StackVersion version,
+   TSStateId parse_state
+ ) {
+-  TSLexMode lex_mode = self->language->lex_modes[parse_state];
++  TSLexMode lex_mode = ts_language_lex_mode(self->language, parse_state);
+   if (lex_mode.lex_state == (uint16_t)-1) {
+     LOG("no_lookahead_after_non_terminal_extra");
+     return NULL_SUBTREE;
+@@ -593,7 +606,7 @@ static Subtree ts_parser__lex(
+
+     if (!error_mode) {
+       error_mode = true;
+-      lex_mode = self->language->lex_modes[ERROR_STATE];
++      lex_mode = ts_language_lex_mode(self->language, ERROR_STATE);
+       ts_lexer_reset(&self->lexer, start_position);
+       continue;
+     }
+diff --git a/parser.h b/parser.h
+index 17f0e94..737f073 100644
+--- a/parser.h
++++ b/parser.h
+@@ -78,6 +78,12 @@ typedef struct {
+   uint16_t external_lex_state;
+ } TSLexMode;
+
++typedef struct {
++  uint16_t lex_state;
++  uint16_t external_lex_state;
++  uint16_t reserved_word_set_id;
++} TSLexerMode;
++
+ typedef union {
+   TSParseAction action;
+   struct {
+@@ -128,6 +134,14 @@ struct TSLanguage {
+     void (*deserialize)(void *, const char *, unsigned);
+   } external_scanner;
+   const TSStateId *primary_state_ids;
++  const char *name;
++  const TSSymbol *reserved_words;
++  uint16_t max_reserved_word_set_size;
++  uint32_t supertype_count;
++  const TSSymbol *supertype_symbols;
++  const TSFieldMapSlice *supertype_map_slices;
++  const TSSymbol *supertype_map_entries;
++  TSLanguageMetadata metadata;
+ };
+
+ static inline bool set_contains(TSCharacterRange *ranges, uint32_t len, int32_t lookahead) {

@@ -298,7 +298,7 @@ func computeUpdatedDirs(rootDir string, changedFiles ibp.SourceInfoMap) []string
 	changedDirs := make([]string, 0, 1)
 	processedDirs := make(map[string]bool, len(changedFiles))
 
-	for f, _ := range changedFiles {
+	for f := range changedFiles {
 		dir := path.Dir(f)
 		for !processedDirs[dir] {
 			processedDirs[dir] = true

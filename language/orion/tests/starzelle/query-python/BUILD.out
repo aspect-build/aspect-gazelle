@@ -1,0 +1,7 @@
+load("@deps-test//my:rules.bzl", "py_library")
+
+py_library(
+    name = "a_lib",
+    srcs = ["a.py"],
+    deps = ["@pypi//:requests"],
+)

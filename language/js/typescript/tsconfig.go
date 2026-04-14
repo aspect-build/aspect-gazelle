@@ -102,7 +102,7 @@ type TsConfig struct {
 	ResolveJsonModule *bool
 	Composite         *bool
 	Declaration       *bool
-	DeclarationDir    string
+	DeclarationDir    *string
 	DeclarationMap    *bool
 	DeclarationOnly   *bool
 	Incremental       *bool
@@ -329,6 +329,8 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	var RootDir string
 	if c.CompilerOptions.RootDir != nil {
 		RootDir = expandConfigDirPath(*c.CompilerOptions.RootDir, configDir)
+	} else if baseConfig != nil {
+		RootDir = baseConfig.RootDir
 	} else {
 		RootDir = "."
 	}
@@ -342,11 +344,12 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		OutDir = "."
 	}
 
-	var declarationDir string
+	var declarationDir *string
 	if c.CompilerOptions.DeclarationDir != nil {
-		declarationDir = expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
-	} else {
-		declarationDir = OutDir
+		expanded := expandConfigDirPath(*c.CompilerOptions.DeclarationDir, configDir)
+		declarationDir = &expanded
+	} else if baseConfig != nil {
+		declarationDir = baseConfig.DeclarationDir
 	}
 
 	var BaseUrl string
@@ -424,23 +427,6 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	}
 
 	return &config, nil
-}
-
-func (c TsConfig) ToOutDir(f string) string {
-	return c.stripRootPrependDir(c.OutDir, f)
-}
-func (c TsConfig) ToDeclarationOutDir(f string) string {
-	return c.stripRootPrependDir(c.DeclarationDir, f)
-}
-
-func (c TsConfig) stripRootPrependDir(out, f string) string {
-	if c.RootDir != "." {
-		if strings.HasPrefix(f, c.RootDir) && len(f) > len(c.RootDir) && f[len(c.RootDir)] == '/' {
-			f = f[len(c.RootDir)+1:]
-		}
-	}
-
-	return cleanJoin3("", out, f)
 }
 
 // Expands the path from the project base to the active tsconfig.json file

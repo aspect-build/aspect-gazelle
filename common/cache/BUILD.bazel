@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cache",
@@ -6,6 +6,7 @@ go_library(
         "cache.go",
         "configurer.go",
         "disk.go",
+        "filecompute.go",
         "noop.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common/cache",
@@ -17,4 +18,10 @@ go_library(
         "@gazelle//language",
         "@gazelle//rule",
     ],
+)
+
+go_test(
+    name = "cache_test",
+    srcs = ["disk_test.go"],
+    embed = [":cache"],
 )

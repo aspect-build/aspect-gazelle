@@ -1,0 +1,10 @@
+load("@deps-test//my:rules.bzl", "hcl_library")
+
+hcl_library(
+    name = "main_lib",
+    srcs = ["main.tf"],
+    blocks = [
+        "variable",
+        "resource",
+    ],
+)

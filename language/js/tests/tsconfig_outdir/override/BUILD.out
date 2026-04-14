@@ -1,0 +1,15 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "override",
+    srcs = ["main.ts"],
+    out_dir = "build",
+    tsconfig = ":tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig"],
+)

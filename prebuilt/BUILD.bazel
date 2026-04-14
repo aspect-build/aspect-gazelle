@@ -1,0 +1,7 @@
+load(":rules.bzl", "gazelle_runner")
+
+gazelle_runner(
+    name = "gazelle_prebuilt_bin",
+    tags = ["manual"],
+    visibility = ["//visibility:public"],
+)

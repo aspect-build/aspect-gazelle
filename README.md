@@ -34,9 +34,11 @@ See the [common/cache](./common/cache)
 
 The [runner](./runner) supports a `--watch` mode that uses [watchman](https://facebook.github.io/watchman/) to monitor the filesystem for changes and regenerate BUILD files as needed. This automatically enables the watchman based caching provided by the [common/cache](./common/cache) package.
 
-## Prebuild
+## Prebuilt
 
-### Why prebuild?
+The [./prebuilt](./prebuilt) module provides a prebuilt version of the [runner](./runner) as a drop-in replacement for the Gazelle binary, with all enhancements and extensions included, and without the need for any compilation of Go code or Gazelle extensions on the user's machine.
+
+### Why use a prebuilt binary?
 
 Gazelle is commonly built from source on developer's machines, using a Go toolchain.
 However this doesn't always work well.
@@ -53,32 +55,27 @@ For example see this issue, where the Python extension depends on a C library ca
 
 https://github.com/bazel-contrib/rules_python/issues/1913
 
-### Install
+### Install & Setup
 
-1. Configure Bazel to fetch the binary you need from our GitHub release. There are a few ways:
-  - We recommend using [rules_multitool](https://github.com/theoremlp/rules_multitool) for this; see the release notes on the release you choose.
-  - Simplest: `http_file` with a `native_binary#select`
-  - https://dotslash-cli.com/
-
-2. Verify that you can run that binary from the command-line, based on the label.
-
-For example with rules_multitool:
-
-```sh
-$ bazel run @multitool//tools/gazelle
-```
-
-3. Add a `gazelle` target to your `BUILD` file, referencing the label from the previous step.
+Add to your `MODULE.bazel`:
 
 ```starlark
-load("@gazelle//:def.bzl", "gazelle")
-
-gazelle(name = "gazelle", gazelle = "@multitool//tools/gazelle")
+bazel_dep(name = "aspect_gazelle_prebuilt", version = "...")
 ```
 
-4. Continue as normal from the [gazelle](https://github.com/bazelbuild/bazel-gazelle) setup docs.
+Add a `gazelle` target to your `BUILD` file:
 
-5. When you want to update to a new version, use [multitool](https://github.com/bazel-contrib/multitool): `multitool update tools.lock.json` to update the lockfile.
+```starlark
+load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
+
+aspect_gazelle(
+    name = "gazelle",
+    languages = ["js", "python", ...],
+    extensions = ["//tools/gazelle:my_rule.star", ...],
+)
+```
+
+Continue as normal from the [gazelle Usage](https://github.com/bazel-contrib/bazel-gazelle#usage) docs.
 
 ## Developing
 

@@ -62,6 +62,7 @@ var tsProjectReflectedConfigAttributes = []string{
 	"declaration",
 	"declaration_dir",
 	"declaration_map",
+	"emit_declaration_only",
 	"source_map",
 	"incremental",
 	"ts_build_info_file",
@@ -370,7 +371,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 }
 
 func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args language.GenerateArgs, tsconfig *typescript.TsConfig) []ImportStatement {
-	imports := make([]ImportStatement, 0)
+	var imports []ImportStatement
 
 	SourcePath := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
 
@@ -402,7 +403,7 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 	}
 
 	for _, reference := range tsconfig.References {
-		referenceFile := cfg.tsconfigName
+		referenceFile := "tsconfig.json"
 		referenceDir := "."
 		if strings.HasSuffix(reference, ".json") {
 			referenceFile = reference
@@ -583,7 +584,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)
 	if ruleKind == TsProjectKind {
-		assetFiles := make([]string, 0)
+		var assetFiles []string
 		srcFiles := make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
 			sourceFile := it.Value()
@@ -755,11 +756,13 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 			}
 		}
 
-		// Reflect the tsconfig outDir in the ts_project rule
-		if tsconfig != nil && tsconfig.DeclarationDir != tsconfig.OutDir {
-			sourceRule.SetAttr("declaration_dir", tsconfig.DeclarationDir)
-		} else {
-			sourceRule.DelAttr("declaration_dir")
+		// Reflect the tsconfig declarationDir in the ts_project rule
+		if !cfg.IsTsConfigIgnored("declaration_dir") {
+			if tsconfig != nil && tsconfig.DeclarationDir != nil {
+				sourceRule.SetAttr("declaration_dir", *tsconfig.DeclarationDir)
+			} else {
+				sourceRule.DelAttr("declaration_dir")
+			}
 		}
 
 		// Reflect the tsconfig rootDir in the ts_project rule
@@ -799,7 +802,7 @@ type parseResult struct {
 }
 
 func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) ([]ImportStatement, error) {
-	results := make([]ImportStatement, 0)
+	var results []ImportStatement
 
 	for _, sourceFile := range sourceFiles {
 		imports, err := proto.GetProtoImports(path.Join(args.Dir, sourceFile))

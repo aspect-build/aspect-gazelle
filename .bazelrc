@@ -1,3 +1,7 @@
 ########################
 # Import bazelrc presets
 import %workspace%/tools/preset.bazelrc
+
+# Suppress Apple linker (Xcode 15+) duplicate library warnings from CGO
+# When multiple CGO libraries each link -lm, ld emits "ignoring duplicate libraries: '-lm'"
+build:macos --linkopt=-Wl,-no_warn_duplicate_libraries

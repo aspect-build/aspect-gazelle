@@ -1,0 +1,36 @@
+aspect.gazelle_rule_kind("rust_library", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def declare(ctx):
+    for file in ctx.sources:
+        never_fns = [r.captures["name"] for r in file.query_results["never_fns"]]
+        ctx.targets.add(
+            name = file.path[:file.path.rindex(".")] + "_lib",
+            kind = "rust_library",
+            attrs = {
+                "srcs": [file.path],
+                "tags": ["diverges-{}".format(fn) for fn in never_fns],
+            },
+        )
+
+aspect.orion_extension(
+    id = "rust-never-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".rs"),
+        queries = {
+            "never_fns": aspect.AstQuery(
+                grammar = "rust",
+                filter = "*.rs",
+                query = """
+                    (function_item
+                        name: (identifier) @name
+                        return_type: (never_type))
+                """,
+            ),
+        },
+    ),
+    declare = declare,
+)

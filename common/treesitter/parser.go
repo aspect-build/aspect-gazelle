@@ -54,6 +54,8 @@ const (
 	Go                          = "go"
 	Rust                        = "rust"
 	Ruby                        = "ruby"
+	HCL                         = "hcl"
+	Python                      = "python"
 )
 
 type Language any
@@ -64,6 +66,7 @@ func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 		lang:    sitter.NewLanguage(langPtr),
 	}
 }
+
 func NewLanguageFromSitter(grammar LanguageGrammar, lang *sitter.Language) Language {
 	return &treeLanguage{
 		grammar: grammar,
@@ -147,6 +150,15 @@ var extLanguages = map[string]LanguageGrammar{
 	"jsh":  Java,
 	"json": JSON,
 
+	"hcl":      HCL,
+	"nomad":    HCL,
+	"tf":       HCL,
+	"tfvars":   HCL,
+	"tofu":     HCL,
+
+	// Not commonly used, although linguist says this is HCL.
+	// "workflow": HCL,
+
 	"rb":       Ruby,
 	"rake":     Ruby,
 	"gemspec":  Ruby,
@@ -154,6 +166,10 @@ var extLanguages = map[string]LanguageGrammar{
 	"thor":     Ruby,
 	"jbuilder": Ruby,
 	"rabl":     Ruby,
+
+	"py":  Python,
+	"pyw": Python,
+	"pyi": Python,
 }
 
 // In theory, this is a mirror of
@@ -173,6 +189,7 @@ func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, er
 	ctx := context.Background()
 
 	parser := sitter.NewParser()
+	defer parser.Close()
 	parser.SetLanguage(lang.(*treeLanguage).lang)
 
 	tree, err := parser.ParseCtx(ctx, nil, sourceCode)

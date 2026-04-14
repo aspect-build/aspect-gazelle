@@ -63,10 +63,10 @@ index e2fbba5..8cdb61c 100644
 +
 +// END PATCH(watch) ---
 diff --git a/walk/walk.go b/walk/walk.go
-index ae1f513..e28162d 100644
+index 8c9859a..e2728e9 100644
 --- a/walk/walk.go
 +++ b/walk/walk.go
-@@ -383,6 +383,16 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
+@@ -385,6 +385,16 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
  	}
  	// END-PATCH(gitignore) ---
  

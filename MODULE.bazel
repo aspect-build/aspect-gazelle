@@ -4,15 +4,24 @@ module(
 )
 
 bazel_dep(name = "rules_go", version = "0.60.0")
-bazel_dep(name = "gazelle", version = "0.48.0")  # must match go.mod
+bazel_dep(name = "gazelle", version = "0.50.0")  # must match go.mod
 
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//common:go.mod")
+
+# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
+go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps_dev.module_override(
+    patch_strip = 1,
+    patches = ["//common/patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)
+
 go_deps.module(
     path = "golang.org/x/tools",
-    sum = "h1:12BdW9CeB3Z+J/I/wj34VMl8X+fEXBxVR90JeMX5E7s=",
-    version = "0.43.0",
+    sum = "h1:UP4ajHPIcuMjT1GqzDWRlalUEoY+uzoZKnhOjbIPD2c=",
+    version = "0.44.0",
 )
 use_repo(go_deps, "com_github_bazelbuild_buildtools", "com_github_bmatcuk_doublestar_v4", "com_github_emirpasic_gods_v2", "com_github_onsi_gomega", "com_github_smacker_go_tree_sitter", "in_gopkg_op_go_logging_v1", "org_golang_x_tools")
 
@@ -28,8 +37,21 @@ filegroup(
     visibility = ["//visibility:public"],
 )
 """,
-    integrity = "sha256-M7w7RN4de4FfUv6fQuSXhsWDPZGB/Vn9aRDBnIJVkik=",
-    urls = ["https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.23.4/tree-sitter-go.tar.xz"],
+    sha256 = "ac412018d59f7cd5bb72fbde557e9ebf9fdfac12c5853f2bb03669f980a953bb",
+    urls = ["https://github.com/tree-sitter/tree-sitter-go/releases/download/v0.25.0/tree-sitter-go.tar.gz"],
+)
+
+http_archive(
+    name = "tree-sitter-rust",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "953d7a7122cc004d3ad516ae193dde408e633c2da59356ba67e713f3e52d73fc",
+    urls = ["https://github.com/tree-sitter/tree-sitter-rust/releases/download/v0.24.2/tree-sitter-rust.tar.gz"],
 )
 
 http_archive(
@@ -104,6 +126,20 @@ visibility = ["//visibility:public"],
     sha256 = "2c4ce711ae8d1218a3b2f899189298159d672870b5b34dff5d937bed2f3e8983",
     strip_prefix = "tree-sitter-typescript-0.23.2",
     urls = ["https://github.com/tree-sitter/tree-sitter-typescript/archive/v0.23.2.tar.gz"],
+)
+
+http_archive(
+    name = "tree-sitter-hcl",
+    build_file_content = """
+filegroup(
+    name = "srcs",
+    srcs = glob(["src/**/*.c", "src/**/*.h"]),
+    visibility = ["//visibility:public"],
+)
+""",
+    sha256 = "a95bc6b00271e08dee9e63b895b2563dac802db0015fdf5a24a1b0244f2cb560",
+    strip_prefix = "tree-sitter-hcl-1.2.0",
+    urls = ["https://github.com/tree-sitter-grammars/tree-sitter-hcl/archive/v1.2.0.tar.gz"],
 )
 
 http_archive(

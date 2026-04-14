@@ -1,0 +1,3 @@
+Failed to validate dependencies for target "@ts_project_no_declaration_dir//consumer":
+
+Import "../lib/util" from "consumer/main.ts" is an unknown js dependency

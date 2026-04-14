@@ -9,15 +9,15 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260223163720-bac549496f67
-	github.com/bazelbuild/bazel-gazelle v0.48.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260211083412-859bfffeef82
+	github.com/bazelbuild/bazel-gazelle v0.50.0 // NOTE: keep in sync with MODULE.bazel
+	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/bufbuild/rules_buf v0.5.2 // NOTE: keep in sync with MODULE.bazel
-	github.com/fatih/color v1.18.0
-	github.com/go-git/go-git/v5 v5.17.1
+	github.com/fatih/color v1.19.0
+	github.com/go-git/go-git/v5 v5.17.2
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
 	go.opentelemetry.io/otel v1.42.0
 	go.opentelemetry.io/otel/trace v1.42.0
-	golang.org/x/term v0.41.0
+	golang.org/x/term v0.42.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -45,30 +45,30 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
-	github.com/itchyny/gojq v0.12.18 // indirect
-	github.com/itchyny/timefmt-go v0.1.7 // indirect
+	github.com/itchyny/gojq v0.12.19 // indirect
+	github.com/itchyny/timefmt-go v0.1.8 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mikefarah/yq/v4 v4.52.4 // indirect
+	github.com/mikefarah/yq/v4 v4.52.5 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
-	github.com/rs/zerolog v1.34.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/rs/zerolog v1.35.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zclconf/go-cty v1.18.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
-	go.starlark.net v0.0.0-20260210143700-b62fd896b91b // indirect
+	go.starlark.net v0.0.0-20260326113308-fadfc96def35 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
-	golang.org/x/mod v0.34.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
+	golang.org/x/mod v0.35.0 // indirect
+	golang.org/x/net v0.53.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.42.0 // indirect
-	golang.org/x/text v0.35.0 // indirect
-	golang.org/x/tools v0.43.0 // indirect
+	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/tools v0.44.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

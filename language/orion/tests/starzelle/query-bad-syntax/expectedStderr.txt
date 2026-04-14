@@ -1,1 +1,1 @@
-Plugin source query error: Querying source file "b.js": invalid node type 'import_' at line 1 column 0
+Plugin source query error: Querying source file "a.js": invalid node type 'import_' at line 1 column 0
