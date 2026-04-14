@@ -9,6 +9,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 ts_project(
     name = "ignore_dirs",
     srcs = ["main.ts"],
+    allow_js = True,
     composite = True,
     declaration = True,
     declaration_map = True,
