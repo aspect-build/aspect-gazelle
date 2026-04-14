@@ -13,7 +13,6 @@ go_library(
         "//pnpm",
         "@aspect_gazelle//common/logger",
         "@com_github_goexlib_jsonc//:jsonc",
-        "@gazelle//label",
     ],
 )
 
