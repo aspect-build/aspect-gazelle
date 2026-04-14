@@ -394,6 +394,7 @@ func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
 }
 
 func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
+	// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
 	groupName := ""
 	propName := value
 
