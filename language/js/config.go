@@ -375,14 +375,8 @@ func (c *JsGazelleConfig) PnpmLockDir() string {
 }
 
 // Set the tsconfig.json file name
-func (c *JsGazelleConfig) SetTsconfigFile(value string) {
-	if before, after, found := strings.Cut(value, " "); found {
-		targetGroup := before
-		tsconfigFile := strings.TrimSpace(after)
-		c.getOrCreateGroupTsConfig(targetGroup).fileName = path.Clean(tsconfigFile)
-	} else {
-		c.getOrCreateGroupTsConfig("").fileName = path.Clean(value)
-	}
+func (c *JsGazelleConfig) SetTsconfigFile(groupName, fileName string) {
+	c.getOrCreateGroupTsConfig(groupName).fileName = fileName
 }
 
 func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
@@ -392,16 +386,7 @@ func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
 	return c.groupTsConfigs[""].fileName
 }
 
-func (c *JsGazelleConfig) AddIgnoredTsConfig(value string) {
-	// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
-	groupName := ""
-	propName := value
-
-	if before, after, found := strings.Cut(value, " "); found {
-		groupName = before
-		propName = strings.TrimSpace(after)
-	}
-
+func (c *JsGazelleConfig) AddIgnoredTsConfig(groupName, propName string) {
 	for _, prop := range tsProjectReflectedConfigAttributes {
 		if prop == propName {
 			tc := c.getOrCreateGroupTsConfig(groupName)

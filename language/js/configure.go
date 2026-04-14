@@ -161,9 +161,25 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_Lockfile:
 			config.SetPnpmLockfile(value)
 		case Directive_TsconfigFile:
-			config.SetTsconfigFile(value)
+			groupName := ""
+			fileName := value
+
+			if before, after, found := strings.Cut(value, " "); found {
+				groupName = path.Clean(before)
+				value = path.Clean(after)
+			}
+			config.SetTsconfigFile(groupName, fileName)
 		case Directive_TypeScriptConfigIgnore:
-			config.AddIgnoredTsConfig(strings.TrimSpace(value))
+			// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
+			groupName := ""
+			propName := value
+
+			if before, after, found := strings.Cut(value, " "); found {
+				groupName = before
+				propName = strings.TrimSpace(after)
+			}
+
+			config.AddIgnoredTsConfig(groupName, propName)
 		case Directive_IgnoreImports:
 			config.AddIgnoredImport(strings.TrimSpace(value))
 		case Directive_Resolve:
