@@ -1,39 +1,58 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@testing-library/react': 16.3.2
-  playwright: 1.59.1
-  react: 19.2.5
-  jest: 30.3.0
-  tslib: 1.2.3
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  react: 19.2.5
-  tslib: 1.2.3
+importers:
 
-devDependencies:
-  '@testing-library/react': 16.3.2
-  jest: 30.3.0
-  playwright: 1.59.1
+  .:
+    dependencies:
+      react:
+        specifier: 19.2.5
+        version: 19.2.5
+      tslib:
+        specifier: 1.2.3
+        version: 1.2.3
+    devDependencies:
+      '@testing-library/react':
+        specifier: 16.3.2
+        version: 16.3.2
+      jest:
+        specifier: 30.3.0
+        version: 30.3.0
+      playwright:
+        specifier: 1.59.1
+        version: 1.59.1
 
 packages:
 
-  /react/19.2.5:
+  '@testing-library/react@16.3.2':
     resolution: {integrity: sha512-fake==}
-    dev: false
 
-  /jest/30.3.0:
+  jest@30.3.0:
     resolution: {integrity: sha512-fake==}
+
+  playwright@1.59.1:
+    resolution: {integrity: sha512-fake==}
+
+  react@19.2.5:
+    resolution: {integrity: sha512-fake==}
+
+  tslib@1.2.3:
+    resolution: {integrity: sha512-fake==}
+
+snapshots:
+
+  '@testing-library/react@16.3.2':
     dev: true
 
-  /playwright/1.59.1:
-    resolution: {integrity: sha512-fake==}
-    def: true
-
-  /@testing-library/react/16.3.2:
-    resolution: {integrity: sha512-fake==}
+  jest@30.3.0:
     dev: true
 
-  /tslib/1.2.3:
-    resolution: {integrity: sha512-fake==}
-    dev: false
+  playwright@1.59.1:
+    dev: true
+
+  react@19.2.5: {}
+
+  tslib@1.2.3: {}
