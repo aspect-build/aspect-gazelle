@@ -228,11 +228,11 @@ func TestTsBuildInfoFileConfigDirExpansion(t *testing.T) {
 			}
 		}`)
 
-		assertEqual(t, options.BaseUrl, "pkg/lib", "baseUrl should expand configDir")
-		assertEqual(t, *options.DeclarationDir, "pkg/types", "declarationDir should expand configDir")
-		assertEqual(t, options.OutDir, "pkg/dist", "outDir should expand configDir")
-		assertEqual(t, options.RootDir, "pkg/src", "rootDir should expand configDir")
-		assertEqual(t, options.TsBuildInfoFile, "pkg/lib-types/.tsbuildinfo", "tsBuildInfoFile should expand configDir")
+		assertEqual(t, options.BaseUrl, "lib", "baseUrl should expand configDir")
+		assertEqual(t, *options.DeclarationDir, "types", "declarationDir should expand configDir")
+		assertEqual(t, options.OutDir, "dist", "outDir should expand configDir")
+		assertEqual(t, options.RootDir, "src", "rootDir should expand configDir")
+		assertEqual(t, options.TsBuildInfoFile, "lib-types/.tsbuildinfo", "tsBuildInfoFile should expand configDir")
 	})
 }
 

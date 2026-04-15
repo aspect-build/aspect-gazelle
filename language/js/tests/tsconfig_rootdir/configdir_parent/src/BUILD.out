@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "src",
+    srcs = ["main.ts"],
+    root_dir = "src",
+    tsconfig = "//configdir_parent:tsconfig",
+)
