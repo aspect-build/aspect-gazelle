@@ -1,0 +1,3 @@
+# gazelle:generation_mode update_only
+# gazelle:js_files ${rootDir}/**/*.ts
+# gazelle:js_test_files ${rootDir}/**/*.spec.ts

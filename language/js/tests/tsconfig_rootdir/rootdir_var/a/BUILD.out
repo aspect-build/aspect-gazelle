@@ -1,0 +1,19 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "a",
+    srcs = [
+        "src/lib.ts",
+        "src/subdir/component.ts",
+    ],
+    root_dir = "src",
+    tsconfig = "//rootdir_var:tsconfig",
+)
+
+ts_project(
+    name = "a_tests",
+    testonly = True,
+    srcs = ["src/lib.spec.ts"],
+    root_dir = "src",
+    tsconfig = "//rootdir_var:tsconfig",
+)
