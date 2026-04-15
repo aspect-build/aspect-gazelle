@@ -165,10 +165,10 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			fileName := value
 
 			if before, after, found := strings.Cut(value, " "); found {
-				groupName = path.Clean(before)
-				fileName = path.Clean(after)
+				groupName = before
+				fileName = after
 			}
-			config.SetTsconfigFile(groupName, fileName)
+			config.SetTsconfigFile(groupName, path.Clean(fileName))
 		case Directive_TypeScriptConfigIgnore:
 			// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
 			groupName := ""
