@@ -4,7 +4,6 @@ ts_project(
     name = "src_lib",
     srcs = ["app.ts"],
     composite = True,
-    root_dir = "src",
     tsconfig = "//custom_names:tsconfig_lib",
     deps = ["//:node_modules/tslib"],
 )
@@ -14,7 +13,6 @@ ts_project(
     testonly = True,
     srcs = ["app.spec.ts"],
     composite = True,
-    root_dir = "src",
     tsconfig = "//custom_names:tsconfig_lib",
     deps = [
         ":src_lib",

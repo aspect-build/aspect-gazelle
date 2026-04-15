@@ -573,6 +573,17 @@ func (c *JsGazelleConfig) GetFileSourceTarget(filePath string, tsWorkspace *type
 		}
 
 		for _, globExpr := range sources {
+			// Expand ${rootDir} in custom globs with the tsconfig rootDir
+			// relative to this package.
+			if tsWorkspace != nil && strings.Contains(globExpr, "${rootDir}") {
+				tsconfigRel, tsconfig := tsWorkspace.FindConfig(c.rel, target.name)
+				rootDir := "."
+				if tsconfig != nil {
+					rootDir = tsconfigRootDirRelative(tsconfigRel, tsconfig.RootDir, c.rel)
+				}
+				globExpr = path.Clean(strings.Replace(globExpr, "${rootDir}", rootDir, 1))
+			}
+
 			glob, _ := common.ParseGlobExpression(globExpr)
 
 			if glob(filePath) {
