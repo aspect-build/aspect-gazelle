@@ -34,6 +34,28 @@ The `MODULE.bazel` registers platform-specific toolchains for `linux_amd64`,
 `linux_arm64`, `darwin_amd64`, and `darwin_arm64`. Bazel selects the correct one
 at build time based on the exec platform.
 
+## rules_go: `go_deps` must still come from `@gazelle`
+
+If your project uses `rules_go`, you must still declare the `go_deps` extension
+from the upstream `@gazelle` module — **not** from `@aspect_gazelle_prebuilt`:
+
+```starlark
+# MODULE.bazel
+bazel_dep(name = "aspect_gazelle_prebuilt", version = "...") # for BUILD generation
+bazel_dep(name = "gazelle", version = "0.50.0")  # for go_deps
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_github_some_module")  # add your Go dep repos here
+```
+
+**Why:** `aspect_gazelle_prebuilt` only wraps the *binary* — it replaces building
+the gazelle runner from source with a prebuilt download. `go_deps` is a completely
+separate concern: a bzlmod module extension that runs at dependency-resolution time
+to turn your `go.mod`/`go.sum` into Bazel external repositories. That logic lives
+entirely inside the `@gazelle` module, and `aspect_gazelle_prebuilt` has no reason
+to intercept it.
+
 ## How releases work
 
 To cut a release, push a scoped semver tag:
