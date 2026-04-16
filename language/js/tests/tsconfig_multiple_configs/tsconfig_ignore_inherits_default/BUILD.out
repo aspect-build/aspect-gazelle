@@ -1,0 +1,21 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Test: a group configured with js_tsconfig_ignore should inherit the updated
+# default tsconfig file even when the directive comes before js_tsconfig_file.
+# gazelle:js_tsconfig_ignore {dirname}_custom composite
+# gazelle:js_tsconfig_file tsconfig.json
+
+ts_project(
+    name = "tsconfig_ignore_inherits_default",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = ":tsconfig",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

@@ -314,15 +314,11 @@ func (c *JsGazelleConfig) GenerationEnabled() bool {
 	return c.generationEnabled
 }
 
-// getOrCreateGroupTsConfig returns the targetTsConfig for the given group,
-// creating one that inherits from the default if it doesn't exist.
 func (c *JsGazelleConfig) getOrCreateGroupTsConfig(groupName string) *targetTsConfig {
 	if tc, ok := c.groupTsConfigs[groupName]; ok {
 		return tc
 	}
-	// Inherit fileName from the default; enabled is nil so it falls back at read time.
-	def := c.groupTsConfigs[""]
-	tc := &targetTsConfig{fileName: def.fileName}
+	tc := &targetTsConfig{}
 	c.groupTsConfigs[groupName] = tc
 	return tc
 }
@@ -380,7 +376,7 @@ func (c *JsGazelleConfig) SetTsconfigFile(groupName, fileName string) {
 }
 
 func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
-	if tc, ok := c.groupTsConfigs[groupName]; ok {
+	if tc, ok := c.groupTsConfigs[groupName]; ok && tc.fileName != "" {
 		return tc.fileName
 	}
 	return c.groupTsConfigs[""].fileName
