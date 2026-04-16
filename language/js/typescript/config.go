@@ -78,9 +78,11 @@ type TsConfigWithGroup struct {
 
 func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
 	inner := tc.cm.configFiles[rel]
+	seen := make(map[string]bool, len(inner))
 	configs := make([]TsConfigWithGroup, 0, len(inner))
 	for groupName, p := range inner {
-		if c := tc.getTsConfigFromPath(p); c != nil {
+		if c := tc.getTsConfigFromPath(p); c != nil && !seen[c.ConfigName] {
+			seen[c.ConfigName] = true
 			configs = append(configs, TsConfigWithGroup{Config: c, GroupName: groupName})
 		}
 	}

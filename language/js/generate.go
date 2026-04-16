@@ -336,20 +336,12 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 }
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
-	// Multiple groups may reference the same tsconfig file (e.g. a group created
-	// by js_tsconfig_ignore inherits the default file). Emit one rule per file.
-	seen := make(map[string]bool)
 	for _, entry := range ts.tsconfig.GetAllTsConfigFiles(args.Rel) {
 		if !cfg.GetTsConfigGenerationEnabled(entry.GroupName) {
 			continue
 		}
 
 		tsconfig := entry.Config
-
-		if seen[tsconfig.ConfigName] {
-			continue
-		}
-		seen[tsconfig.ConfigName] = true
 
 		imports := newTsProjectInfo(entry.GroupName)
 		for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
