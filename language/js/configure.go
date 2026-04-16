@@ -167,7 +167,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				groupFile = groupName
 				groupName = ""
 			}
-			config.SetTsconfigFile(groupName, path.Clean(groupFile))
+			config.SetTsconfigFile(groupName, strings.TrimSpace(groupFile))
 		case Directive_TypeScriptConfigIgnore:
 			// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
 			groupName, propName, hasGroup := strings.Cut(value, " ")

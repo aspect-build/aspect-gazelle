@@ -374,14 +374,7 @@ func (c *JsGazelleConfig) PnpmLockDir() string {
 
 // Set the tsconfig.json file name
 func (c *JsGazelleConfig) SetTsconfigFile(groupName, fileName string) {
-	c.getOrCreateGroupTsConfig(groupName).fileName = fileName
-}
-
-func (c *JsGazelleConfig) GetTsconfigFile(groupName string) string {
-	if tc, ok := c.groupTsConfigs[groupName]; ok && tc.fileName != "" {
-		return tc.fileName
-	}
-	return c.groupTsConfigs[""].fileName
+	c.getOrCreateGroupTsConfig(groupName).fileName = path.Clean(fileName)
 }
 
 func (c *JsGazelleConfig) AddIgnoredTsConfig(groupName, propName string) {
