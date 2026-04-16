@@ -120,11 +120,12 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_TypeScriptExtension:
 			config.SetGenerationEnabled(common.ReadEnabled(d))
 		case Directive_TypeScriptConfigExtension:
-			if groupName, groupValue, found := strings.Cut(value, " "); found {
-				config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
-			} else {
-				config.SetTsConfigGenerationEnabled("", strings.TrimSpace(value) == "enabled")
+			groupName, groupValue, hasGroup := strings.Cut(value, " ")
+			if !hasGroup {
+				groupValue = groupName
+				groupName = ""
 			}
+			config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
 		case Directive_TypeScriptProtoExtension:
 			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
 		case Directive_NpmPackageExtension:
@@ -161,25 +162,20 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		case Directive_Lockfile:
 			config.SetPnpmLockfile(value)
 		case Directive_TsconfigFile:
-			groupName := ""
-			fileName := value
-
-			if before, after, found := strings.Cut(value, " "); found {
-				groupName = before
-				fileName = after
+			groupName, groupFile, hasGroup := strings.Cut(value, " ")
+			if !hasGroup {
+				groupFile = groupName
+				groupName = ""
 			}
-			config.SetTsconfigFile(groupName, path.Clean(fileName))
+			config.SetTsconfigFile(groupName, path.Clean(groupFile))
 		case Directive_TypeScriptConfigIgnore:
 			// TODO: potentially support multiple comma-separated properties, removing properties instead of only adding
-			groupName := ""
-			propName := value
-
-			if before, after, found := strings.Cut(value, " "); found {
-				groupName = before
-				propName = strings.TrimSpace(after)
+			groupName, propName, hasGroup := strings.Cut(value, " ")
+			if !hasGroup {
+				propName = groupName
+				groupName = ""
 			}
-
-			config.AddIgnoredTsConfig(groupName, propName)
+			config.AddIgnoredTsConfig(groupName, strings.TrimSpace(propName))
 		case Directive_IgnoreImports:
 			config.AddIgnoredImport(strings.TrimSpace(value))
 		case Directive_Resolve:
