@@ -1,3 +1,1 @@
-# Test: a child package can re-enable tsconfig generation for a group that was
-# disabled by an inherited directive.
 # gazelle:js_tsconfig {dirname}_tests disabled

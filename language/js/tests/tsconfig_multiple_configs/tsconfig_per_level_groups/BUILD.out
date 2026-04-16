@@ -1,10 +1,5 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
-# Test: FindConfig falls back to different directory levels per group.
-# tsconfig.test.json only exists here (not at the workspace root), so the
-# {dirname}_tests group resolves its tsconfig locally while the default {dirname}
-# group walks up and finds tsconfig.lib.json at the workspace root.
-
 ts_project(
     name = "tsconfig_per_level_groups",
     srcs = ["main.ts"],
