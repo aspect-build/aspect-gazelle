@@ -78,13 +78,20 @@ type TsConfigWithGroup struct {
 
 func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
 	inner := tc.cm.configFiles[rel]
-	seen := make(map[string]bool, len(inner))
-	configs := make([]TsConfigWithGroup, 0, len(inner))
+	// Deduplicate by ConfigName, preferring the default ("") group so that
+	// generation-enablement checks in addTsConfigRules are deterministic when
+	// multiple groups share the same config file.
+	byConfig := make(map[string]TsConfigWithGroup, len(inner))
 	for groupName, p := range inner {
-		if c := tc.getTsConfigFromPath(p); c != nil && !seen[c.ConfigName] {
-			seen[c.ConfigName] = true
-			configs = append(configs, TsConfigWithGroup{Config: c, GroupName: groupName})
+		if c := tc.getTsConfigFromPath(p); c != nil {
+			if existing, exists := byConfig[c.ConfigName]; !exists || existing.GroupName != "" {
+				byConfig[c.ConfigName] = TsConfigWithGroup{Config: c, GroupName: groupName}
+			}
 		}
+	}
+	configs := make([]TsConfigWithGroup, 0, len(byConfig))
+	for _, entry := range byConfig {
+		configs = append(configs, entry)
 	}
 	// Required for deterministic output order of generated targets
 	slices.SortFunc(configs, func(a, b TsConfigWithGroup) int {
