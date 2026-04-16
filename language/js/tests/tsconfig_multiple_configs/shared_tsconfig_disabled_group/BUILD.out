@@ -1,0 +1,33 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Reset default group to local tsconfig.json, and also point tests group to the
+# same file. With both groups sharing one config file, the ts_config rule must
+# still be generated because the default group has generation enabled.
+# gazelle:js_tsconfig_file tsconfig.json
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.json
+# gazelle:js_tsconfig {dirname}_tests disabled
+
+ts_project(
+    name = "shared_tsconfig_disabled_group",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = ":tsconfig",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "shared_tsconfig_disabled_group_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    deps = [
+        ":shared_tsconfig_disabled_group",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

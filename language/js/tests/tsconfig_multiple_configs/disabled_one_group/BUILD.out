@@ -1,0 +1,21 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_tsconfig {dirname}_tests disabled
+
+ts_project(
+    name = "disabled_one_group",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "disabled_one_group_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    deps = [
+        ":disabled_one_group",
+        "//:node_modules/tslib",
+    ],
+)

@@ -1,0 +1,2 @@
+# gazelle:js_tsconfig_ignore {dirname}_custom composite
+# gazelle:js_test_files {dirname}_custom **/*.custom.ts

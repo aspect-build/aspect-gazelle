@@ -323,27 +323,30 @@ func (ts *typeScriptLang) Resolve(
 
 		// Support this target representing a project or a package
 		var imports *treeset.Set[ImportStatement]
+		var groupName string
 		if packageInfo, isPackageInfo := importData.(*TsPackageInfo); isPackageInfo {
 			imports = packageInfo.imports
+			groupName = packageInfo.groupName
 
 			if packageInfo.source != nil {
 				deps.Add(packageInfo.source)
 			}
 		} else if projectInfo, isProjectInfo := importData.(*TsProjectInfo); isProjectInfo {
 			imports = projectInfo.imports
+			groupName = projectInfo.groupName
 		} else {
 			BazelLog.Infof("%s //%s:%s with no/unknown package info", r.Kind(), from.Pkg, r.Name())
 			break
 		}
 
-		err := ts.resolveImports(c, ix, deps, imports, from)
+		err := ts.resolveImports(c, ix, deps, imports, from, groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
 		}
 
 		if r.Kind() == TsProjectKind {
-			ts.addTsLib(c, ix, deps, from)
+			ts.addTsLib(c, ix, deps, from, groupName)
 		}
 
 		if !deps.Empty() {
@@ -359,7 +362,7 @@ func (ts *typeScriptLang) Resolve(
 		srcs := packageInfo.sources.Values()
 
 		deps := common.NewLabelSet(from)
-		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from)
+		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from, packageInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -383,8 +386,9 @@ func (ts *typeScriptLang) addTsLib(
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
 	from label.Label,
+	groupName string,
 ) {
-	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg)
+	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, groupName)
 	if tsconfig != nil && tsconfig.ImportHelpers {
 		if tslibLabel := ts.findPackage(from.Pkg, "tslib"); tslibLabel != nil {
 			deps.Add(tslibLabel)
@@ -398,6 +402,7 @@ func (ts *typeScriptLang) resolveImports(
 	deps *common.LabelSet,
 	imports *treeset.Set[ImportStatement],
 	from label.Label,
+	groupName string,
 ) error {
 	cfg := c.Exts[LanguageName].(*JsGazelleConfig)
 
@@ -419,7 +424,7 @@ func (ts *typeScriptLang) resolveImports(
 			continue
 		}
 
-		resolutionType, dep, err := ts.resolveImport(c, ix, from, imp)
+		resolutionType, dep, err := ts.resolveImport(c, ix, from, imp, groupName)
 		if err != nil {
 			return err
 		}
@@ -474,6 +479,7 @@ func (ts *typeScriptLang) resolveImport(
 	ix *resolve.RuleIndex,
 	from label.Label,
 	impStm ImportStatement,
+	groupName string,
 ) (ResolutionType, *label.Label, error) {
 	imp := impStm.ImportSpec
 
@@ -488,7 +494,7 @@ func (ts *typeScriptLang) resolveImport(
 	}
 
 	// References via tsconfig mappings (paths, baseUrl, rootDirs etc.)
-	if tsconfigPaths := ts.tsconfig.ExpandPaths(impStm.SourcePath, impStm.ImportPath); len(tsconfigPaths) > 0 {
+	if tsconfigPaths := ts.tsconfig.ExpandPaths(impStm.SourcePath, impStm.ImportPath, groupName); len(tsconfigPaths) > 0 {
 		for _, p := range tsconfigPaths {
 			pImp := ImportStatement{
 				ImportSpec: resolve.ImportSpec{

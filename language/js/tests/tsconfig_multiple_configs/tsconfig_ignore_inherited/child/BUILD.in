@@ -1,0 +1,3 @@
+# Test: js_tsconfig_ignore for a specific group should be inherited by child packages.
+# The {dirname}_custom group has composite ignored (set in the parent BUILD file).
+# The child_custom ts_project should not have composite set.

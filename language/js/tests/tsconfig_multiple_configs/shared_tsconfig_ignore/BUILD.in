@@ -1,0 +1,5 @@
+# Test: js_tsconfig_ignore on a group that inherits the default tsconfig file
+# should not produce duplicate ts_config rules.
+# gazelle:js_tsconfig_file tsconfig.json
+# gazelle:js_tsconfig_ignore {dirname}_custom composite
+# gazelle:js_test_files {dirname}_custom **/*.custom.ts

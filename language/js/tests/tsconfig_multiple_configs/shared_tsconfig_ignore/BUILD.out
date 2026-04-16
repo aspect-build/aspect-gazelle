@@ -1,0 +1,22 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Test: js_tsconfig_ignore on a group that inherits the default tsconfig file
+# should not produce duplicate ts_config rules.
+# gazelle:js_tsconfig_file tsconfig.json
+# gazelle:js_tsconfig_ignore {dirname}_custom composite
+# gazelle:js_test_files {dirname}_custom **/*.custom.ts
+
+ts_project(
+    name = "shared_tsconfig_ignore",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = ":tsconfig",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

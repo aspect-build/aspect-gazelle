@@ -1,0 +1,13 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Test: js_tsconfig_ignore for a specific group should be inherited by child packages.
+# The {dirname}_custom group has composite ignored (set in the parent BUILD file).
+# The child_custom ts_project should not have composite set.
+
+ts_project(
+    name = "child_custom",
+    testonly = True,
+    srcs = ["main.custom.ts"],
+    tsconfig = "//:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)

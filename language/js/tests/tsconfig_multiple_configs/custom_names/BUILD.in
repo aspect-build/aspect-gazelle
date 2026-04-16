@@ -1,0 +1,2 @@
+# gazelle:js_project_naming_convention {dirname}_lib
+# gazelle:js_tests_naming_convention {dirname}_unit_tests

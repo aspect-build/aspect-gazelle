@@ -1,0 +1,6 @@
+# Reset default group to local tsconfig.json, and also point tests group to the
+# same file. With both groups sharing one config file, the ts_config rule must
+# still be generated because the default group has generation enabled.
+# gazelle:js_tsconfig_file tsconfig.json
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.json
+# gazelle:js_tsconfig {dirname}_tests disabled

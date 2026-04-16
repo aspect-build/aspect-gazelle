@@ -3,6 +3,7 @@ package typescript
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 
@@ -21,7 +22,7 @@ type TsConfigMap struct {
 	// `configFiles` is created during the gazelle configure phase which is single threaded so doesn't
 	// require mutex projection. Just `configs` has concurrency considerations since it is lazy
 	// loading on multiple threads in the generate phase.
-	configFiles  map[string]*workspacePath
+	configFiles  map[string]map[string]*workspacePath
 	configs      map[string]*TsConfig
 	configsMutex sync.RWMutex
 	pnpmProjects *pnpm.PnpmProjectMap
@@ -34,7 +35,7 @@ type TsWorkspace struct {
 func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
 	return &TsWorkspace{
 		cm: &TsConfigMap{
-			configFiles:  make(map[string]*workspacePath),
+			configFiles:  make(map[string]map[string]*workspacePath),
 			configs:      make(map[string]*TsConfig),
 			pnpmProjects: pnpmProjects,
 			configsMutex: sync.RWMutex{},
@@ -42,28 +43,64 @@ func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
 	}
 }
 
-func (tc *TsWorkspace) SetTsConfigFile(root, rel, fileName string) {
-	if c := tc.cm.configFiles[rel]; c != nil {
+func (tc *TsWorkspace) SetTsConfigFile(root, rel, groupName, fileName string) {
+	if tc.cm.configFiles[rel] == nil {
+		tc.cm.configFiles[rel] = make(map[string]*workspacePath)
+	}
+
+	if c := tc.cm.configFiles[rel][groupName]; c != nil {
 		fmt.Printf("Duplicate tsconfig file %s: %s and %s", path.Join(rel, fileName), c.rel, c.fileName)
 		return
 	}
 
 	BazelLog.Debugf("Declaring tsconfig file %s: %s", rel, fileName)
 
-	tc.cm.configFiles[rel] = &workspacePath{
+	tc.cm.configFiles[rel][groupName] = &workspacePath{
 		root:     root,
 		rel:      rel,
 		fileName: fileName,
 	}
 }
 
-func (tc *TsWorkspace) GetTsConfigFile(rel string) *TsConfig {
+func (tc *TsWorkspace) GetTsConfigFile(rel, groupName string) *TsConfig {
 	// No file exists
-	p := tc.cm.configFiles[rel]
+	p := tc.cm.configFiles[rel][groupName]
 	if p == nil {
 		return nil
 	}
+	return tc.getTsConfigFromPath(p)
+}
 
+type TsConfigWithGroup struct {
+	Config    *TsConfig
+	GroupName string
+}
+
+func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
+	inner := tc.cm.configFiles[rel]
+	// Deduplicate by ConfigName, preferring the default ("") group so that
+	// generation-enablement checks in addTsConfigRules are deterministic when
+	// multiple groups share the same config file.
+	byConfig := make(map[string]TsConfigWithGroup, len(inner))
+	for groupName, p := range inner {
+		if c := tc.getTsConfigFromPath(p); c != nil {
+			if existing, exists := byConfig[c.ConfigName]; !exists || existing.GroupName != "" {
+				byConfig[c.ConfigName] = TsConfigWithGroup{Config: c, GroupName: groupName}
+			}
+		}
+	}
+	configs := make([]TsConfigWithGroup, 0, len(byConfig))
+	for _, entry := range byConfig {
+		configs = append(configs, entry)
+	}
+	// Required for deterministic output order of generated targets
+	slices.SortFunc(configs, func(a, b TsConfigWithGroup) int {
+		return strings.Compare(a.Config.ConfigName, b.Config.ConfigName)
+	})
+	return configs
+}
+
+func (tc *TsWorkspace) getTsConfigFromPath(p *workspacePath) *TsConfig {
 	// Lock the configs mutex
 	tc.cm.configsMutex.Lock()
 	defer tc.cm.configsMutex.Unlock()
@@ -109,14 +146,21 @@ func (tc *TsWorkspace) tsConfigResolver(dir, rel string) []string {
 	return possible
 }
 
-func (tc *TsWorkspace) FindConfig(dir string) (string, *TsConfig) {
+func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 	for {
 		if dir == "." {
 			dir = ""
 		}
 
-		if tc.cm.configFiles[dir] != nil {
-			return dir, tc.GetTsConfigFile(dir)
+		if groupName != "" {
+			if c := tc.GetTsConfigFile(dir, groupName); c != nil {
+				return dir, c
+			}
+		}
+
+		// Fall back to the default group config if a group-specific one isn't found.
+		if c := tc.GetTsConfigFile(dir, ""); c != nil {
+			return dir, c
 		}
 
 		if dir == "" {
@@ -130,9 +174,9 @@ func (tc *TsWorkspace) FindConfig(dir string) (string, *TsConfig) {
 	return "", nil
 }
 
-func (tc *TsWorkspace) ExpandPaths(from, f string) []string {
+func (tc *TsWorkspace) ExpandPaths(from, f, groupName string) []string {
 	d, _ := path.Split(from)
-	_, c := tc.FindConfig(d)
+	_, c := tc.FindConfig(d, groupName)
 	if c == nil {
 		return []string{}
 	}

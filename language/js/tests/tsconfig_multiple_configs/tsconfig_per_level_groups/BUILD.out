@@ -1,0 +1,28 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "tsconfig_per_level_groups",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "tsconfig_per_level_groups_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    composite = True,
+    tsconfig = ":tsconfig_test",
+    deps = [
+        ":tsconfig_per_level_groups",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_config(
+    name = "tsconfig_test",
+    src = "tsconfig.test.json",
+    visibility = [":__subpackages__"],
+    deps = ["//:tsconfig_base"],
+)

@@ -1,0 +1,2 @@
+# gazelle:js_tsconfig disabled
+# gazelle:js_tsconfig {dirname}_tests enabled
