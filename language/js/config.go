@@ -585,9 +585,6 @@ func (c *JsGazelleConfig) GetFileSourceTarget(filePath string, tsWorkspace *type
 			glob, _ := common.ParseGlobExpression(globExpr)
 
 			if glob(filePath) {
-				if tsWorkspace != nil && !tsWorkspace.IsWithinRootDir(c.rel, target.name, filePath) {
-					continue
-				}
 				return target
 			}
 		}
