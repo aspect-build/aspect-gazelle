@@ -1,0 +1,23 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_tsconfig {dirname}_tests enabled
+
+ts_project(
+    name = "child",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "child_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_test",
+    deps = [
+        ":child",
+        "//:node_modules/tslib",
+    ],
+)
