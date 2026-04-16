@@ -6,7 +6,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 # gazelle:js_tsconfig_file tsconfig.json
 
 ts_project(
-    name = "tsconfig_ignore_inherits_default",
+    name = "tsconfig_ignore_before_file_directive",
     srcs = ["main.ts"],
     composite = True,
     tsconfig = ":tsconfig",

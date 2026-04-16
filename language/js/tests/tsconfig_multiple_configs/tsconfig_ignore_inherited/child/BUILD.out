@@ -8,6 +8,6 @@ ts_project(
     name = "child_custom",
     testonly = True,
     srcs = ["main.custom.ts"],
-    tsconfig = "//shared_tsconfig_ignore:tsconfig",
+    tsconfig = "//:tsconfig_lib",
     deps = ["//:node_modules/tslib"],
 )
