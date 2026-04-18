@@ -32,12 +32,7 @@ aspect_gazelle(
     name = "aspect_gazelle",
     extra_args = ["-index=lazy"],
     languages = ["go"],
-)
-
-aspect_gazelle(
-    name = "aspect_gazelle.check",
-    languages = ["go"],
-    mode = "diff",
+    with_check = True,
 )
 
 # The target used to publish the prebuilt gazelle binary.
