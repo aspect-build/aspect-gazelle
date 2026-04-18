@@ -39,20 +39,21 @@ func TestResolveLanguages(t *testing.T) {
 		orionExtDir string
 		want        []string
 	}{
-		// Orion auto-add is gated on ENABLE_LANGUAGES being set.
 		{
 			name: "empty ENABLE_LANGUAGES returns defaults",
 			want: defaults,
 		},
+		// Orion auto-add applies to defaults too, so setting only
+		// ORION_EXTENSIONS[_DIR] without ENABLE_LANGUAGES still works.
 		{
-			name:     "empty ENABLE_LANGUAGES ignores ORION_EXTENSIONS",
+			name:     "empty ENABLE_LANGUAGES with ORION_EXTENSIONS adds orion to defaults",
 			orionExt: "plugin.star",
-			want:     defaults,
+			want:     append(append([]string{}, defaults...), runner.Orion),
 		},
 		{
-			name:        "empty ENABLE_LANGUAGES ignores ORION_EXTENSIONS_DIR",
+			name:        "empty ENABLE_LANGUAGES with ORION_EXTENSIONS_DIR adds orion to defaults",
 			orionExtDir: "plugins/",
-			want:        defaults,
+			want:        append(append([]string{}, defaults...), runner.Orion),
 		},
 
 		// Explicit list replaces defaults entirely.

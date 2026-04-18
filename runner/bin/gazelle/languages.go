@@ -36,15 +36,16 @@ func init() {
 // resolveLanguages applies ENABLE_LANGUAGES and ORION_EXTENSIONS[_DIR] to the
 // default list. Pure — env lookups live in init().
 func resolveLanguages(defaults []string, enableLangs, orionExt, orionExtDir string) []string {
+	var result []string
 	if enableLangs == "" {
-		return defaults
+		result = defaults
+	} else {
+		result = strings.Split(enableLangs, ",")
 	}
-
-	result := strings.Split(enableLangs, ",")
 
 	// Automatically include orion if extensions are specified
 	if (orionExt != "" || orionExtDir != "") && !slices.Contains(result, runner.Orion) {
-		result = append(result, runner.Orion)
+		result = append(slices.Clone(result), runner.Orion)
 	}
 
 	return result
