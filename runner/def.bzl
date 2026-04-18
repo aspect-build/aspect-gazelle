@@ -37,10 +37,9 @@ def aspect_gazelle(
     file generation capabilities beyond the standard language extensions. These can be
     added via the `extensions` argument.
 
-    The underlying `gazelle()` binary and the `command` / `mode` attributes are managed
-    by this macro and cannot be overridden: `command = "update"` is always used, the
-    main target runs in `mode = "fix"`, and the optional `.check` target (see
-    `with_check`) runs in `mode = "diff"`.
+    The underlying `gazelle()` binary and the `mode` attribute are managed by this
+    macro and cannot be overridden: the main target runs in `mode = "fix"`, and the
+    optional `.check` target (see `with_check`) runs in `mode = "diff"`.
 
     Example:
         ```starlark
@@ -79,9 +78,13 @@ def aspect_gazelle(
         if lang not in _VALID_LANGUAGES:
             fail("Invalid language %r in 'languages'. Valid languages are: %s" % (lang, ", ".join(_VALID_LANGUAGES)))
 
+    command = kwargs.pop("command", "update")
+    if command not in ("update", "fix"):
+        fail("Invalid 'command' %r. Must be one of: \"update\", \"fix\"." % command)
+
     common = dict(
         gazelle = _GAZELLE_BINARY,
-        command = "update",
+        command = command,
         extra_args = extra_args,
         env = kwargs.pop("env", {}) | {
             "ENABLE_LANGUAGES": ",".join(languages),
