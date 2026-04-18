@@ -3,43 +3,11 @@ package main
 import (
 	"log"
 	"os"
-	"slices"
-	"strings"
 
 	"github.com/aspect-build/aspect-gazelle/common/bazel"
-	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/runner"
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/ibp"
 )
-
-var envLanguages = []runner.GazelleLanguage{
-	// The gazelle defaults, including initial ordering: https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/def.bzl#L59-L63
-	runner.DefaultVisibility,
-	runner.Protobuf,
-	runner.Go,
-
-	// Additional aspect-runner defaults.
-	// Kotlin not included in the prebuild because it interferes with normal operation
-	// and there is no directive to disable it.
-	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
-	runner.Bzl,
-	runner.Python,
-	runner.Orion,
-	runner.JavaScript,
-}
-
-func init() {
-	if langs := os.Getenv("ENABLE_LANGUAGES"); langs != "" {
-		envLanguages = strings.Split(langs, ",")
-
-		BazelLog.Infof("Using ENABLE_LANGUAGES from environment: %v", envLanguages)
-
-		// Automatically include orion if extensions are specified
-		if (os.Getenv("ORION_EXTENSIONS") != "" || os.Getenv("ORION_EXTENSIONS_DIR") != "") && !slices.Contains(envLanguages, runner.Orion) {
-			envLanguages = append(envLanguages, runner.Orion)
-		}
-	}
-}
 
 /**
  * A `gazelle_binary` replacement where languages can be toggled at runtime.
@@ -53,7 +21,7 @@ func main() {
 
 	wd := bazel.FindWorkspaceDirectory()
 
-	cmd, mode, progress, args := parseArgs()
+	cmd, mode, progress, args := parseArgs(os.Args[1:])
 
 	c := runner.New(wd, progress)
 
@@ -81,69 +49,4 @@ func main() {
 			os.Exit(1)
 		}
 	}
-}
-
-/**
- * Parse and extract arguments not directly passed along to gazelle.
- */
-func parseArgs() (runner.GazelleCommand, runner.GazelleMode, bool, []string) {
-	args := os.Args[1:]
-
-	// The optional initial command argument
-	cmd := runner.UpdateCmd
-	if len(args) > 0 && (args[0] == runner.UpdateCmd || args[0] == runner.FixCmd) {
-		cmd = args[0]
-		args = args[1:]
-	}
-
-	// The optional --mode flag
-	mode, args := extractArg("mode", runner.Fix, args)
-
-	// The optional --progress flag
-	progress, args := extractFlag("progress", false, args)
-
-	return cmd, mode, progress, args
-}
-
-func extractFlag(flag string, defaultValue bool, args []string) (bool, []string) {
-	if i := slices.Index(args, "--"+flag); i != -1 {
-		args = slices.Delete(args, i, i+1)
-		return true, args
-	}
-
-	// Also support single-dash flags to align with golang FlagSet and gazelle
-	if i := slices.Index(args, "-"+flag); i != -1 {
-		args = slices.Delete(args, i, i+1)
-		return true, args
-	}
-
-	return defaultValue, args
-}
-
-func extractArg(flag string, defaultValue string, args []string) (string, []string) {
-	// Also support single-dash flags to align with golang FlagSet and gazelle
-	f1 := "-" + flag
-	f2 := "--" + flag
-
-	i := slices.IndexFunc(args, func(s string) bool {
-		return s == f1 || s == f2 || strings.HasPrefix(s, f1+"=") || strings.HasPrefix(s, f2+"=")
-	})
-
-	if i == -1 {
-		return defaultValue, args
-	}
-
-	usedFlag, value, hasEqual := strings.Cut(args[i], "=")
-	if !hasEqual {
-		if len(args) <= i+1 {
-			log.Fatalf("ERROR: %s flag requires an argument", usedFlag)
-			return defaultValue, args
-		}
-		value := args[i+1]
-		args = slices.Delete(args, i, i+2)
-		return value, args
-	}
-
-	args = slices.Delete(args, i, i+1)
-	return value, args
 }
