@@ -56,6 +56,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_LibraryFiles,
 		Directive_TestFiles,
 		Directive_Assets,
+		Directive_PackageJson,
 
 		// TODO(deprecated): remove
 		Directive_CustomTargetFiles,
@@ -108,6 +109,12 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, tc.fileName)
 		}
 	}
+
+	// Track the nearest package.json for TypeScript module type detection.
+	// This is inherited by child directories so they can add a dep on it.
+	if config.packageJsonEnabled && common.WalkHasPath(rel, NpmPackageFilename) {
+		config.packageJsonRel = &rel
+	}
 }
 
 func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.File) {
@@ -128,6 +135,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
 		case Directive_TypeScriptProtoExtension:
 			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
+		case Directive_PackageJson:
+			config.packageJsonEnabled = common.ReadEnabled(d)
 		case Directive_NpmPackageExtension:
 			if strings.TrimSpace(d.Value) == string(NpmPackageReferencedMode) {
 				config.SetNpmPackageGenerationMode(NpmPackageReferencedMode)

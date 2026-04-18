@@ -62,6 +62,9 @@ const (
 	Directive_TestFiles = "js_test_files"
 	// The directive controlling whether asset collection is enabled for import types.
 	Directive_Assets = "js_assets"
+	// En/disable inclusion of package.json in ts_project srcs for TypeScript
+	// module type detection ("type": "module"/"commonjs").
+	Directive_PackageJson = "js_tsconfig_package_json"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
 	Directive_CustomTargetFiles = "js_custom_files"
@@ -200,6 +203,9 @@ type JsGazelleConfig struct {
 	collectAssetImports bool
 	collectAssetJsx     bool
 	collectAssetURL     bool
+
+	packageJsonEnabled bool
+	packageJsonRel     *string
 
 	// Generated rule names
 	npmLinkAllTargetName       string
@@ -480,6 +486,21 @@ func (c *JsGazelleConfig) SetCollectAssetsFrom(kinds ...ImportKind) {
 			c.collectAssetURL = true
 		}
 	}
+}
+
+// PackageJsonEnabled returns whether package.json inclusion in ts_project srcs is enabled.
+func (c *JsGazelleConfig) PackageJsonEnabled() bool {
+	return c.packageJsonEnabled
+}
+
+// PackageJsonRel returns the workspace-relative path of the nearest directory
+// containing a package.json and true, or ("", false) if none has been found.
+// Only returns a value when packageJsonEnabled is true.
+func (c *JsGazelleConfig) PackageJsonRel() (string, bool) {
+	if !c.packageJsonEnabled || c.packageJsonRel == nil {
+		return "", false
+	}
+	return *c.packageJsonRel, true
 }
 
 func (c *JsGazelleConfig) CollectAssetsFrom(kind ImportKind) bool {

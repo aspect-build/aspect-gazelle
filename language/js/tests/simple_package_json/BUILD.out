@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_tsconfig_package_json enabled
+
+ts_project(
+    name = "simple_package_json",
+    srcs = [
+        "main.ts",
+        "package.json",
+    ],
+)

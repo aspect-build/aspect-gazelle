@@ -64,4 +64,6 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | Equivalent to `js_files` but for the test `ts_project` target, or a custom test target. |
 | `# gazelle:js_npm_package_target_name _name_`           | `{dirname}`                 |
 | The format used to generate the name of the `npm_package` target. |
+| `# gazelle:js_tsconfig_package_json enabled\|disabled`  | `disabled`                  |
+| Include `package.json` in generated `ts_project` rules so that TypeScript can determine the module type (ESM vs CJS) from the `"type"` field. When enabled, a local `package.json` is added to `srcs`; if no local `package.json` exists the nearest ancestor that contains one is added as a `dep`.<br />This value is inherited by sub-directories. |
 <!-- prettier-ignore-end -->

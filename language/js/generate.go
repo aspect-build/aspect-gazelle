@@ -561,6 +561,27 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		}
 	}
 
+	// When enabled via "# gazelle:js_tsconfig_package_json enabled", include the
+	// package.json file so TypeScript can determine the module type (ESM vs CJS)
+	// via the "type" field. If one exists locally it is added as a source;
+	// otherwise a dep on the nearest ancestor package.json is added so that tsc
+	// can still find it in the sandbox.
+	if cfg.PackageJsonEnabled() {
+		if slices.Contains(args.RegularFiles, NpmPackageFilename) {
+			info.sources.Add(NpmPackageFilename)
+		} else if packageJsonRel, ok := cfg.PackageJsonRel(); ok {
+			info.AddImport(ImportStatement{
+				ImportSpec: resolve.ImportSpec{
+					Lang: LanguageName,
+					Imp:  path.Join(packageJsonRel, NpmPackageFilename),
+				},
+				ImportPath: NpmPackageFilename,
+				SourcePath: path.Join(args.Rel, NpmPackageFilename),
+				Optional:   true,
+			})
+		}
+	}
+
 	// A rule of the same name might already exist
 	existing := ruleUtils.GetFileRuleByName(args, targetName)
 
