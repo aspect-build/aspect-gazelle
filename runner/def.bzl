@@ -20,29 +20,34 @@ _VALID_LANGUAGES = [
     "visibility_extension",
 ]
 
-def aspect_gazelle(languages = [], extensions = [], **kwargs):
-    """Creates a Gazelle target for BUILD file generation and update.
+def aspect_gazelle(
+        name = "gazelle",
+        languages = [],
+        extensions = [],
+        extra_args = [],
+        with_check = False,
+        **kwargs):
+    """Creates a Gazelle target for BUILD generation.
 
-    This macro provides an enhanced version of the standard `gazelle()` macro that:
-    - Bundles multiple well-supported language extensions into a single binary
-    - Supports Aspect Orion extensions for BUILD file generation via starlark extensions
-
-    Standard well-supported languages are built into the binary and enabled by default.
-    These include common languages like Go, Protobuf, and others. Use the `languages`
-    argument to enable only a specific subset if desired.
+    Several well-supported languages are built into the prebuilt binary, and a subset
+    of them (Go, Protobuf, Python, JavaScript, Starlark, and a few others) is enabled
+    by default. Use the `languages` argument to explicitly select which to enable.
 
     Aspect Orion extensions are Starlark-based plugins that provide additional BUILD
     file generation capabilities beyond the standard language extensions. These can be
     added via the `extensions` argument.
 
+    The underlying `gazelle()` binary and the `command` / `mode` attributes are managed
+    by this macro and cannot be overridden: `command = "update"` is always used, the
+    main target runs in `mode = "fix"`, and the optional `.check` target (see
+    `with_check`) runs in `mode = "diff"`.
+
     Example:
         ```starlark
         load("@aspect_gazelle_runner//:def.bzl", "aspect_gazelle")
 
-        # Basic usage with all default languages
-        aspect_gazelle(
-            name = "gazelle",
-        )
+        # Default name "gazelle", default languages, plus a `:gazelle.check` target for CI.
+        aspect_gazelle(with_check = True)
 
         # Enable only specific languages
         aspect_gazelle(
@@ -55,36 +60,53 @@ def aspect_gazelle(languages = [], extensions = [], **kwargs):
             name = "gazelle_with_orion",
             extensions = ["//tools/gazelle:my_extension.axl"],
         )
-
-        # Update all BUILD files
-        aspect_gazelle(
-            name = "gazelle_update",
-            command = "fix",
-        )
         ```
 
     Args:
+        name: Name of the target. Defaults to "gazelle".
         languages: A list of Gazelle language string keys to enable. If empty (default),
-            all built-in languages are enabled. Examples: ["go", "proto", "python"].
+            a default subset of the built-in languages is enabled. Examples:
+            ["go", "proto", "python"].
         extensions: A list of labels pointing to Aspect Gazelle Orion Starlark extensions
             to load. These extensions provide additional BUILD file generation logic.
-        **kwargs: Additional arguments passed directly to the underlying `gazelle()` macro including:
-            - `command`: The Gazelle command to run (e.g., "update", "fix")
-            - `mode`: The Gazelle mode (e.g., "diff", "update", "fix")
-            - `args`: Additional command-line arguments for Gazelle
+        extra_args: Additional command-line arguments passed to Gazelle.
+        with_check: If True, also creates a `<name>.check` target that runs Gazelle in
+            `diff` mode, suitable for CI to verify BUILD files are up to date.
+        **kwargs: Standard Bazel rule attributes (e.g. `visibility`, `testonly`).
     """
 
     for lang in languages:
         if lang not in _VALID_LANGUAGES:
             fail("Invalid language %r in 'languages'. Valid languages are: %s" % (lang, ", ".join(_VALID_LANGUAGES)))
 
-    gazelle(
+    common = dict(
         gazelle = _GAZELLE_BINARY,
+        command = "update",
+        extra_args = extra_args,
         env = kwargs.pop("env", {}) | {
             "ENABLE_LANGUAGES": ",".join(languages),
             "ORION_EXTENSIONS": ",".join(["$(rootpath %s)" % p for p in extensions]),
         },
         data = kwargs.pop("data", []) + extensions,
         tags = kwargs.pop("tags", []) + ["supports_incremental_build_protocol"],
-        **kwargs
     )
+    if "visibility" in kwargs:
+        common["visibility"] = kwargs.pop("visibility")
+    if "testonly" in kwargs:
+        common["testonly"] = kwargs.pop("testonly")
+
+    if kwargs:
+        fail("aspect_gazelle() got unexpected keyword argument(s): %s" % ", ".join(kwargs.keys()))
+
+    gazelle(
+        name = name,
+        mode = "fix",
+        **common
+    )
+
+    if with_check:
+        gazelle(
+            name = name + ".check",
+            mode = "diff",
+            **common
+        )

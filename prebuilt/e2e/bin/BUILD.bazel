@@ -4,11 +4,7 @@ load("@bazel_skylib//rules:build_test.bzl", "build_test")
 aspect_gazelle(
     name = "gazelle",
     extra_args = ["-index=lazy"],
-)
-
-aspect_gazelle(
-    name = "gazelle.check",
-    mode = "diff",
+    with_check = True,
 )
 
 build_test(
