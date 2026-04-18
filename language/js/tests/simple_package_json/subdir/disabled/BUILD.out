@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_tsconfig_package_json disabled
+
+ts_project(
+    name = "disabled",
+    srcs = ["app.ts"],
+)
