@@ -1,6 +1,8 @@
 package cache
 
 import (
+	"os"
+	"path"
 	"path/filepath"
 	"testing"
 
@@ -138,5 +140,40 @@ func TestFileComputeCache_NewCacheIsSingleton(t *testing.T) {
 
 	if a != b {
 		t.Error("expected NewCache to return the same instance each call")
+	}
+}
+
+// FilePath returns ASPECT_GAZELLE_CACHE when set, taking precedence over
+// the per-repo temp-file fallback.
+func TestFilePath_EnvVarOverride(t *testing.T) {
+	t.Setenv("ASPECT_GAZELLE_CACHE", "/custom/cache/path")
+
+	got := FilePath(fakeConfig("myrepo"))
+	if got != "/custom/cache/path" {
+		t.Errorf("expected %q, got %q", "/custom/cache/path", got)
+	}
+}
+
+// Without the env var, FilePath returns a per-repo file under os.TempDir.
+// The RepoName is embedded to keep caches distinct across repos.
+func TestFilePath_TempDirFallback(t *testing.T) {
+	t.Setenv("ASPECT_GAZELLE_CACHE", "")
+
+	got := FilePath(fakeConfig("myrepo"))
+	want := path.Join(os.TempDir(), "aspect-gazelle-myrepo.cache")
+	if got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+}
+
+// The fallback path reflects the RepoName from the provided config, so two
+// repos in the same process do not collide.
+func TestFilePath_FallbackUsesRepoName(t *testing.T) {
+	t.Setenv("ASPECT_GAZELLE_CACHE", "")
+
+	a := FilePath(fakeConfig("alpha"))
+	b := FilePath(fakeConfig("beta"))
+	if a == b {
+		t.Errorf("expected distinct fallback paths per repo, got %q for both", a)
 	}
 }

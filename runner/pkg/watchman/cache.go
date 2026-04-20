@@ -2,7 +2,6 @@ package watchman
 
 import (
 	"encoding/gob"
-	"fmt"
 	"log"
 	"os"
 	"path"
@@ -43,21 +42,13 @@ type watchmanCache struct {
 var _ cache.Cache = (*watchmanCache)(nil)
 
 func NewWatchmanCache(c *config.Config) cache.Cache {
-	diskCachePath := os.Getenv("ASPECT_GAZELLE_CACHE")
-	if diskCachePath == "" {
-		// A default path for the cache file.
-		// Try to be unique per repo to allow re-use, while using a temp dir to avoid clutter and indicate
-		// the cache is not required.
-		diskCachePath = path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-%v.cache", c.RepoName))
-	}
-
 	// Start the watcher
 	w := NewWatchman(c.RepoRoot)
 	if err := w.Start(); err != nil {
 		log.Fatalf("failed to start the watcher: %v", err)
 	}
 
-	return newWatchmanCache(c, w, diskCachePath)
+	return newWatchmanCache(c, w, cache.FilePath(c))
 }
 
 // The walk cache of a previous invocation of gazelle.
