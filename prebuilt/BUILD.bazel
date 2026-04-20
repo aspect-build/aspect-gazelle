@@ -1,6 +1,6 @@
-load(":rules.bzl", "gazelle_runner")
+load(":rules.bzl", "aspect_gazelle_runner")
 
-gazelle_runner(
+aspect_gazelle_runner(
     name = "gazelle_prebuilt_bin",
     tags = ["manual"],
     visibility = ["//visibility:public"],
