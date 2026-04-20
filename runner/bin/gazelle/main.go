@@ -5,8 +5,11 @@ import (
 	"os"
 
 	"github.com/aspect-build/aspect-gazelle/common/bazel"
+	"github.com/aspect-build/aspect-gazelle/common/cache"
 	"github.com/aspect-build/aspect-gazelle/runner"
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/ibp"
+	"github.com/aspect-build/aspect-gazelle/runner/pkg/watchman"
+	"github.com/bazelbuild/bazel-gazelle/config"
 )
 
 /**
@@ -21,7 +24,7 @@ func main() {
 
 	wd := bazel.FindWorkspaceDirectory()
 
-	cmd, mode, progress, args := parseArgs(os.Args[1:])
+	cmd, mode, progress, ct, args := parseArgs(os.Args[1:])
 
 	c := runner.New(wd, progress)
 
@@ -36,6 +39,15 @@ func main() {
 			log.Fatalf("Error running gazelle watcher: %v", err)
 		}
 	} else {
+		switch ct {
+		case cacheDisk:
+			cache.SetCacheFactory(func(c *config.Config) cache.Cache {
+				return cache.NewDiskCache(cache.FilePath(c))
+			})
+		case cacheWatchman:
+			cache.SetCacheFactory(watchman.NewWatchmanCache)
+		}
+
 		hasChanges, err := c.Generate(cmd, mode, args)
 		if err != nil {
 			log.Fatalf("Error running gazelle: %v", err)

@@ -225,6 +225,11 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 
 	defer watch.Disconnect()
 
+	// Cache hits skip file I/O; misses hash-verify via the disk cache.
+	// CYCLE messages evict entries mid-session (see loop below).
+	wc := cache.NewWatchCache()
+	cache.SetCacheFactory(wc.NewCache)
+
 	// Params for the underlying gazelle call
 	fixArgs := p.prepareGazelleArgs(mode, args)
 
@@ -257,6 +262,13 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 		}
 
 		_, t := p.tracer.Start(ctx, "GazelleRunner.Watch.Trigger")
+
+		// Evict cache entries for paths the protocol reports changed.
+		changedPaths := make([]string, 0, len(cs.Sources))
+		for f := range cs.Sources {
+			changedPaths = append(changedPaths, f)
+		}
+		wc.Invalidate(changedPaths)
 
 		// The directories that have changed which gazelle should update.
 		// This assumes all enabled gazelle languages support incremental updates.

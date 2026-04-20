@@ -13,8 +13,11 @@ go_library(
     deps = [
         "//:runner",
         "//pkg/ibp",
+        "//pkg/watchman",
         "@aspect_gazelle//common/bazel",
+        "@aspect_gazelle//common/cache",
         "@aspect_gazelle//common/logger",
+        "@gazelle//config",
     ],
 )
 
