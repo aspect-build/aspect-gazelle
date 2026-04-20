@@ -1,0 +1,10 @@
+--- BUILD.bazel	1970-01-01 00:00:00.000000001 +0000
++++ BUILD.bazel	1970-01-01 00:00:00.000000001 +0000
+@@ -0,0 +1,7 @@
++load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
++
++bzl_library(
++    name = "foo",
++    srcs = ["foo.bzl"],
++    visibility = ["//visibility:public"],
++)

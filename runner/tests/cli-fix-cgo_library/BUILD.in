@@ -1,0 +1,8 @@
+load("@io_bazel_rules_go//go:def.bzl", "cgo_library")
+
+# gazelle:go_naming_convention go_default_library
+
+cgo_library(
+    name = "cgo_default_library",
+    srcs = ["foo.go"],
+)
