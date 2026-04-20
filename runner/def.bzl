@@ -4,6 +4,16 @@ Aspect enhanced Gazelle
 
 load("//:rules.bzl", "aspect_gazelle_runner")
 
+# Keep in sync with the bazel-gazelle DEFAULT_LANGUAGES:
+# https://github.com/bazel-contrib/bazel-gazelle/blob/v0.50.0/def.bzl#L59-L63
+# Not used internally — the aspect_gazelle() macro's default language set is
+# controlled by the runner binary (runner/bin/gazelle/languages.go).
+DEFAULT_LANGUAGES = [
+    "visibility_extension",
+    "proto",
+    "go",
+]
+
 # Keep in sync with the switch statement in runner/runner.go AddLanguage()
 _VALID_LANGUAGES = [
     "buf",
@@ -28,8 +38,9 @@ def aspect_gazelle(
     """Creates a Gazelle target for BUILD generation.
 
     Several well-supported languages are built into the prebuilt binary, and a subset
-    of them (Go, Protobuf, Python, JavaScript, Starlark, and a few others) is enabled
-    by default. Use the `languages` argument to explicitly select which to enable.
+    of them (Go, Protobuf, Python, JavaScript, Starlark, and a few others) are enabled
+    by default. Use the `languages` argument to explicitly select which to enable, or
+    pass `DEFAULT_LANGUAGES` for the same set as Gazelle's built-in default.
 
     Aspect Orion extensions are Starlark-based plugins that provide additional BUILD
     file generation capabilities beyond the standard language extensions. These can be
