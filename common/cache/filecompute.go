@@ -11,6 +11,14 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/config"
 )
 
+// FilePath returns ASPECT_GAZELLE_CACHE if set, otherwise a per-repo file under os.TempDir.
+func FilePath(cfg *config.Config) string {
+	if p := os.Getenv("ASPECT_GAZELLE_CACHE"); p != "" {
+		return p
+	}
+	return path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-%v.cache", cfg.RepoName))
+}
+
 func init() {
 	gob.Register(fileComputeCacheState{})
 }
@@ -77,10 +85,7 @@ func (c *FileComputeCache) SnapshotEntries() map[string]map[string]any {
 func (c *FileComputeCache) NewCache(cfg *config.Config) Cache {
 	if !c.initialized {
 		c.initialized = true
-		c.file = os.Getenv("ASPECT_GAZELLE_CACHE")
-		if c.file == "" {
-			c.file = path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-%v.cache", cfg.RepoName))
-		}
+		c.file = FilePath(cfg)
 		c.read()
 	}
 	return c
