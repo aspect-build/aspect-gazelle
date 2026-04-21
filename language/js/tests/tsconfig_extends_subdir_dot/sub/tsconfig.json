@@ -1,0 +1,6 @@
+{
+    "extends": "./sibling.json",
+    "compilerOptions": {
+        "baseUrl": "elsewhere"
+    }
+}

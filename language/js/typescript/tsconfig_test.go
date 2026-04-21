@@ -107,7 +107,7 @@ var _ TsConfigResolver = fooResolver
 func fooResolver(dir, conf string) []string {
 	return []string{
 		path.Join(dir, conf),
-		path.Join(dir, "base.tsconfig.json"),
+		path.Join(dir, "./base.tsconfig.json"),
 	}
 }
 
@@ -123,7 +123,7 @@ func TestTsconfigLoad(t *testing.T) {
 		}
 		assertEqual(t, extender.Paths.Rel, "src", "should inherit Paths.Rel from extended")
 		assertEqual(t, extender.Paths.Map["alias-a"][0], "src/lib/a", "should inherit Paths.Rel from extended")
-		assertEqual(t, extender.Extends[0], "base.tsconfig.json", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "./base.tsconfig.json", "should not fail extending")
 	})
 
 	t.Run("parse a tsconfig extending other in parent dir", func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, recursive.Extends[0], "extends-recursive.json", "should not fail extending itself")
+		assertEqual(t, recursive.Extends[0], "./extends-recursive.json", "should not fail extending itself")
 	})
 
 	t.Run("parse a tsconfig file extending an unknown file", func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, notFound.Extends[0], "does-not-exist.json", "should not fail extending unknown")
+		assertEqual(t, notFound.Extends[0], "./does-not-exist.json", "should not fail extending unknown")
 	})
 
 	t.Run("parse a tsconfig file extending a blank string", func(t *testing.T) {
@@ -200,7 +200,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, unknown.Extends[0], ".svelte-kit/tsconfig.json", "should preserve Extends value when present")
+		assertEqual(t, unknown.Extends[0], "./.svelte-kit/tsconfig.json", "should preserve Extends value when present")
 	})
 
 	t.Run("parse a tsconfig file extending a named-import", func(t *testing.T) {
@@ -226,8 +226,8 @@ func TestTsconfigLoad(t *testing.T) {
 		}
 
 		assertTrue(t, len(config.Extends) == 2, "expected 2 extends")
-		assertEqual(t, config.Extends[0], "multi-base-1.json", "first extends")
-		assertEqual(t, config.Extends[1], "multi-base-2.json", "second extends")
+		assertEqual(t, config.Extends[0], "./multi-base-1.json", "first extends")
+		assertEqual(t, config.Extends[1], "./multi-base-2.json", "second extends")
 
 		if config.ImportHelpers {
 			t.Errorf("expected ImportHelpers=false from base-2, got %v", config.ImportHelpers)
@@ -256,8 +256,8 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, config.Extends[0], "multi-base-2.json", "first extends")
-		assertEqual(t, config.Extends[1], "multi-base-1.json", "second extends")
+		assertEqual(t, config.Extends[0], "./multi-base-2.json", "first extends")
+		assertEqual(t, config.Extends[1], "./multi-base-1.json", "second extends")
 
 		if !config.ImportHelpers {
 			t.Errorf("expected ImportHelpers=true from base-1 (now right), got %v", config.ImportHelpers)
@@ -288,7 +288,7 @@ func TestTsconfigLoad(t *testing.T) {
 		}
 
 		// Single string should result in single-element array
-		assertEqual(t, extender.Extends[0], "base.tsconfig.json", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "./base.tsconfig.json", "should not fail extending")
 
 		// Verify inherited values still work
 		if !extender.ImportHelpers {
