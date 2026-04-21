@@ -1,1 +1,4 @@
+# Keep test cases in sync with ../npm_package_deps.
+# This test covers the `js_library` package target kind;
+# the sibling suite covers the `npm_package` kind.
 workspace(name = "npm_package_deps_lib")

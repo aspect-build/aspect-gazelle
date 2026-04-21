@@ -1,0 +1,8 @@
+{
+  "name": "pkg-exports-subpath",
+  "private": true,
+  "exports": {
+    ".": "./index.js",
+    "./testing": "./testing.js"
+  }
+}

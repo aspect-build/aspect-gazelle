@@ -63,5 +63,5 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | `# gazelle:js_test_files [custom_target_name] _glob_`   | `**/*.{spec,test}.{ts,tsx,mts,cts}` |
 | Equivalent to `js_files` but for the test `ts_project` target, or a custom test target. |
 | `# gazelle:js_npm_package_target_name _name_`           | `{dirname}`                 |
-| The format used to generate the name of the `npm_package` target. |
+| The format used to generate the name of the `npm_package` target.<br />The package target depends on the default source group, plus anything it explicitly depends on such as via `package.json` fields (`main`, `exports`, `types`, `typings`) pointing to outputs of other targets. |
 <!-- prettier-ignore-end -->

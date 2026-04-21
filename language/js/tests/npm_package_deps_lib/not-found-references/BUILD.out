@@ -1,17 +1,17 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
-# gazelle:js_files **/*.{js,ts}
-# gazelle:generation_mode update_only
-# gazelle:js_npm_package_target_name pkg
-# gazelle:js_package_rule_kind js_library
-# gazelle:js_project_naming_convention tsc
-# gazelle:js_npm_package enabled
-
 npm_link_all_packages(name = "node_modules")
+
+ts_project(
+    name = "tsc",
+    srcs = ["index.ts"],
+)
 
 js_library(
     name = "pkg",
     srcs = ["package.json"],
     visibility = ["//:__pkg__"],
+    deps = [":tsc"],
 )

@@ -1,4 +1,5 @@
 # gazelle:js_files **/*.{js,ts}
+# gazelle:generation_mode update_only
 # gazelle:js_npm_package_target_name pkg
 # gazelle:js_package_rule_kind js_library
 # gazelle:js_project_naming_convention tsc

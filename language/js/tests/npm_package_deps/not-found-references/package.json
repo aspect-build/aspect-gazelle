@@ -1,0 +1,10 @@
+{
+  "name": "pkg-not-found-refs",
+  "private": true,
+  "main": "./does-not-exist.js",
+  "types": "./missing.d.ts",
+  "exports": {
+    ".": "./also-missing.js",
+    "./foo": "./nope.js"
+  }
+}
