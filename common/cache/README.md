@@ -2,7 +2,15 @@
 
 This package provides utilities for caching within or across Gazelle invocations.
 
-File based caching is enabled by setting `ASPECT_GAZELLE_CACHE` to a path (e.g. `.cache/aspect-gazelle.cache`) for loading+persisting the cache between Gazelle runs.
+File-based caching on the aspect-gazelle binary can be enabled either by flag or by env var:
+
+- `--cache` or `--cache=disk` — persists to a file and invalidates entries on content-hash changes.
+- `--cache=watchman` — persists to a file and invalidates entries via filesystem events from [watchman](https://facebook.github.io/watchman/) (more efficient on large trees; requires `watchman` on `PATH`).
+- `ASPECT_GAZELLE_CACHE=<path>` — sets the cache file location and, when no `--cache` flag is given, implies `--cache=disk`.
+
+When invoked as a `--watch` protocol client the runner automatically installs a watch-optimized disk cache — no flag needed — and invalidates entries based on the watch protocol's change notifications.
+
+The cache file location defaults to `$TMPDIR/aspect-gazelle-<repo>.cache`; set `ASPECT_GAZELLE_CACHE` to override (e.g. `.cache/aspect-gazelle.cache`). The on-disk format is shared between `--cache=disk` and the watch-mode cache, so entries survive mode switches across runs.
 
 ## Usage
 

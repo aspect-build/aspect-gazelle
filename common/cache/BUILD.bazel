@@ -8,6 +8,7 @@ go_library(
         "disk.go",
         "filecompute.go",
         "noop.go",
+        "watch.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common/cache",
     visibility = ["//visibility:public"],
@@ -25,6 +26,7 @@ go_test(
     srcs = [
         "disk_test.go",
         "filecompute_test.go",
+        "watch_test.go",
     ],
     embed = [":cache"],
     deps = ["@gazelle//config"],

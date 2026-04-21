@@ -8,10 +8,19 @@ import (
 	"github.com/aspect-build/aspect-gazelle/runner"
 )
 
+// cacheType selects a cache implementation for --cache[=disk|watchman].
+type cacheType string
+
+const (
+	cacheDefault  cacheType = ""
+	cacheDisk     cacheType = "disk"
+	cacheWatchman cacheType = "watchman"
+)
+
 /**
  * Parse and extract arguments not directly passed along to gazelle.
  */
-func parseArgs(args []string) (runner.GazelleCommand, runner.GazelleMode, bool, []string) {
+func parseArgs(args []string) (runner.GazelleCommand, runner.GazelleMode, bool, cacheType, []string) {
 	// The optional initial command argument
 	cmd := runner.UpdateCmd
 	if len(args) > 0 && (args[0] == runner.UpdateCmd || args[0] == runner.FixCmd) {
@@ -25,7 +34,16 @@ func parseArgs(args []string) (runner.GazelleCommand, runner.GazelleMode, bool, 
 	// The optional --progress flag
 	progress, args := extractFlag("progress", false, args)
 
-	return cmd, mode, progress, args
+	// The optional --cache[=disk|watchman] flag; bare --cache defaults to disk.
+	cacheRaw, args := extractOptionalArg("cache", string(cacheDisk), args)
+	ct := cacheType(cacheRaw)
+	switch ct {
+	case cacheDefault, cacheDisk, cacheWatchman:
+	default:
+		log.Fatalf("ERROR: invalid --cache value %q, expected \"disk\" or \"watchman\"", cacheRaw)
+	}
+
+	return cmd, mode, progress, ct, args
 }
 
 func extractFlag(flag string, defaultValue bool, args []string) (bool, []string) {
@@ -69,4 +87,24 @@ func extractArg(flag string, defaultValue string, args []string) (string, []stri
 
 	args = slices.Delete(args, i, i+1)
 	return value, args
+}
+
+// Extract a --flag[=value] flag. Bare --flag returns defaultBare without consuming a following token.
+func extractOptionalArg(flag, defaultBare string, args []string) (string, []string) {
+	f1 := "-" + flag
+	f2 := "--" + flag
+
+	i := slices.IndexFunc(args, func(s string) bool {
+		return s == f1 || s == f2 || strings.HasPrefix(s, f1+"=") || strings.HasPrefix(s, f2+"=")
+	})
+
+	if i == -1 {
+		return "", args
+	}
+
+	_, value, _ := strings.Cut(args[i], "=")
+	if value == "" {
+		value = defaultBare
+	}
+	return value, slices.Delete(args, i, i+1)
 }

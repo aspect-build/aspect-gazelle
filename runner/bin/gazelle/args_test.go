@@ -9,12 +9,13 @@ import (
 
 func TestParseArgs(t *testing.T) {
 	cases := []struct {
-		name     string
-		argv     []string
-		wantCmd  runner.GazelleCommand
-		wantMode runner.GazelleMode
-		wantProg bool
-		wantArgs []string
+		name      string
+		argv      []string
+		wantCmd   runner.GazelleCommand
+		wantMode  runner.GazelleMode
+		wantProg  bool
+		wantCache cacheType
+		wantArgs  []string
 	}{
 		// Default: `gazelle` with no args -> update + fix (matches bazel-gazelle default command).
 		{
@@ -166,7 +167,7 @@ func TestParseArgs(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			cmd, mode, progress, args := parseArgs(tc.argv)
+			cmd, mode, progress, ct, args := parseArgs(tc.argv)
 			if cmd != tc.wantCmd {
 				t.Errorf("cmd: got %q, want %q", cmd, tc.wantCmd)
 			}
@@ -175,6 +176,9 @@ func TestParseArgs(t *testing.T) {
 			}
 			if progress != tc.wantProg {
 				t.Errorf("progress: got %v, want %v", progress, tc.wantProg)
+			}
+			if ct != tc.wantCache {
+				t.Errorf("cache: got %q, want %q", ct, tc.wantCache)
 			}
 			if !reflect.DeepEqual(args, tc.wantArgs) {
 				t.Errorf("args: got %v, want %v", args, tc.wantArgs)
@@ -408,9 +412,95 @@ func TestProgressFlag(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			_, _, progress, args := parseArgs(tc.argv)
+			_, _, progress, _, args := parseArgs(tc.argv)
 			if progress != tc.wantProg {
 				t.Errorf("progress: got %v, want %v", progress, tc.wantProg)
+			}
+			if !reflect.DeepEqual(args, tc.wantArgs) {
+				t.Errorf("args: got %v, want %v", args, tc.wantArgs)
+			}
+		})
+	}
+}
+
+// TestCacheFlag covers the aspect-specific --cache[=disk|watchman] flag.
+func TestCacheFlag(t *testing.T) {
+	cases := []struct {
+		name      string
+		argv      []string
+		wantCache cacheType
+		wantArgs  []string
+	}{
+		{
+			name:      "default is off",
+			argv:      []string{},
+			wantCache: cacheDefault,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "bare --cache enables disk",
+			argv:      []string{"--cache"},
+			wantCache: cacheDisk,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "bare -cache enables disk",
+			argv:      []string{"-cache"},
+			wantCache: cacheDisk,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "--cache=disk",
+			argv:      []string{"--cache=disk"},
+			wantCache: cacheDisk,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "--cache=watchman",
+			argv:      []string{"--cache=watchman"},
+			wantCache: cacheWatchman,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "-cache=watchman",
+			argv:      []string{"-cache=watchman"},
+			wantCache: cacheWatchman,
+			wantArgs:  []string{},
+		},
+		{
+			name:      "--cache= (empty) treated as bare",
+			argv:      []string{"--cache="},
+			wantCache: cacheDisk,
+			wantArgs:  []string{},
+		},
+		{
+			// --cache does NOT consume a following positional arg as its value,
+			// unlike --mode. This matches the cli's stdlib IsBoolFlag behavior.
+			name:      "bare --cache does not consume following positional",
+			argv:      []string{"--cache", "pkg/foo"},
+			wantCache: cacheDisk,
+			wantArgs:  []string{"pkg/foo"},
+		},
+		{
+			name:      "consumed from forwarded args",
+			argv:      []string{"--cache=disk", "-mode=diff", "pkg"},
+			wantCache: cacheDisk,
+			wantArgs:  []string{"pkg"},
+		},
+		{
+			// Substring name is not matched.
+			name:      "--cach (typo) does not match",
+			argv:      []string{"--cach"},
+			wantCache: cacheDefault,
+			wantArgs:  []string{"--cach"},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, _, ct, args := parseArgs(tc.argv)
+			if ct != tc.wantCache {
+				t.Errorf("cache: got %q, want %q", ct, tc.wantCache)
 			}
 			if !reflect.DeepEqual(args, tc.wantArgs) {
 				t.Errorf("args: got %v, want %v", args, tc.wantArgs)
