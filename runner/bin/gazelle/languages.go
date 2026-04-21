@@ -9,6 +9,8 @@ import (
 	"github.com/aspect-build/aspect-gazelle/runner"
 )
 
+// Fallback default language set for direct CLI invocations (ENABLE_LANGUAGES="").
+// Normally overriden by aspect_gazelle() macro.
 var envLanguages = []runner.GazelleLanguage{
 	// The gazelle defaults, including initial ordering: https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/def.bzl#L59-L63
 	runner.DefaultVisibility,
@@ -21,7 +23,6 @@ var envLanguages = []runner.GazelleLanguage{
 	// CC not included due to Gazelle CC causing issues in many scenarios with unrelated targets.
 	runner.Bzl,
 	runner.Python,
-	runner.Orion,
 	runner.JavaScript,
 }
 
