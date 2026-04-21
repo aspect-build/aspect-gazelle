@@ -1,0 +1,31 @@
+# The js gazelle language plugin already registers `ts_project`, loaded
+# from @aspect_rules_ts//ts:defs.bzl (see language/js/kinds.go). This
+# starlark extension re-registers the same kind with a different `From`.
+# Current behavior — duplicate silently wins, which breaks standard
+# ts_project generation everywhere the rule appears.
+#
+# Baseline (no override) vs generated BUILD.outs with this override:
+#
+#   ./BUILD.bazel
+#     load:  @aspect_rules_ts//ts:defs.bzl  →  @i_replaced_aspect_rules_ts//:defs.bzl
+#     deps:  ["//other", "//sub"]           →  (missing — main.ts imports ./sub, ./other)
+#
+#   ./sub/BUILD.bazel
+#     load:  @aspect_rules_ts//ts:defs.bzl  →  @i_replaced_aspect_rules_ts//:defs.bzl
+#     deps:  ["//other"]                    →  (missing — index.ts imports ../other)
+#
+#   ./other/BUILD.bazel
+#     load:  @aspect_rules_ts//ts:defs.bzl  →  @i_replaced_aspect_rules_ts//:defs.bzl
+#
+# The deps regression happens because once orion claims ownership of
+# `ts_project`, the js plugin's Resolve() no longer runs for this kind.
+#
+# Orion can't see other gazelle languages' kinds at registration time,
+# so no warning fires — see
+# https://github.com/bazel-contrib/bazel-gazelle/issues/2280.
+aspect.gazelle_rule_kind("ts_project", {
+    "From": "@i_replaced_aspect_rules_ts//:defs.bzl",
+    "NonEmptyAttrs": ["srcs"],
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})

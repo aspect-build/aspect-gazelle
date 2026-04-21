@@ -1,0 +1,6 @@
+load("@my_rules//:defs.bzl", "filegroup")
+
+filegroup(
+    name = "all-files",
+    srcs = ["override.axl"],
+)

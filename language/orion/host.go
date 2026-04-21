@@ -186,8 +186,8 @@ func (h *GazelleHost) AddPlugin(plugin plugin.Plugin) {
 }
 
 func (h *GazelleHost) AddKind(k plugin.RuleKind) {
-	if _, exists := h.kinds[k.Name]; exists {
-		BazelLog.Errorf("Duplicate rule kind %q", k.Name)
+	if existing, exists := h.kinds[k.Name]; exists {
+		fmt.Printf("WARN: gazelle_rule_kind(%q) from %q overrides existing registration from %q\n", k.Name, k.From, existing.From)
 	}
 
 	BazelLog.Infof("Kind added: %q", k.Name)
