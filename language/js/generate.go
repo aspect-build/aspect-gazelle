@@ -250,7 +250,8 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 	// If this is a package wrap the main ts_project() rule with npm_package()
 	if hasPackageTarget {
-		// Add the primary source rule by default if it exists
+		// Only the default source group is auto-wired as a dep of the package target;
+		// custom groups must be pulled in via a package.json entry (main/exports/types/typings).
 		var srcLabel *label.Label
 		if srcRule, hasDefaultLib := sourceRules[DefaultLibraryName]; hasDefaultLib {
 			srcLabel = &label.Label{

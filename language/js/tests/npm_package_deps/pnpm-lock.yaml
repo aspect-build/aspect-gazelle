@@ -8,7 +8,11 @@ importers:
 
   .: {}
 
+  custom-group-no-package-json-ref: {}
+
   exports-array: {}
+
+  exports-custom-group: {}
 
   exports-gen: {}
 
@@ -27,6 +31,10 @@ importers:
   main-js-gen: {}
 
   main-ts: {}
+
+  not-found-references: {}
+
+  package-json-only: {}
 
   types-js: {}
 

@@ -1,0 +1,31 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# gazelle:js_files src/**/*.{ts,tsx,js}
+
+npm_link_all_packages(name = "node_modules")
+
+ts_project(
+    name = "tsc",
+    srcs = ["src/start.ts"],
+    out_dir = "dist",
+    root_dir = "src",
+    tsconfig = ":tsconfig",
+)
+
+js_library(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        "types.d.ts",
+    ],
+    visibility = ["//:__pkg__"],
+    deps = [":tsc"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
