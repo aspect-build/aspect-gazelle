@@ -133,7 +133,7 @@ func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (an
 	// Invalidate the cached entry if the file content has changed.
 	if existingHash, found := c.contentHashes.Load(p); found {
 		if existingHash.(string) != contentHash {
-			c.Invalidate([]string{p})
+			c.FileComputeCache.Invalidate([]string{p})
 		}
 	}
 	c.contentHashes.Store(p, contentHash)
