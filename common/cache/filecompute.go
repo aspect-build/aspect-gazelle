@@ -35,9 +35,9 @@ type fileComputeCacheState struct {
 // It implements Cache directly and can be embedded by caches that need to
 // augment its behaviour (e.g. symlink resolution or extra metadata).
 type FileComputeCache struct {
-	entries     *sync.Map // string → *fileEntry
-	file        string
-	initialized bool
+	entries  *sync.Map
+	file     string
+	initOnce sync.Once
 }
 
 var _ Cache = (*FileComputeCache)(nil)
@@ -83,11 +83,10 @@ func (c *FileComputeCache) SnapshotEntries() map[string]map[string]any {
 
 // NewCache is a CacheFactory. Pass it to SetCacheFactory.
 func (c *FileComputeCache) NewCache(cfg *config.Config) Cache {
-	if !c.initialized {
-		c.initialized = true
+	c.initOnce.Do(func() {
 		c.file = FilePath(cfg)
 		c.read()
-	}
+	})
 	return c
 }
 

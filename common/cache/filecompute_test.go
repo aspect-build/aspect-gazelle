@@ -20,7 +20,6 @@ func newFileComputeCacheAt(t *testing.T, file string) *FileComputeCache {
 	t.Helper()
 	c := NewFileComputeCache()
 	c.file = file
-	c.initialized = true
 	return c
 }
 
