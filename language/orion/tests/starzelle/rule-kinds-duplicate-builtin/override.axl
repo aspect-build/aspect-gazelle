@@ -1,0 +1,32 @@
+# `filegroup` is a built-in rule kind (see builtin.go: it is a native rule
+# with From="" so it does not emit a load()). This extension re-registers
+# "filegroup" as loaded from a custom .bzl. Current behavior: the builtin
+# is silently overwritten and generated BUILD files now emit a load()
+# for filegroup.
+aspect.gazelle_rule_kind("filegroup", {
+    "From": "@my_rules//:defs.bzl",
+    "NonEmptyAttrs": ["srcs"],
+    "MergeableAttrs": ["srcs"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceGlobs("**/*.axl")],
+    )
+
+def declare(ctx):
+    if not ctx.sources:
+        return
+    ctx.targets.add(
+        name = "all-files",
+        kind = "filegroup",
+        attrs = {
+            "srcs": [s.path for s in ctx.sources],
+        },
+    )
+
+aspect.orion_extension(
+    id = "fg-override",
+    prepare = prepare,
+    declare = declare,
+)

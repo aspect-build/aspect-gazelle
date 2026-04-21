@@ -1,0 +1,1 @@
+WARN: gazelle_rule_kind("filegroup") from "@my_rules//:defs.bzl" overrides existing registration from ""
