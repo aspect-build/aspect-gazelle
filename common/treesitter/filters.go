@@ -13,9 +13,14 @@ import (
 // Examples of additional standard tree-sitter predicates:
 //   - https://tree-sitter.github.io/tree-sitter/using-parsers#predicates
 //
+// Spec reference:
+//   - https://tree-sitter.github.io/tree-sitter/using-parsers/queries/3-predicates-and-directives.html
+//
 // Predicates implemented here:
-//   - eq?
-//   - match?
+//   - eq?, not-eq?
+//   - match?, not-match?
+//
+// Not implemented: any-eq?, any-not-eq?, any-match?, any-not-match?, any-of?, not-any-of?, is?, is-not?, set!.
 func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.QueryCursor, input []byte) bool {
 	predicates := q.PredicatesForPattern(uint32(m.PatternIndex))
 	if len(predicates) == 0 {
@@ -35,22 +40,25 @@ func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.Query
 			if steps[2].Type == sitter.QueryPredicateStepTypeCapture {
 				expectedCaptureNameRight := q.CaptureNameForId(steps[2].ValueId)
 
-				var nodeLeft, nodeRight *sitter.Node
-
+				// Pairwise + equal-length, per tree-sitter reference impl:
+				// https://github.com/tree-sitter/tree-sitter/blob/master/lib/binding_rust/lib.rs
+				var leftContents, rightContents []string
 				for _, c := range m.Captures {
 					captureName := q.CaptureNameForId(c.Index)
-
 					if captureName == expectedCaptureNameLeft {
-						nodeLeft = c.Node
+						leftContents = append(leftContents, c.Node.Content(input))
 					}
 					if captureName == expectedCaptureNameRight {
-						nodeRight = c.Node
+						rightContents = append(rightContents, c.Node.Content(input))
 					}
+				}
 
-					if nodeLeft != nil && nodeRight != nil {
-						if (nodeLeft.Content(input) == nodeRight.Content(input)) != isPositive {
-							return false
-						}
+				if len(leftContents) != len(rightContents) {
+					return false
+				}
+				for i := range leftContents {
+					if (leftContents[i] == rightContents[i]) != isPositive {
+						return false
 					}
 				}
 			} else {
