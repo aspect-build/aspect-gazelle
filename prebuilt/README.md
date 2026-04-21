@@ -14,7 +14,7 @@ bazel_dep(name = "aspect_gazelle_prebuilt", version = "...")
 # BUILD.bazel
 load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
 
-aspect_gazelle(name = "gazelle")
+aspect_gazelle(languages = ["js"])
 ```
 
 ## How it works
@@ -36,7 +36,10 @@ at build time based on the exec platform.
 ## rules_go: `go_deps` must still come from `@gazelle`
 
 If your project uses `rules_go`, you must still declare the `go_deps` extension
-from the upstream `@gazelle` module — **not** from `@aspect_gazelle_prebuilt`:
+from the upstream `@gazelle` module — **not** from `@aspect_gazelle_prebuilt`.
+You also need to pass `repo_config` to `aspect_gazelle()` so the Go resolver can
+map import paths to external repos; without it, Gazelle falls back to network
+lookups against the Go module proxy for every unknown import and appears to hang.
 
 ```starlark
 # MODULE.bazel
@@ -45,7 +48,22 @@ bazel_dep(name = "gazelle", version = "0.50.0")  # for go_deps
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
-use_repo(go_deps, "com_github_some_module")  # add your Go dep repos here
+use_repo(
+    go_deps,
+    "bazel_gazelle_go_repository_config",  # required for aspect_gazelle(repo_config = ...)
+    "com_github_some_module",              # add your Go dep repos here
+)
+```
+
+```starlark
+# BUILD.bazel
+load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
+
+aspect_gazelle(
+    name = "gazelle",
+    languages = ["go", "proto"],
+    repo_config = "@bazel_gazelle_go_repository_config//:WORKSPACE",
+)
 ```
 
 **Why:** `aspect_gazelle_prebuilt` only wraps the *binary* — it replaces building

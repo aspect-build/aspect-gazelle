@@ -32,6 +32,7 @@ aspect_gazelle(
     name = "aspect_gazelle",
     extra_args = ["-index=lazy"],
     languages = ["go"],
+    repo_config = "@bazel_gazelle_go_repository_config//:WORKSPACE",
     with_check = True,
 )
 
