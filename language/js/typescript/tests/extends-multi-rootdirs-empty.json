@@ -1,0 +1,3 @@
+{
+  "extends": ["./base-with-rootdirs.tsconfig.json", "./base-rootdirs-empty.tsconfig.json"]
+}

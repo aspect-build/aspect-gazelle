@@ -1,10 +1,9 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
 ts_project(
-    name = "a",
+    name = "c",
     srcs = ["index.ts"],
-    composite = True,
-    declaration = False,
+    declaration_map = True,
     tsconfig = ":tsconfig",
 )
 

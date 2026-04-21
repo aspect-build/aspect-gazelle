@@ -1,4 +1,14 @@
-load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "tsconfig_extends_array",
+    srcs = ["main.ts"],
+    composite = True,
+    declaration = True,
+    declaration_map = True,
+    source_map = True,
+    tsconfig = ":tsconfig",
+)
 
 ts_config(
     name = "tsconfig",
@@ -7,5 +17,6 @@ ts_config(
     deps = [
         "//a:tsconfig",
         "//b:tsconfig",
+        "//c:tsconfig",
     ],
 )
