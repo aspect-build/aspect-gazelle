@@ -1,10 +1,15 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
+ts_config(
+    name = "sibling",
+    src = "sibling.json",
+    visibility = [":__subpackages__"],
+)
+
 ts_project(
-    name = "inherited",
-    srcs = ["i.ts"],
-    declaration = True,
-    isolated_typecheck = True,
+    name = "sub",
+    srcs = ["main.ts"],
+    composite = True,
     tsconfig = ":tsconfig",
 )
 
@@ -12,5 +17,5 @@ ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
-    deps = ["//:tsconfig"],
+    deps = [":sibling"],
 )

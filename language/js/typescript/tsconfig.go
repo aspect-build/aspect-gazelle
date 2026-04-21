@@ -394,13 +394,13 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	var baseConfig *TsConfig
 	var extends []string
 	var bases []*TsConfig
-	// Resolve each extended config; pass the raw path to the resolver since
-	// path.Clean strips the "./" it uses to distinguish relative vs package imports.
+	// Store each extends entry verbatim — downstream toImportSpecPath relies on
+	// the leading "./" to classify a relative path vs a package import.
 	for _, ext := range c.Extends {
 		if ext == "" {
 			continue
 		}
-		extends = append(extends, path.Clean(ext))
+		extends = append(extends, ext)
 
 		for _, potential := range resolver(configDir, ext) {
 			base, err := parseTsConfigJSONFile(parsed, resolver, root, potential)
