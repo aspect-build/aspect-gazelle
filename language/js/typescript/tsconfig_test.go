@@ -123,7 +123,7 @@ func TestTsconfigLoad(t *testing.T) {
 		}
 		assertEqual(t, extender.Paths.Rel, "src", "should inherit Paths.Rel from extended")
 		assertEqual(t, extender.Paths.Map["alias-a"][0], "src/lib/a", "should inherit Paths.Rel from extended")
-		assertEqual(t, extender.Extends, "base.tsconfig.json", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "base.tsconfig.json", "should not fail extending")
 	})
 
 	t.Run("parse a tsconfig extending other in parent dir", func(t *testing.T) {
@@ -137,7 +137,7 @@ func TestTsconfigLoad(t *testing.T) {
 		}
 		assertEqual(t, extender.Paths.Rel, "../src", "should inherit Paths.Rel from extended")
 		assertEqual(t, extender.Paths.Map["alias-a"][0], "src/lib/a", "should inherit Paths.Rel from extended")
-		assertEqual(t, extender.Extends, "../base.tsconfig.json", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "../base.tsconfig.json", "should not fail extending")
 	})
 
 	t.Run("parse a tsconfig extending other in parent dir and overriding paths", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestTsconfigLoad(t *testing.T) {
 		_, aliasAExists := extender.Paths.Map["alias-a"]
 		assertTrue(t, !aliasAExists, "should override Paths from extended")
 		assertEqual(t, extender.Paths.Map["alias-b"][0], "src/lib/b", "should override Paths.Map")
-		assertEqual(t, extender.Extends, "../base.tsconfig.json", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "../base.tsconfig.json", "should not fail extending")
 	})
 
 	t.Run("empty paths object overrides base paths", func(t *testing.T) {
@@ -172,7 +172,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, recursive.Extends, "extends-recursive.json", "should not fail extending itself")
+		assertEqual(t, recursive.Extends[0], "extends-recursive.json", "should not fail extending itself")
 	})
 
 	t.Run("parse a tsconfig file extending an unknown file", func(t *testing.T) {
@@ -181,7 +181,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, notFound.Extends, "does-not-exist.json", "should not fail extending unknown")
+		assertEqual(t, notFound.Extends[0], "does-not-exist.json", "should not fail extending unknown")
 	})
 
 	t.Run("parse a tsconfig file extending a blank string", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, extendsBlank.Extends, "", "should not fail extending an empty str")
+		assertTrue(t, len(extendsBlank.Extends) == 0, "should not fail extending an empty str")
 	})
 
 	t.Run("parse example tsconfig file with comments, trialing commas", func(t *testing.T) {
@@ -200,7 +200,7 @@ func TestTsconfigLoad(t *testing.T) {
 			t.Errorf("parseTsConfigJSONFile: %v", err)
 		}
 
-		assertEqual(t, unknown.Extends, ".svelte-kit/tsconfig.json", "should set Extends to blank when not found")
+		assertEqual(t, unknown.Extends[0], ".svelte-kit/tsconfig.json", "should preserve Extends value when present")
 	})
 
 	t.Run("parse a tsconfig file extending a named-import", func(t *testing.T) {
@@ -211,7 +211,89 @@ func TestTsconfigLoad(t *testing.T) {
 
 		assertEqual(t, extender.Paths.Rel, "src", "should inherit Paths.Rel from extended")
 		assertEqual(t, extender.Paths.Map["alias-a"][0], "src/lib/a", "should inherit Paths.Rel from extended")
-		assertEqual(t, extender.Extends, "foo", "should not fail extending")
+		assertEqual(t, extender.Extends[0], "foo", "should not fail extending")
+	})
+
+	t.Run("parse a tsconfig extending multiple configs", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(
+			make(map[string]*TsConfig),
+			identityResolver,
+			".",
+			"tests/extends-multi.json",
+		)
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertTrue(t, len(config.Extends) == 2, "expected 2 extends")
+		assertEqual(t, config.Extends[0], "multi-base-1.json", "first extends")
+		assertEqual(t, config.Extends[1], "multi-base-2.json", "second extends")
+
+		if config.ImportHelpers {
+			t.Errorf("expected ImportHelpers=false from base-2, got %v", config.ImportHelpers)
+		}
+		if config.SourceMap == nil || !*config.SourceMap {
+			t.Errorf("expected SourceMap=true from base-2")
+		}
+		if config.Declaration == nil || !*config.Declaration {
+			t.Errorf("expected Declaration=true inherited from base-1")
+		}
+
+		assertEqual(t, config.Paths.Rel, "lib2", "Paths.Rel should come from base-2")
+		_, alias1Exists := config.Paths.Map["alias-1"]
+		assertTrue(t, !alias1Exists, "alias-1 from base-1 should be overridden")
+		assertEqual(t, config.Paths.Map["alias-2"][0], "src/2", "alias-2 from base-2 should exist")
+	})
+
+	t.Run("extends array order matters: reversed order flips overridden fields", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(
+			make(map[string]*TsConfig),
+			identityResolver,
+			".",
+			"tests/extends-multi-reversed.json",
+		)
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertEqual(t, config.Extends[0], "multi-base-2.json", "first extends")
+		assertEqual(t, config.Extends[1], "multi-base-1.json", "second extends")
+
+		if !config.ImportHelpers {
+			t.Errorf("expected ImportHelpers=true from base-1 (now right), got %v", config.ImportHelpers)
+		}
+		if config.Declaration == nil || !*config.Declaration {
+			t.Errorf("expected Declaration=true from base-1")
+		}
+		if config.SourceMap == nil || !*config.SourceMap {
+			t.Errorf("expected SourceMap=true from base-2")
+		}
+
+		assertEqual(t, config.Paths.Rel, "lib1", "Paths.Rel should come from base-1 (now right)")
+		assertEqual(t, config.Paths.Map["alias-1"][0], "src/1", "alias-1 from base-1 should exist")
+		_, alias2Exists := config.Paths.Map["alias-2"]
+		assertTrue(t, !alias2Exists, "alias-2 from base-2 should be overridden")
+	})
+
+	t.Run("backward compatibility: single string extends", func(t *testing.T) {
+		// This test verifies existing behavior still works
+		extender, err := parseTsConfigJSONFile(
+			make(map[string]*TsConfig),
+			identityResolver,
+			".",
+			"tests/extends-base.json",
+		)
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		// Single string should result in single-element array
+		assertEqual(t, extender.Extends[0], "base.tsconfig.json", "should not fail extending")
+
+		// Verify inherited values still work
+		if !extender.ImportHelpers {
+			t.Errorf("should inherit compilerOptions.importHelpers")
+		}
 	})
 }
 
@@ -676,6 +758,42 @@ func TestRootDirsInheritance(t *testing.T) {
 
 		if !reflect.DeepEqual(config.VirtualRootDirs, []string{"other"}) {
 			t.Errorf("VirtualRootDirs should be overridden by child\n\tactual:   %v\n\texpected: %v", config.VirtualRootDirs, []string{"other"})
+		}
+	})
+
+	t.Run("later base in extends array can clear earlier base's rootDirs with []", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-multi-rootdirs-empty.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if config.VirtualRootDirs == nil {
+			t.Errorf("VirtualRootDirs should be non-nil (explicitly set to []) after multi-extends override")
+		}
+		if len(config.VirtualRootDirs) != 0 {
+			t.Errorf("VirtualRootDirs should be empty when a later base sets rootDirs: []\n\tactual:   %v\n\texpected: []", config.VirtualRootDirs)
+		}
+	})
+
+	t.Run("later base in extends array that merely inherits no-paths must not clear earlier base's paths", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-multi-paths-preserve.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if _, ok := config.Paths.Map["alias-a"]; !ok {
+			t.Errorf("alias-a from base.tsconfig.json should be preserved when the later base only inherits no-paths; got Paths.Map=%v", config.Paths.Map)
+		}
+	})
+
+	t.Run("later base in extends array can reset earlier base's rootDir to \".\"", func(t *testing.T) {
+		config, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-multi-rootdir-reset.json")
+		if err != nil {
+			t.Fatalf("parseTsConfigJSONFile: %v", err)
+		}
+
+		if config.RootDir != "." {
+			t.Errorf("RootDir should be reset to \".\" by later base\n\tactual:   %s\n\texpected: .", config.RootDir)
 		}
 	})
 }

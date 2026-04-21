@@ -1,0 +1,3 @@
+{
+  "extends": ["./multi-base-2.json", "./multi-base-1.json"]
+}
