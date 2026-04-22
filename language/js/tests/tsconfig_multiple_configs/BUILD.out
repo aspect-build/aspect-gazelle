@@ -3,6 +3,7 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 
 # gazelle:js_tsconfig_file tsconfig.lib.json
 # gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
+# gazelle:js_tsconfig_file base_config tsconfig.base.json
 
 # Test ignore for a group
 # gazelle:js_tsconfig_ignore {dirname}_e2e composite
@@ -12,13 +13,13 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 # gazelle:js_test_files {dirname}_e2e **/*.e2e.ts
 # gazelle:js_tsconfig_file {dirname}_e2e tsconfig.e2e.json
 
+npm_link_all_packages(name = "node_modules")
+
 ts_config(
     name = "tsconfig_base",
     src = "tsconfig.base.json",
-    visibility = ["//visibility:public"],
+    visibility = [":__subpackages__"],
 )
-
-npm_link_all_packages(name = "node_modules")
 
 ts_config(
     name = "tsconfig_e2e",
