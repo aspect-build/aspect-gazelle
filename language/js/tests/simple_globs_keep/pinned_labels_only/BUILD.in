@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Pinned srcs that are all labels (no walkable files): the rule must be left
+# alone, not deleted.
+ts_project(
+    name = "pinned_labels_only",
+    srcs = [":gen"],  # keep
+)

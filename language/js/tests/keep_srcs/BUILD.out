@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+# gazelle:js_files src/**
+
+# https://github.com/aspect-build/aspect-gazelle/issues/156
+# `# keep` pins dts/types.d.ts so its `declare module` is parsed.
+ts_project(
+    name = "keep_srcs",
+    srcs = [
+        "dts/types.d.ts",  # keep
+        "src/a.ts",
+    ],
+)

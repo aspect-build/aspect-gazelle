@@ -64,4 +64,5 @@ go_test(
         "resolve_test.go",
     ],
     embed = [":js"],
+    deps = ["@gazelle//rule"],
 )

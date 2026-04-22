@@ -1,0 +1,7 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# `glob(...)` without `# keep` is effectively an error: the merger emits `could not merge expression`.
+ts_project(
+    name = "glob_no_keep",
+    srcs = glob(["*.ts"]),
+)

@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# `glob + list` form: all string literals are fed through the parser via ExpandSrcs.
+ts_project(
+    name = "glob_plus_list",
+    srcs = glob(["auto*.ts"]) + ["manual.ts"],  # keep
+    deps = ["//mix/sub"],
+)

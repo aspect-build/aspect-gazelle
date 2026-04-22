@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/bazelbuild/bazel-gazelle/rule"
 )
 
 func TestGenerate(t *testing.T) {
@@ -418,6 +420,73 @@ func TestGenerate(t *testing.T) {
 			})
 		}
 	})
+}
+
+func TestSrcsArePinned(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		src  string
+		want bool
+	}{
+		{
+			name: "missing srcs: not pinned",
+			src:  `ts_project(name="r")`,
+			want: false,
+		},
+		{
+			name: "plain list: not pinned",
+			src:  `ts_project(name="r", srcs=["a.ts"])`,
+			want: false,
+		},
+		{
+			name: "per-entry keep: not pinned (handled separately)",
+			src:  `ts_project(name="r", srcs=["a.ts"  # keep` + "\n])",
+			want: false,
+		},
+		{
+			name: "keep suffix on assignment line: pinned",
+			src:  "ts_project(\n  name=\"r\",\n  srcs=[\"a.ts\"],  # keep\n)\n",
+			want: true,
+		},
+		{
+			name: "keep: <reason> on assignment line: pinned",
+			src:  "ts_project(\n  name=\"r\",\n  srcs=[\"a.ts\"],  # keep: generated list\n)\n",
+			want: true,
+		},
+		{
+			name: "keep before assignment: pinned",
+			src:  "ts_project(\n  name=\"r\",\n  # keep\n  srcs=[\"a.ts\"],\n)\n",
+			want: true,
+		},
+		{
+			name: "keep between `=` and list (attaches to RHS): not pinned — gazelle drops this comment on write, so honoring it would be non-idempotent",
+			src:  "ts_project(\n  name=\"r\",\n  srcs =\n      # keep\n      [\"a.ts\"],\n)\n",
+			want: false,
+		},
+		{
+			name: "glob: pinned",
+			src:  `ts_project(name="r", srcs=glob(["*.ts"]))`,
+			want: true,
+		},
+		{
+			name: "list + glob: pinned",
+			src:  `ts_project(name="r", srcs=["a.ts"] + glob(["*.ts"]))`,
+			want: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			f, err := rule.LoadData("BUILD.bazel", "", []byte(tc.src))
+			if err != nil {
+				t.Fatalf("parse: %v", err)
+			}
+			if len(f.Rules) != 1 {
+				t.Fatalf("expected 1 rule, got %d", len(f.Rules))
+			}
+			if got := srcsArePinned(f.Rules[0]); got != tc.want {
+				t.Errorf("srcsArePinned = %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
 
 func assertImports(t *testing.T, p string, expected []string) {
