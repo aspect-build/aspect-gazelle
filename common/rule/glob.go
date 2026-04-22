@@ -2,6 +2,7 @@ package rule
 
 import (
 	"fmt"
+	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/rule"
@@ -34,16 +35,34 @@ func ExpandSrcs(files []string, expr bzl.Expr) ([]string, error) {
 	return expandGlob(files, g), nil
 }
 
+// expandSrcsList returns the file-path-shaped entries in list, dropping label references.
 func expandSrcsList(list *bzl.ListExpr) []string {
 	srcs := make([]string, 0, len(list.List))
 	for _, e := range list.List {
-		if str, ok := e.(*bzl.StringExpr); ok {
-			srcs = append(srcs, str.Value)
-		} else {
+		str, ok := e.(*bzl.StringExpr)
+		if !ok {
 			BazelLog.Tracef("skipping non-string src %s", e)
+			continue
 		}
+		if isLabelRef(str.Value) {
+			BazelLog.Tracef("skipping label src %q", str.Value)
+			continue
+		}
+		srcs = append(srcs, str.Value)
 	}
 	return srcs
+}
+
+func isLabelRef(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	// ":target" or "//pkg:target".
+	if s[0] == ':' || strings.HasPrefix(s, "//") {
+		return true
+	}
+	// "@repo//..." — "@" alone isn't enough, directories like "@types" are real paths.
+	return s[0] == '@' && strings.Contains(s, "//")
 }
 
 func expandGlob(files []string, g rule.GlobValue) []string {

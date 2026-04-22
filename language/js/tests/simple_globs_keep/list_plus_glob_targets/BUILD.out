@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Labels in the list portion of `list + glob` are dropped by ExpandSrcs so
+# they don't produce a bogus `assets` attribute.
+ts_project(
+    name = "list_plus_glob_targets",
+    srcs = [
+        "manual.ts",
+        ":gen",
+    ] + glob(["auto*.ts"]),  # keep
+)

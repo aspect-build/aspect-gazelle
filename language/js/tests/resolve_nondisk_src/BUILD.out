@@ -1,0 +1,19 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@serving//:defs.bzl", "generates_serve")
+
+# :served_files opaquely produces served.js — gazelle has no visibility
+# into what it emits. The js_library exposes served.js to the js plugin so
+# main.ts's `import "./served"` can resolve to :served.
+generates_serve(name = "served_files")
+
+js_library(
+    name = "served",
+    srcs = ["served.js"],
+)
+
+ts_project(
+    name = "resolve_nondisk_src",
+    srcs = ["main.ts"],
+    deps = [":served"],
+)
