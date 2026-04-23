@@ -6,6 +6,7 @@ import (
 
 var builtinKinds = []plugin.RuleKind{
 	// Native
+	// TODO: remove once https://github.com/bazel-contrib/bazel-gazelle/pull/2053 lands
 	plugin.RuleKind{
 		Name: "filegroup",
 		KindInfo: plugin.KindInfo{
