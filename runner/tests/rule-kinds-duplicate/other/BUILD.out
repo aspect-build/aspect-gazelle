@@ -1,6 +1,0 @@
-load("@i_replaced_aspect_rules_ts//:defs.bzl", "ts_project")
-
-ts_project(
-    name = "other",
-    srcs = ["index.ts"],
-)

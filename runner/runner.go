@@ -173,7 +173,46 @@ func (runner *GazelleRunner) instantiateLanguages() []language.Language {
 	for _, lang := range runner.languages {
 		languages = append(languages, lang())
 	}
+
+	failOnOrionKindOverlaps(languages)
+
 	return languages
+}
+
+// failOnOrionKindOverlaps aborts when an orion plugin registered a rule
+// kind that another enabled gazelle language also owns. Gazelle silently
+// lets the last-registered Kinds() entry win, which clobbers the other
+// language's Resolve/merge metadata and breaks dependency resolution for
+// that kind — failing loudly is better than generating subtly-wrong
+// BUILD files.
+func failOnOrionKindOverlaps(languages []language.Language) {
+	var orionHost *orion.GazelleHost
+	for _, lang := range languages {
+		if h, ok := lang.(*orion.GazelleHost); ok {
+			orionHost = h
+			break
+		}
+	}
+	if orionHost == nil {
+		return
+	}
+
+	pluginKinds := orionHost.PluginRegisteredKinds()
+	if len(pluginKinds) == 0 {
+		return
+	}
+
+	for _, lang := range languages {
+		if _, isOrion := lang.(*orion.GazelleHost); isOrion {
+			continue
+		}
+		langName := lang.Name()
+		for kind := range lang.Kinds() {
+			if from, clash := pluginKinds[kind]; clash {
+				log.Fatalf("ERROR: orion plugin registered rule kind %q (From=%q) which is already provided by the %q gazelle language. Remove the aspect.gazelle_rule_kind(%q) call from your orion extension — the %q language's rule resolution for %q is otherwise silently broken.", kind, from, langName, kind, langName, kind)
+			}
+		}
+	}
 }
 
 func (runner *GazelleRunner) instantiateConfigs() []config.Configurer {
