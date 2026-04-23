@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Same as list_plus_glob_targets but with per-item `# keep` on the labels.
+ts_project(
+    name = "list_plus_glob_targets_keep",
+    srcs = [
+        "manual.ts",
+        ":gen",  # keep
+        "//other:lib",  # keep
+    ] + glob(["auto*.ts"]),  # keep
+)

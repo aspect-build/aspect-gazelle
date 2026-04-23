@@ -97,6 +97,48 @@ func TestExpandSrcsListAndGlob(t *testing.T) {
 		}
 	})
 
+	t.Run("list_with_targets", func(t *testing.T) {
+		files := []string{"a.go"}
+		expr := parseExpr(t, "[\"//foo:bar\", \":baz\", \"@repo//pkg:t\", \"a.go\"]")
+
+		got, err := ExpandSrcs(files, expr)
+		if err != nil {
+			t.Fatalf("ExpandSrcs: %v", err)
+		}
+		want := []string{"a.go"}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("ExpandSrcs: got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("list_with_targets_and_keep", func(t *testing.T) {
+		files := []string{"a.go"}
+		expr := parseExpr(t, "[\n    \"//foo:bar\",  # keep\n    \":baz\",  # keep\n    \"a.go\",\n]")
+
+		got, err := ExpandSrcs(files, expr)
+		if err != nil {
+			t.Fatalf("ExpandSrcs: %v", err)
+		}
+		want := []string{"a.go"}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("ExpandSrcs: got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("list_with_at_prefixed_path", func(t *testing.T) {
+		files := []string{"@types/foo.d.ts"}
+		expr := parseExpr(t, "[\"@types/foo.d.ts\", \"@repo//pkg:t\"]")
+
+		got, err := ExpandSrcs(files, expr)
+		if err != nil {
+			t.Fatalf("ExpandSrcs: %v", err)
+		}
+		want := []string{"@types/foo.d.ts"}
+		if !reflect.DeepEqual(got, want) {
+			t.Fatalf("ExpandSrcs: got %v, want %v", got, want)
+		}
+	})
+
 	t.Run("glob_with_excludes", func(t *testing.T) {
 		files := []string{"a.go", "b.go", "c.txt", "dir/d.go"}
 		expr := parseExpr(t, "glob([\"*.go\"], exclude=[\"b.go\"])")
