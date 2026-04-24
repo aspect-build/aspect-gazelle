@@ -1,0 +1,43 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Modify naming conventions
+# gazelle:js_project_naming_convention lib
+# gazelle:js_tests_naming_convention lib_tests
+
+# Reference lib+tests via custom naming conventions for file globs
+# gazelle:js_files lib *.ts
+# gazelle:js_test_files lib_tests *.spec.ts
+
+# Reference lib+tests via custom naming conventions for tsconfig
+# gazelle:js_tsconfig_file lib tsconfig.lib.json
+# gazelle:js_tsconfig_file lib_tests tsconfig.tests.json
+
+# Reference default lib via its custom name for visibility
+# gazelle:js_visibility lib //custom:__pkg__
+
+# Reference default lib via its custom name to ignore the reflected declaration_dir attribute
+# gazelle:js_tsconfig_ignore lib declaration_dir
+
+# Reference default tests via its custom name to disable ts_config generation
+# gazelle:js_tsconfig lib_tests disabled
+
+ts_project(
+    name = "lib",
+    srcs = ["a.ts"],
+    declaration = True,
+    tsconfig = ":tsconfig_lib",
+    visibility = ["//custom:__pkg__"],
+)
+
+ts_project(
+    name = "lib_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+    deps = [":lib"],
+)
+
+ts_config(
+    name = "tsconfig_lib",
+    src = "tsconfig.lib.json",
+    visibility = [":__subpackages__"],
+)
