@@ -124,6 +124,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			if !hasGroup {
 				groupValue = groupName
 				groupName = ""
+			} else {
+				groupName = config.ReverseMapTargetName(groupName)
 			}
 			config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
 		case Directive_TypeScriptProtoExtension:
@@ -149,7 +151,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 
 			// The first entry may be the group-key, not a label
 			if len(visLabels) > 0 && !(strings.HasPrefix(visLabels[0], ":") || strings.HasPrefix(visLabels[0], "//")) {
-				group = visLabels[0]
+				group = config.ReverseMapTargetName(visLabels[0])
 				visLabels = visLabels[1:]
 			}
 
@@ -166,6 +168,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			if !hasGroup {
 				groupFile = groupName
 				groupName = ""
+			} else {
+				groupName = config.ReverseMapTargetName(groupName)
 			}
 			config.SetTsconfigFile(groupName, strings.TrimSpace(groupFile))
 		case Directive_TypeScriptConfigIgnore:
@@ -174,6 +178,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			if !hasGroup {
 				propName = groupName
 				groupName = ""
+			} else {
+				groupName = config.ReverseMapTargetName(groupName)
 			}
 			config.AddIgnoredTsConfig(groupName, strings.TrimSpace(propName))
 		case Directive_IgnoreImports:
@@ -229,7 +235,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			groupGlob := value
 
 			if before, after, found := strings.Cut(value, " "); found {
-				group = before
+				group = config.ReverseMapTargetName(before)
 				groupGlob = strings.TrimSpace(after)
 			}
 
@@ -239,7 +245,7 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			groupGlob := value
 
 			if before, after, found := strings.Cut(value, " "); found {
-				group = before
+				group = config.ReverseMapTargetName(before)
 				groupGlob = strings.TrimSpace(after)
 			}
 

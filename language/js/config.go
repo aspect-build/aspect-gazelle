@@ -505,9 +505,18 @@ func (c *JsGazelleConfig) SetTestsNamingLibraryConvention(testsNamingConvention 
 	c.targetNamingOverrides[DefaultTestsName] = testsNamingConvention
 }
 
+func (c *JsGazelleConfig) ReverseMapTargetName(mappedName string) string {
+	for name, override := range c.targetNamingOverrides {
+		if override == mappedName {
+			return name
+		}
+	}
+	return mappedName
+}
+
 func (c *JsGazelleConfig) MapTargetName(name string) string {
-	if c.targetNamingOverrides[name] != "" {
-		return c.targetNamingOverrides[name]
+	if n := c.targetNamingOverrides[name]; n != "" {
+		return n
 	}
 	return name
 }
