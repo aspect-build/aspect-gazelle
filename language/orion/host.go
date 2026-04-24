@@ -281,3 +281,16 @@ func (h *GazelleHost) ApparentLoads(moduleToApparentName func(string) string) []
 func (*GazelleHost) Fix(c *config.Config, f *rule.File) {
 	// Unsupported
 }
+
+// PluginRegisteredKinds returns plugin-registered kinds (name → From),
+// i.e. h.kinds minus the seeded builtinKinds.
+func (h *GazelleHost) PluginRegisteredKinds() map[string]string {
+	out := make(map[string]string, len(h.kinds))
+	for name, k := range h.kinds {
+		out[name] = k.From
+	}
+	for _, k := range builtinKinds {
+		delete(out, k.Name)
+	}
+	return out
+}
