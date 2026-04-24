@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Pinned list mixing a real file and a Bazel label: the label isn't walkable,
+# so it must be excluded from the parser input (while still preserved in srcs).
+ts_project(
+    name = "pinned_list_with_label",
+    srcs = [
+        "a.ts",
+        ":gen",
+    ],  # keep
+)

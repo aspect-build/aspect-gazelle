@@ -135,15 +135,15 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 
 func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
 
-	// Create a set of source and generated source files per target.
-	sourceFileGroups := make(map[string][]string, len(cfg.GetSourceTargets()))
-	generatedFileGroups := make(map[string][]string, len(cfg.GetSourceTargets()))
+	// Set of source and generated source files per target.
+	sourceFileGroups := make(map[string]map[string]struct{}, len(cfg.GetSourceTargets()))
+	generatedFileGroups := make(map[string]map[string]struct{}, len(cfg.GetSourceTargets()))
 
 	// Collect data files which *may* be added to a target if imported within the sources.
 	dataFiles := make([]string, 0, 5)
 
 	// Util for adding a file to a source group or the data files.
-	processPotentialSourceFile := func(groups map[string][]string, file string) {
+	processPotentialSourceFile := func(groups map[string]map[string]struct{}, file string) {
 		fileExt := path.Ext(file)
 		if isSourceFileExt(fileExt) || isDataFileExt(fileExt) {
 			if target := cfg.GetFileSourceTarget(file, ts.tsconfig); target != nil {
@@ -152,11 +152,12 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 					BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
 				}
 
-				_, hasGroup := groups[target.name]
+				g, hasGroup := groups[target.name]
 				if !hasGroup {
-					groups[target.name] = make([]string, 0, 10)
+					g = make(map[string]struct{}, 10)
+					groups[target.name] = g
 				}
-				groups[target.name] = append(groups[target.name], file)
+				g[file] = struct{}{}
 			} else {
 				// Source files with no group, but may still be considered "data"
 				// of other source-importing targets such as npm package targets.
@@ -192,6 +193,13 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// The package/directory name variable value used to render the target names.
 	packageName := toDefaultTargetName(args, DefaultRootTargetName)
 
+	// Set of walkable package files for O(1) membership checks when filtering
+	// pinned/kept srcs down to entries that parseFiles can actually read.
+	walkableFiles := make(map[string]struct{}, len(args.RegularFiles))
+	for _, f := range args.RegularFiles {
+		walkableFiles[f] = struct{}{}
+	}
+
 	// Create rules for each target group.
 	sourceRules := make(map[string]*rule.Rule, len(sourceFileGroups))
 	for _, group := range cfg.GetSourceTargets() {
@@ -200,28 +208,56 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 		var ruleSrcs, ruleGenSrcs []string
 
-		// If the rule has it's own custom list of sources then parse and use that list.
-		if existing := ruleUtils.GetFileRuleByName(args, ruleName); existing != nil && sourceRuleKinds.Contains(existing.Kind()) && isCustomSrcs(existing.Attr("srcs")) {
+		existing := ruleUtils.GetFileRuleByName(args, ruleName)
+		existingIsManaged := existing != nil && sourceRuleKinds.Contains(existing.Kind())
+		pinned := existingIsManaged && srcsArePinned(existing)
+
+		// If the existing rule's srcs are pinned, parse and use that list as-is.
+		if pinned {
 			customSrcs, err := ruleUtils.ExpandSrcs(args.RegularFiles, existing.Attr("srcs"))
 			if err != nil {
 				BazelLog.Infof("Failed to expand custom srcs %s:%s - %v", args.Rel, existing.Name(), err)
 			}
 
-			if customSrcs != nil {
-				ruleSrcs = customSrcs
+			for _, s := range customSrcs {
+				if _, ok := walkableFiles[s]; ok {
+					ruleSrcs = append(ruleSrcs, s)
+				}
 			}
 		} else {
-			if srcs, hasSrcs := sourceFileGroups[group.name]; hasSrcs {
-				ruleSrcs = srcs
+			srcSet := sourceFileGroups[group.name]
+			genSet := generatedFileGroups[group.name]
+
+			// Include any `# keep`'d entries from a list-form srcs so their imports
+			// and `declare module` statements are still parsed/indexed (issue #156).
+			if existingIsManaged {
+				for kept := range keptSrcs(existing.Attr("srcs")) {
+					if _, ok := srcSet[kept]; ok {
+						continue
+					}
+					if _, ok := genSet[kept]; ok {
+						continue
+					}
+					// Skip non-walkable entries (Bazel labels, genrule outputs).
+					if _, ok := walkableFiles[kept]; !ok {
+						continue
+					}
+					if srcSet == nil {
+						srcSet = make(map[string]struct{}, 1)
+					}
+					srcSet[kept] = struct{}{}
+				}
 			}
-			if genSrcs, hasGenSrcs := generatedFileGroups[group.name]; hasGenSrcs {
-				ruleGenSrcs = genSrcs
-			}
+
+			ruleSrcs = setToSlice(srcSet)
+			ruleGenSrcs = setToSlice(genSet)
 		}
 
-		if ruleSrcs == nil || len(ruleSrcs) == 0 {
-			// No sources for this source group. Remove the rule if it exists.
-			ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
+		if len(ruleSrcs) == 0 {
+			// No walkable sources; remove the rule unless it is pinned.
+			if !pinned {
+				ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
+			}
 		} else {
 			// Resolve the tsconfig for this specific target group.
 			groupTsconfigRel, groupTsconfig := ts.tsconfig.FindConfig(args.Rel, group.name)
@@ -476,6 +512,17 @@ func hasTranspiledSources(sourceFiles *treeset.Set[string]) bool {
 	return sourceFiles.Any(func(_ int, f string) bool {
 		return isTranspiledSourceFileType(f)
 	})
+}
+
+func setToSlice(s map[string]struct{}) []string {
+	if len(s) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(s))
+	for k := range s {
+		out = append(out, k)
+	}
+	return out
 }
 
 func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
@@ -1154,9 +1201,57 @@ func addLinkAllPackagesRule(cfg *JsGazelleConfig, args language.GenerateArgs, pn
 	BazelLog.Infof("add rule '%s' '%s:%s'", npmLinkAll.Kind(), args.Rel, npmLinkAll.Name())
 }
 
-func isCustomSrcs(srcs bzl.Expr) bool {
-	_, ok := srcs.(*bzl.ListExpr)
-	return !ok
+// srcsArePinned reports whether the srcs attribute is user-pinned and gazelle will not overwrite it.
+func srcsArePinned(r *rule.Rule) bool {
+	srcs := r.Attr("srcs")
+	if srcs == nil {
+		return false
+	}
+	if _, ok := srcs.(*bzl.ListExpr); !ok {
+		return true
+	}
+	// Only honor AssignExpr-level `# keep`; RHS-placed keeps aren't round-tripped by gazelle.
+	return commentsHaveKeep(r.AttrComments("srcs"))
+}
+
+// commentsHaveKeep reports whether any `# keep` comment is present in c.
+func commentsHaveKeep(c *bzl.Comments) bool {
+	if c == nil {
+		return false
+	}
+	return hasKeepToken(c.Before) || hasKeepToken(c.Suffix)
+}
+
+func hasKeepToken(cs []bzl.Comment) bool {
+	for _, cm := range cs {
+		text := strings.TrimSpace(strings.TrimPrefix(cm.Token, "#"))
+		if text == "keep" || strings.HasPrefix(text, "keep: ") {
+			return true
+		}
+	}
+	return false
+}
+
+// keptSrcs yields string values in a srcs ListExpr that carry a `# keep` comment.
+func keptSrcs(expr bzl.Expr) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		list, ok := expr.(*bzl.ListExpr)
+		if !ok {
+			return
+		}
+		for _, e := range list.List {
+			if !rule.ShouldKeep(e) {
+				continue
+			}
+			str, ok := e.(*bzl.StringExpr)
+			if !ok {
+				continue
+			}
+			if !yield(str.Value) {
+				return
+			}
+		}
+	}
 }
 
 // If the file is ts-compatible transpiled source code that may contain imports

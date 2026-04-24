@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_files **/*.{ts,tsx,mts,cts}
+
+ts_project(
+    name = "sub",
+    srcs = ["b.ts"],
+    deps = ["//:keep_srcs"],
+)

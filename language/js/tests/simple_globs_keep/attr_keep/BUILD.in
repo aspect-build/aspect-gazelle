@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# `# keep` on the whole srcs attribute: the list pins srcs to just `a.ts`,
+# even though `b.ts` also exists on disk. Only `a.ts`'s imports contribute
+# to this rule's deps.
+ts_project(
+    name = "attr_keep",
+    srcs = ["a.ts"],  # keep
+)
