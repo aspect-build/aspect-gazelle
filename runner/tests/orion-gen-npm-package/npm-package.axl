@@ -1,0 +1,27 @@
+# Generates an `npm_package` rule from an orion extension *without* registering
+# "npm_package" via aspect.gazelle_rule_kind(). The kind is owned by the
+# enabled `js` gazelle language so orion must defer to that registration
+# rather than rejecting the generated rule on a collision check.
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".txt")],
+    )
+
+def declare(ctx):
+    if not ctx.sources:
+        return
+
+    ctx.targets.add(
+        name = "pkg",
+        kind = "npm_package",
+        attrs = {
+            "srcs": [s.path for s in ctx.sources],
+        },
+    )
+
+aspect.orion_extension(
+    id = "npm-package-builtin",
+    prepare = prepare,
+    declare = declare,
+)
