@@ -15,6 +15,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//vendored/gazelle/internal/wspace",
+        "@aspect_gazelle//common",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_pmezard_go_difflib//difflib",
         "@gazelle//config",
