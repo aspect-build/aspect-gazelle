@@ -32,6 +32,7 @@ import (
 
 	"github.com/bazelbuild/buildtools/build"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/runner/vendored/gazelle/internal/wspace"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	gzflag "github.com/bazelbuild/bazel-gazelle/flag"
@@ -263,15 +264,6 @@ var genericLoads = []rule.LoadInfo{
 	},
 }
 
-// NOTE: additional aspect-gazelle context.Context
-func checkCancellation(c *config.Config) error {
-	ctx := c.Exts["aspect:context"].(context.Context)
-	if ctx.Err() != nil {
-		return context.Cause(ctx)
-	}
-	return nil
-}
-
 // NOTE: additional aspect-cli update result status
 type fixUpdateStatus struct {
 	visited int
@@ -345,9 +337,7 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 	}
 
 	// NOTE: additional aspect-gazelle context
-	ctx, cancelWithCause := context.WithCancelCause(ctx)
-	c.Exts["aspect:context"] = ctx
-	c.Exts["aspect:context.cancel"] = cancelWithCause
+	ctx = common.SetupCancellableContext(c, ctx)
 
 	// Visit all directories in the repository.
 	var visits []visitRecord
@@ -417,7 +407,7 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 			}
 
 			// NOTE: additional aspect-gazelle context
-			if err := checkCancellation(c); err != nil {
+			if err := common.CheckCancellation(c); err != nil {
 				return walk.Walk2FuncResult{Err: err}
 			}
 		}
@@ -556,7 +546,7 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 				rslv.Resolve(v.c, ruleIndex, rc, r, v.imports[i], from)
 
 				// NOTE: additional aspect-gazelle context
-				if err := checkCancellation(c); err != nil {
+				if err := common.CheckCancellation(c); err != nil {
 					return err
 				}
 			}
