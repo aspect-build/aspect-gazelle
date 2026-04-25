@@ -1,0 +1,10 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "a.txt",
+        "b.txt",
+    ],
+    visibility = ["//visibility:public"],
+)

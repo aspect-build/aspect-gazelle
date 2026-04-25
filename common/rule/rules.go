@@ -66,9 +66,14 @@ func CheckCollisionErrors(targetName, expectedKind string, generatedKinds *trees
 		return nil
 	}
 
-	if !containsMappedKind(args, generatedKinds, existing.Kind()) {
-		mappedExpectedKind := MapKind(args, expectedKind)
+	mappedExpectedKind := MapKind(args, expectedKind)
 
+	// Same-kind merges are allowed even for kinds owned by another gazelle extension.
+	if existing.Kind() == mappedExpectedKind {
+		return nil
+	}
+
+	if !containsMappedKind(args, generatedKinds, existing.Kind()) {
 		fqTarget := label.New("", args.Rel, targetName)
 		return fmt.Errorf("failed to generate target %q of kind %q: "+
 			"a target of kind %q with the same name already exists.",

@@ -1,0 +1,5 @@
+filegroup(
+    name = "all-files",
+    srcs = ["stale.txt"],
+    visibility = ["//visibility:public"],
+)

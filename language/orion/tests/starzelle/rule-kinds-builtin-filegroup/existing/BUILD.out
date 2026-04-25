@@ -1,0 +1,8 @@
+filegroup(
+    name = "all-files",
+    srcs = [
+        "a.txt",
+        "b.txt",
+    ],
+    visibility = ["//visibility:public"],
+)
