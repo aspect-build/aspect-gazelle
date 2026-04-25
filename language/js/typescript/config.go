@@ -101,26 +101,28 @@ func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
 }
 
 func (tc *TsWorkspace) getTsConfigFromPath(p *workspacePath) *TsConfig {
-	// Lock the configs mutex
-	tc.cm.configsMutex.Lock()
-	defer tc.cm.configsMutex.Unlock()
-
 	filePath := path.Join(p.rel, p.fileName)
 
-	// Check for previously parsed
-	if c := tc.cm.configs[filePath]; c != nil {
-		if c == &InvalidTsconfig {
+	// Fast path: cache hit under a read lock.
+	tc.cm.configsMutex.RLock()
+	c := tc.cm.configs[filePath]
+	tc.cm.configsMutex.RUnlock()
+
+	if c == nil {
+		// Slow path: parseTsConfigJSONFile re-checks the cache under the write lock.
+		tc.cm.configsMutex.Lock()
+		defer tc.cm.configsMutex.Unlock()
+
+		var err error
+		if c, err = parseTsConfigJSONFile(tc.cm.configs, tc.tsConfigResolver, p.root, filePath); err != nil {
+			fmt.Printf("Failed to parse tsconfig file %s: %v\n", filePath, err)
 			return nil
 		}
-		return c
 	}
 
-	c, err := parseTsConfigJSONFile(tc.cm.configs, tc.tsConfigResolver, p.root, filePath)
-	if err != nil {
-		fmt.Printf("Failed to parse tsconfig file %s: %v\n", filePath, err)
+	if c == &InvalidTsconfig {
 		return nil
 	}
-
 	return c
 }
 

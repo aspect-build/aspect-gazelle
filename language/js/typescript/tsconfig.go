@@ -346,20 +346,15 @@ func mergeBaseConfigs(left, right *TsConfig, currentConfigDir string) *TsConfig 
 // Load a tsconfig.json file and return the compilerOptions config with
 // recursive protected via a parsed map that is passed in
 func parseTsConfigJSONFile(parsed map[string]*TsConfig, resolver TsConfigResolver, root, tsconfig string) (*TsConfig, error) {
-	existing := parsed[tsconfig]
-
-	// Existing pointing to `InvalidTsconfig` implies recursion
-	if existing == &InvalidTsconfig {
-		BazelLog.Warnf("Recursive tsconfig file extension: %q", tsconfig)
-		return nil, nil
-	}
-
-	// Already parsed and cached
-	if existing != nil {
+	// Already-cached entries (real config or sticky `&InvalidTsconfig` failure) are returned as-is.
+	if existing := parsed[tsconfig]; existing != nil {
+		if existing == &InvalidTsconfig {
+			return nil, nil
+		}
 		return existing, nil
 	}
 
-	// Start with invalid to prevent recursing into the same file
+	// Reserve the slot with the invalid sentinel so any extends cycle is detected.
 	parsed[tsconfig] = &InvalidTsconfig
 
 	tsconfigFile, err := os.OpenFile(path.Join(root, tsconfig), os.O_RDONLY, os.FileMode(os.O_RDONLY))
@@ -403,6 +398,11 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 		extends = append(extends, ext)
 
 		for _, potential := range resolver(configDir, ext) {
+			// Existing entry pointing to `InvalidTsconfig` implies recursion via extends.
+			if parsed[potential] == &InvalidTsconfig {
+				BazelLog.Warnf("Recursive tsconfig file extension: %q", potential)
+				continue
+			}
 			base, err := parseTsConfigJSONFile(parsed, resolver, root, potential)
 			if err != nil {
 				BazelLog.Warnf("Failed to load base tsconfig file %q from %q: %v", ext, tsconfig, err)
