@@ -56,6 +56,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_LibraryFiles,
 		Directive_TestFiles,
 		Directive_Assets,
+		Directive_RuleKind,
 
 		// TODO(deprecated): remove
 		Directive_CustomTargetFiles,
@@ -280,6 +281,27 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 
 			// Overwrite any inherited configuration for asset collection.
 			config.SetCollectAssetsFrom(assetKinds...)
+
+		case Directive_RuleKind:
+			parts := strings.Fields(value)
+			if len(parts) == 1 {
+				// Reset to default (auto-detect from source content)
+				err := config.SetRuleKind(parts[0], "")
+				if err != nil {
+					common.MisconfiguredErrorf(c, "Invalid %s: %v", Directive_RuleKind, err)
+					return
+				}
+			} else if len(parts) == 2 {
+				err := config.SetRuleKind(parts[0], parts[1])
+				if err != nil {
+					common.MisconfiguredErrorf(c, "Invalid %s: %v", Directive_RuleKind, err)
+					return
+				}
+			} else {
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s: expected 'group_name [kind_name]'",
+					Directive_RuleKind, d.Value)
+				return
+			}
 
 		// TODO: remove, deprecated
 		case Directive_CustomTargetFiles:

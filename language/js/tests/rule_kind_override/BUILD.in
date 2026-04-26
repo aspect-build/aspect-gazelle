@@ -1,0 +1,1 @@
+# gazelle:js_rule_kind {dirname}_tests js_test

@@ -1,0 +1,15 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_rule_kind {dirname}_tests js_test
+
+ts_project(
+    name = "rule_kind_override",
+    srcs = ["main.ts"],
+)
+
+js_test(
+    name = "rule_kind_override_tests",
+    srcs = ["main.spec.ts"],
+    deps = [":rule_kind_override"],
+)

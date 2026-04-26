@@ -1,0 +1,24 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//:defs.bzl", "jest_test")
+
+# gazelle:js_test_files e2e *.e2e.ts
+# gazelle:js_rule_kind e2e js_test
+# gazelle:map_kind js_test jest_test //:defs.bzl
+
+ts_project(
+    name = "rule_kind_custom_group",
+    srcs = ["main.ts"],
+)
+
+ts_project(
+    name = "rule_kind_custom_group_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    deps = [":rule_kind_custom_group"],
+)
+
+jest_test(
+    name = "e2e",
+    srcs = ["main.e2e.ts"],
+    deps = [":rule_kind_custom_group"],
+)
