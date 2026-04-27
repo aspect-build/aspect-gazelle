@@ -208,8 +208,8 @@ func failOnOrionKindOverlaps(languages []language.Language) {
 		}
 		langName := lang.Name()
 		for kind := range lang.Kinds() {
-			if from, clash := pluginKinds[kind]; clash {
-				log.Fatalf("ERROR: orion plugin registered rule kind %q (From=%q) which is already provided by the %q gazelle language. Remove the aspect.gazelle_rule_kind(%q) call from your orion extension — the %q language's rule resolution for %q is otherwise silently broken.", kind, from, langName, kind, langName, kind)
+			if registered, clash := pluginKinds[kind]; clash {
+				log.Fatalf("ERROR: orion plugin %q registered rule kind %q (From=%q) which is already provided by the %q gazelle language. Remove the aspect.gazelle_rule_kind(%q) call from %q — the %q language's rule resolution for %q is otherwise silently broken.", registered.RegisteredFrom, kind, registered.From, langName, kind, registered.RegisteredFrom, langName, kind)
 			}
 		}
 	}

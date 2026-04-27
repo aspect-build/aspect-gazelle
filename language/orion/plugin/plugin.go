@@ -40,6 +40,9 @@ type RuleKind struct {
 	KindInfo
 	Name string
 	From string
+
+	// RegisteredFrom is the orion plugin file that called gazelle_rule_kind.
+	RegisteredFrom string
 }
 
 // Subset of the bazel-gazelle rule.KindInfo. See bazel-gazelle for details.
