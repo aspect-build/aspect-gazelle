@@ -133,7 +133,60 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 	return i
 }
 
+// groupTsconfig pairs a per-target tsconfig with the workspace-relative directory it was registered.
+type groupTsconfig struct {
+	rel    string
+	config *typescript.TsConfig
+}
+
+// newSourceTargetClassifier returns a function that maps each source file to its target group.
+func newSourceTargetClassifier(cfg *JsGazelleConfig, groupTsconfigs map[string]groupTsconfig) func(filePath string) *TargetGroup {
+	targets := cfg.GetSourceTargets()
+	type entry struct {
+		target *TargetGroup
+		glob   common.GlobExpr
+	}
+	entries := make([]entry, 0, len(targets))
+	for i := len(targets) - 1; i >= 0; i-- {
+		target := targets[i]
+		sources := target.customSources
+		if len(sources) == 0 {
+			sources = target.defaultSources
+		}
+		rootDir := "."
+		if tc := groupTsconfigs[target.name].config; tc != nil {
+			rootDir = tsconfigRootDirRelative(tc.ConfigDir, tc.RootDir, cfg.rel)
+		}
+		for _, expr := range sources {
+			if strings.Contains(expr, rootDirVar) {
+				expr = path.Clean(strings.Replace(expr, rootDirVar, rootDir, 1))
+			}
+			glob, _ := common.ParseGlobExpression(expr)
+			entries = append(entries, entry{target: target, glob: glob})
+		}
+	}
+	return func(filePath string) *TargetGroup {
+		for _, e := range entries {
+			if e.glob(filePath) {
+				return e.target
+			}
+		}
+		return nil
+	}
+}
+
 func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
+	targets := cfg.GetSourceTargets()
+
+	// Resolve the tsconfig for each target for quick-access in per-file loops below.
+	groupTsconfigs := make(map[string]groupTsconfig, len(targets))
+	for _, group := range targets {
+		rel, c := ts.tsconfig.FindConfig(args.Rel, group.name)
+		groupTsconfigs[group.name] = groupTsconfig{rel: rel, config: c}
+	}
+
+	// Build a classifier to efficiently determine a file's target group.
+	classifyFile := newSourceTargetClassifier(cfg, groupTsconfigs)
 
 	// Set of source and generated source files per target.
 	sourceFileGroups := make(map[string]map[string]struct{}, len(cfg.GetSourceTargets()))
@@ -146,7 +199,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	processPotentialSourceFile := func(groups map[string]map[string]struct{}, file string) {
 		fileExt := path.Ext(file)
 		if isSourceFileExt(fileExt) || isDataFileExt(fileExt) {
-			if target := cfg.GetFileSourceTarget(file, ts.tsconfig); target != nil {
+			if target := classifyFile(file); target != nil {
 				// Source files belonging to a target group.
 				if BazelLog.IsTraceEnabled() {
 					BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
@@ -259,14 +312,12 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 				ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
 			}
 		} else {
-			// Resolve the tsconfig for this specific target group.
-			groupTsconfigRel, groupTsconfig := ts.tsconfig.FindConfig(args.Rel, group.name)
-
+			gt := groupTsconfigs[group.name]
 			// Add or edit/merge a rule for this source group.
 			srcRule, srcGenErr := ts.addProjectRule(
 				cfg,
-				groupTsconfigRel,
-				groupTsconfig,
+				gt.rel,
+				gt.config,
 				args,
 				group,
 				ruleName,

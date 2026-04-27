@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
-	"github.com/aspect-build/aspect-gazelle/language/js/typescript"
 	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
@@ -558,41 +557,6 @@ func (c *JsGazelleConfig) RenderSourceTargetName(groupName, packageName string, 
 	}
 
 	return ruleName
-}
-
-// Determine if and which target the passed file belongs in.
-func (c *JsGazelleConfig) GetFileSourceTarget(filePath string, tsWorkspace *typescript.TsWorkspace) *TargetGroup {
-	// Rules are evaluated in reverse order, so we want to
-	for i := len(c.targets) - 1; i >= 0; i-- {
-		target := c.targets[i]
-		sources := target.customSources
-
-		// Fallback to default sources if no sources are specified
-		if len(sources) == 0 {
-			sources = target.defaultSources
-		}
-
-		for _, globExpr := range sources {
-			// Expand ${rootDir} in custom globs with the tsconfig rootDir
-			// relative to this package.
-			if tsWorkspace != nil && strings.Contains(globExpr, rootDirVar) {
-				_, tsconfig := tsWorkspace.FindConfig(c.rel, target.name)
-				rootDir := "."
-				if tsconfig != nil {
-					rootDir = tsconfigRootDirRelative(tsconfig.ConfigDir, tsconfig.RootDir, c.rel)
-				}
-				globExpr = path.Clean(strings.Replace(globExpr, rootDirVar, rootDir, 1))
-			}
-
-			glob, _ := common.ParseGlobExpression(globExpr)
-
-			if glob(filePath) {
-				return target
-			}
-		}
-	}
-
-	return nil
 }
 
 // Return a list of all source groups for this config, including primary library + tests.
