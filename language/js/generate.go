@@ -386,7 +386,11 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 
 		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
 		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
-		tsconfigRule.SetAttr("src", tsconfig.ConfigName)
+		src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
+		if args.Rel != "" {
+			src = strings.TrimPrefix(src, args.Rel+"/")
+		}
+		tsconfigRule.SetAttr("src", src)
 		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
 
 		result.Gen = append(result.Gen, tsconfigRule)
@@ -813,7 +817,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		if !cfg.IsTsConfigIgnored(group.name, "root_dir") {
 			pkgRelRootDir := "."
 			if tsconfig != nil {
-				pkgRelRootDir = tsconfigRootDirRelative(tsconfigRel, tsconfig.RootDir, args.Rel)
+				pkgRelRootDir = tsconfigRootDirRelative(tsconfig.ConfigDir, tsconfig.RootDir, args.Rel)
 			}
 			if pkgRelRootDir != "" && pkgRelRootDir != "." {
 				sourceRule.SetAttr("root_dir", pkgRelRootDir)
@@ -1019,14 +1023,14 @@ func (ts *typeScriptLang) addModuleDeclaration(module string, moduleLabel *label
 	ts.moduleTypes[module] = append(ts.moduleTypes[module], moduleLabel)
 }
 
-// tsconfigRootDirRelative returns the tsconfig rootDir relative to pkgRel (a
-// workspace-relative package path). Returns "." when rootDir is unset or when
-// the effective rootDir does not fall inside pkgRel.
-func tsconfigRootDirRelative(tsconfigRel, rootDir, pkgRel string) string {
+// tsconfigRootDirRelative returns the tsconfig rootDir relative to pkgRel.
+// rootDir is interpreted relative to tsconfigDir (the tsconfig file's directory),
+// per the TypeScript spec.
+func tsconfigRootDirRelative(tsconfigDir, rootDir, pkgRel string) string {
 	if rootDir == "" {
 		return "."
 	}
-	wsRelRootDir := path.Join(tsconfigRel, rootDir)
+	wsRelRootDir := path.Join(tsconfigDir, rootDir)
 	if pkgRel == "" {
 		return wsRelRootDir
 	}

@@ -1,0 +1,19 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Test: js_tsconfig_file pointing to a path with a subdirectory component.
+# The ts_config rule is generated in the package where the directive lives,
+# so the tsconfig label on ts_project must point to ":tsconfig", not into the
+# tsconfig file's actual subdirectory.
+# gazelle:js_tsconfig_file configs/tsconfig.json
+
+ts_project(
+    name = "tsconfig_file_subdir",
+    srcs = ["main.ts"],
+    tsconfig = ":tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "configs/tsconfig.json",
+    visibility = [":__subpackages__"],
+)
