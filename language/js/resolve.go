@@ -60,13 +60,12 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
 	var srcs []string
 
-	infoAttr := r.PrivateAttr("ts_project_info")
-	if infoAttr != nil && infoAttr.(*TsProjectInfo).sources != nil {
+	info, _ := r.PrivateAttr("ts_project_info").(*TsProjectInfo)
+	if info != nil && info.sources != nil {
 		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
 
-		srcsSet := infoAttr.(*TsProjectInfo).sources
-		srcs = make([]string, 0, srcsSet.Size())
-		for it := srcsSet.Iterator(); it.Next(); {
+		srcs = make([]string, 0, info.sources.Size())
+		for it := info.sources.Iterator(); it.Next(); {
 			srcs = append(srcs, it.Value())
 		}
 	} else {
@@ -322,31 +321,27 @@ func (ts *typeScriptLang) Resolve(
 		deps := common.NewLabelSet(from)
 
 		// Support this target representing a project or a package
-		var imports *treeset.Set[ImportStatement]
-		var groupName string
+		var projectInfo *TsProjectInfo
 		if packageInfo, isPackageInfo := importData.(*TsPackageInfo); isPackageInfo {
-			imports = packageInfo.imports
-			groupName = packageInfo.groupName
-
+			projectInfo = &packageInfo.TsProjectInfo
 			if packageInfo.source != nil {
 				deps.Add(packageInfo.source)
 			}
-		} else if projectInfo, isProjectInfo := importData.(*TsProjectInfo); isProjectInfo {
-			imports = projectInfo.imports
-			groupName = projectInfo.groupName
+		} else if pi, isProjectInfo := importData.(*TsProjectInfo); isProjectInfo {
+			projectInfo = pi
 		} else {
 			BazelLog.Infof("%s //%s:%s with no/unknown package info", r.Kind(), from.Pkg, r.Name())
 			break
 		}
 
-		err := ts.resolveImports(c, ix, deps, imports, from, groupName)
+		err := ts.resolveImports(c, ix, deps, projectInfo.imports, from, projectInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
 		}
 
 		if r.Kind() == TsProjectKind {
-			ts.addTsLib(c, ix, deps, from, groupName)
+			ts.addTsLib(c, ix, deps, from, projectInfo.groupName)
 		}
 
 		if !deps.Empty() {
