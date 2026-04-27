@@ -56,6 +56,7 @@ func (s *starzelleState) addKind(_ *starlark.Thread, name starlark.String, attri
 	if err != nil {
 		return fmt.Errorf("failed to read rule kind %q: %w", name.GoString(), err)
 	}
+	pluginKind.RegisteredFrom = s.pluginPath
 	s.host.AddKind(pluginKind)
 	return nil
 }

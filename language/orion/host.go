@@ -187,7 +187,15 @@ func (h *GazelleHost) AddPlugin(plugin plugin.Plugin) {
 
 func (h *GazelleHost) AddKind(k plugin.RuleKind) {
 	if existing, exists := h.kinds[k.Name]; exists {
-		fmt.Printf("WARN: gazelle_rule_kind(%q) from %q overrides existing registration from %q\n", k.Name, k.From, existing.From)
+		from := k.RegisteredFrom
+		if from == "" {
+			from = "<builtin>"
+		}
+		existingFrom := existing.RegisteredFrom
+		if existingFrom == "" {
+			existingFrom = "<builtin>"
+		}
+		fmt.Printf("WARN: gazelle_rule_kind(%q) registered by %q overrides existing registration by %q\n", k.Name, from, existingFrom)
 	}
 
 	BazelLog.Infof("Kind added: %q", k.Name)
@@ -282,12 +290,12 @@ func (*GazelleHost) Fix(c *config.Config, f *rule.File) {
 	// Unsupported
 }
 
-// PluginRegisteredKinds returns plugin-registered kinds (name → From),
-// i.e. h.kinds minus the seeded builtinKinds.
-func (h *GazelleHost) PluginRegisteredKinds() map[string]string {
-	out := make(map[string]string, len(h.kinds))
+// PluginRegisteredKinds returns plugin-registered kinds keyed by name,
+// excluding the seeded builtinKinds.
+func (h *GazelleHost) PluginRegisteredKinds() map[string]plugin.RuleKind {
+	out := make(map[string]plugin.RuleKind, len(h.kinds))
 	for name, k := range h.kinds {
-		out[name] = k.From
+		out[name] = k
 	}
 	for _, k := range builtinKinds {
 		delete(out, k.Name)

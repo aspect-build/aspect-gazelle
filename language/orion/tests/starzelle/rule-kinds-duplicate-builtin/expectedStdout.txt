@@ -1,1 +1,1 @@
-WARN: gazelle_rule_kind("filegroup") from "@my_rules//:defs.bzl" overrides existing registration from ""
+WARN: gazelle_rule_kind("filegroup") registered by "tests/starzelle/rule-kinds-duplicate-builtin/override.axl" overrides existing registration by "<builtin>"
