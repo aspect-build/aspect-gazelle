@@ -81,7 +81,7 @@ go_deps2.module_override(
 
 ####### LLVM configuration for cgo ########
 
-bazel_dep(name = "llvm", version = "0.7.0", dev_dependency = True)
+bazel_dep(name = "llvm", version = "0.7.5", dev_dependency = True)
 
 register_toolchains(
     "@llvm//toolchain:all",
