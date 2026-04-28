@@ -1,0 +1,1 @@
+directive "js_files": Invalid target ({dirname}) glob "[broken": invalid glob pattern: [broken

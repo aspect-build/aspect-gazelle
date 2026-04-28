@@ -239,7 +239,10 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				groupGlob = strings.TrimSpace(after)
 			}
 
-			config.addTargetGlob(group, groupGlob, false)
+			if err := config.addTargetGlob(group, groupGlob, false); err != nil {
+				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_LibraryFiles, err)
+				return
+			}
 		case Directive_TestFiles:
 			group := DefaultTestsName
 			groupGlob := value
@@ -249,7 +252,10 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				groupGlob = strings.TrimSpace(after)
 			}
 
-			config.addTargetGlob(group, groupGlob, true)
+			if err := config.addTargetGlob(group, groupGlob, true); err != nil {
+				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_TestFiles, err)
+				return
+			}
 		case Directive_Assets:
 			if value == "" {
 				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_Assets, d.Value)
