@@ -1,0 +1,14 @@
+# Group precedence:
+#  1. New groups defined later in the same BUILD take precedence over
+#     groups defined earlier (including the default lib/test groups).
+#  2. New groups defined in a subdir BUILD take precedence over groups
+#     inherited from a parent BUILD.
+# In all cases, the file group glob is evaluated in reverse-defined-order
+# and the first match wins.
+
+# Defines `parent_shared` for *.shared.ts in this dir and all subdirs.
+# gazelle:js_files parent_shared *.shared.ts
+
+# Defines `parent_special` later, so for files matching both `parent_special`
+# wins over `parent_shared`.
+# gazelle:js_files parent_special special.shared.ts

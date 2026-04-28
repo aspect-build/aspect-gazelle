@@ -1,0 +1,18 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Defines `sub_shared` for *.shared.ts in this subdir.
+# This new group takes precedence over the inherited `parent_shared` group.
+# gazelle:js_files sub_shared *.shared.ts
+
+ts_project(
+    name = "sub",
+    srcs = ["main.ts"],
+)
+
+ts_project(
+    name = "sub_shared",
+    srcs = [
+        "regular.shared.ts",
+        "special.shared.ts",
+    ],
+)

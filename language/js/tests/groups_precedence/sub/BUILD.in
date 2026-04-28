@@ -1,0 +1,3 @@
+# Defines `sub_shared` for *.shared.ts in this subdir.
+# This new group takes precedence over the inherited `parent_shared` group.
+# gazelle:js_files sub_shared *.shared.ts
