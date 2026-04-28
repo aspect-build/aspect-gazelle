@@ -146,6 +146,7 @@ func (c *watchmanCache) read() {
 	// If the watcher has restarted, discard the cache.
 	if cs.IsFreshInstance {
 		BazelLog.Infof("Watchman state is stale, clearing")
+		c.lastClockSpec = cs.ClockSpec
 		return
 	}
 

@@ -69,6 +69,30 @@ func TestWatchStart(t *testing.T) {
 	}
 }
 
+func TestGetDiffFreshInstance(t *testing.T) {
+	tmp := getTempDir(t)
+	defer os.RemoveAll(tmp)
+
+	w := createWatchman(tmp)
+
+	if err := w.Start(); err != nil {
+		t.Fatalf("Expected to start watching: %s", err)
+	}
+	defer w.Stop()
+	defer w.Close()
+
+	// A clockspec watchman doesn't recognize (e.g. from a previous daemon
+	// instance) must produce IsFreshInstance=true so callers can discard
+	// stale caches.
+	cs, err := w.GetDiff("c:0:0:0:0")
+	if err != nil {
+		t.Fatalf("GetDiff returned error: %s", err)
+	}
+	if !cs.IsFreshInstance {
+		t.Errorf("Expected IsFreshInstance=true for unknown clockspec, got false")
+	}
+}
+
 func TestSubscribe(t *testing.T) {
 	tmp := getTempDir(t)
 	defer os.RemoveAll(tmp)
