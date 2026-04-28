@@ -253,10 +253,13 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 	}
 	w.lastClockSpec = resp["clock"].(string)
 
+	isFreshInstance, _ := resp["is_fresh_instance"].(bool)
+
 	return &ChangeSet{
-		Paths:     files,
-		Root:      w.workspaceDir,
-		ClockSpec: w.lastClockSpec,
+		Paths:           files,
+		Root:            w.workspaceDir,
+		ClockSpec:       w.lastClockSpec,
+		IsFreshInstance: isFreshInstance,
 	}, nil
 }
 
