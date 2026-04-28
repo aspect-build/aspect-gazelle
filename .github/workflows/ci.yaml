@@ -14,10 +14,26 @@ concurrency:
   group: concurrency-group::${{ github.workflow }}::${{ github.event.pull_request.number > 0 && format('pr-{0}', github.event.pull_request.number) || github.ref_name }}${{ github.ref_name == 'main' && format('::{0}', github.run_id) || ''}}
   cancel-in-progress: ${{ github.ref_name != 'main' }}
 jobs:
-  test:
+  test-macos:
+    # Only run on main branch (not PRs) to minimize minutes (billed at 10X).
+    # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
+    if: github.ref_name == 'main' || github.event_name == 'workflow_dispatch' || contains(github.head_ref, 'macos')
     runs-on: macos-latest
     steps:
       # Checks-out your repository under github.workspace, so your job can access it
       - uses: actions/checkout@v6
       - uses: bazel-contrib/setup-bazel@0.19.0
       - run: bazel test --config=ruleset //...
+  # For branch protection settings, this job provides a "stable" name that can be used to gate PR merges
+  # on "all matrix jobs were successful".
+  conclusion:
+    needs: [test-macos]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - run: |
+          if [[ "${{ needs.test-macos.result }}" == "success" || "${{ needs.test-macos.result }}" == "skipped" ]]; then
+            exit 0
+          else
+            exit 1
+          fi
