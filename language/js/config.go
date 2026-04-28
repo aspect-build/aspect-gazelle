@@ -209,6 +209,15 @@ type JsGazelleConfig struct {
 
 // New creates a new JsGazelleConfig.
 func newRootConfig() *JsGazelleConfig {
+	// Deep-copy DefaultSourceGlobs so per-package mutations (e.g. addTargetGlob)
+	// don't leak into the package-level default and across gazelle invocations.
+	targets := make([]*TargetGroup, len(DefaultSourceGlobs))
+	for i, t := range DefaultSourceGlobs {
+		cp := *t
+		cp.customSources = append([]string{}, t.customSources...)
+		targets[i] = &cp
+	}
+
 	return &JsGazelleConfig{
 		rel:                        "",
 		generationEnabled:          true,
@@ -229,7 +238,7 @@ func newRootConfig() *JsGazelleConfig {
 		npmPackageNamingConvention: DefaultNpmPackageTargetName,
 		targetNamingOverrides:      make(map[string]string),
 		tsProtoLibraryName:         DefaultProtoLibraryName,
-		targets:                    DefaultSourceGlobs[:],
+		targets:                    targets,
 	}
 }
 
@@ -580,6 +589,10 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 	// Normalize the glob so e.g. "./foo.js" matches a file path stored as "foo.js".
 	glob = strings.TrimPrefix(glob, "./")
 
+	if _, err := common.ParseGlobExpression(glob); err != nil {
+		return fmt.Errorf("Invalid target (%s) glob %q: %w", targetName, glob, err)
+	}
+
 	// Update existing target with the same name
 	for _, target := range c.targets {
 		if target.name == targetName {
@@ -591,10 +604,6 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 					overrideWord = "non-test"
 				}
 				return fmt.Errorf("Custom %s target %s:%s can not override %s target", targetWord, c.rel, targetName, overrideWord)
-			}
-
-			if _, err := common.ParseGlobExpression(glob); err != nil {
-				return fmt.Errorf("Invalid target (%s) glob %q: %w", target.name, glob, err)
 			}
 
 			target.customSources = append(target.customSources, glob)
