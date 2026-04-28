@@ -577,6 +577,9 @@ func (c *JsGazelleConfig) GetSourceTarget(targetName string) *TargetGroup {
 
 // AddTargetGlob sets the glob used to find source files for the specified target
 func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool) error {
+	// Normalize the glob so e.g. "./foo.js" matches a file path stored as "foo.js".
+	glob = strings.TrimPrefix(glob, "./")
+
 	// Update existing target with the same name
 	for _, target := range c.targets {
 		if target.name == targetName {

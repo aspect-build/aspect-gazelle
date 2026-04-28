@@ -1,1 +1,2 @@
 # gazelle:js_files pos *.po.ts
+# gazelle:js_files cfg ./foo.config.ts

@@ -60,6 +60,7 @@ go_library(
 go_test(
     name = "js_test",
     srcs = [
+        "config_test.go",
         "generate_test.go",
         "resolve_test.go",
     ],
