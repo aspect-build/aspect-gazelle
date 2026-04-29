@@ -149,20 +149,30 @@ func (tc *TsWorkspace) tsConfigResolver(dir, rel string) []string {
 }
 
 func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
+	// The closest default in case no group config is found
+	var defaultRel string
+	var defaultConfig *TsConfig
+
 	for {
 		if dir == "." {
 			dir = ""
 		}
 
+		// Return the first group config found
 		if groupName != "" {
 			if c := tc.GetTsConfigFile(dir, groupName); c != nil {
 				return dir, c
 			}
 		}
 
-		// Fall back to the default group config if a group-specific one isn't found.
-		if c := tc.GetTsConfigFile(dir, ""); c != nil {
-			return dir, c
+		// Record the default group config as a fallback in case no group config is found
+		if defaultConfig == nil {
+			if c := tc.GetTsConfigFile(dir, ""); c != nil {
+				defaultRel, defaultConfig = dir, c
+				if groupName == "" {
+					return defaultRel, defaultConfig
+				}
+			}
 		}
 
 		if dir == "" {
@@ -173,7 +183,7 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 		dir = strings.TrimSuffix(dir, "/")
 	}
 
-	return "", nil
+	return defaultRel, defaultConfig
 }
 
 func (tc *TsWorkspace) ExpandPaths(from, f, groupName string) []string {
