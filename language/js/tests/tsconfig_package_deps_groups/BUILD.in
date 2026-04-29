@@ -1,0 +1,8 @@
+# Validate js_tsconfig_package_deps applies to non-default tsconfig groups too:
+# - Root: both the default and the {dirname}_tests group ts_config rules get
+#   package.json added to deps.
+# - Child Bazel package: a forwarding ts_config rule is generated for each
+#   configured group.
+
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
+# gazelle:js_tsconfig_package_deps enabled

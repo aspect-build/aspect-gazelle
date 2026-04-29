@@ -29,5 +29,8 @@ ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
-    deps = ["//:tsconfig_base"],
+    deps = [
+        "//:package.json",
+        "//:tsconfig_base",
+    ],
 )

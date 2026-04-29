@@ -4,5 +4,8 @@ ts_config(
     name = "tsconfig_lib",
     src = "tsconfig.lib.json",
     visibility = [":__subpackages__"],
-    deps = ["//:tsconfig_base"],
+    deps = [
+        "//:package.json",
+        "//:tsconfig_base",
+    ],
 )

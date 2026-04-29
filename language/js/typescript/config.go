@@ -3,7 +3,6 @@ package typescript
 import (
 	"fmt"
 	"path"
-	"slices"
 	"strings"
 	"sync"
 
@@ -22,7 +21,11 @@ type TsConfigMap struct {
 	// `configFiles` is created during the gazelle configure phase which is single threaded so doesn't
 	// require mutex projection. Just `configs` has concurrency considerations since it is lazy
 	// loading on multiple threads in the generate phase.
-	configFiles  map[string]map[string]*workspacePath
+	configFiles map[string]map[string]*workspacePath
+
+	// Dirs with a package.json; anchors for forwarding ts_config rules.
+	packageJsonDirs map[string]bool
+
 	configs      map[string]*TsConfig
 	configsMutex sync.RWMutex
 	pnpmProjects *pnpm.PnpmProjectMap
@@ -35,11 +38,33 @@ type TsWorkspace struct {
 func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
 	return &TsWorkspace{
 		cm: &TsConfigMap{
-			configFiles:  make(map[string]map[string]*workspacePath),
-			configs:      make(map[string]*TsConfig),
-			pnpmProjects: pnpmProjects,
-			configsMutex: sync.RWMutex{},
+			configFiles:     make(map[string]map[string]*workspacePath),
+			packageJsonDirs: make(map[string]bool),
+			configs:         make(map[string]*TsConfig),
+			pnpmProjects:    pnpmProjects,
+			configsMutex:    sync.RWMutex{},
 		},
+	}
+}
+
+// RegisterPackageJsonDir records a dir containing a package.json so FindConfig
+// anchors at the local forwarding ts_config rather than the ancestor tsconfig.
+func (tc *TsWorkspace) RegisterPackageJsonDir(rel string) {
+	tc.cm.packageJsonDirs[rel] = true
+}
+
+// ClosestAncestorPackageJsonDir returns the closest strictly-ancestor dir of
+// `dir` registered as a package.json dir, or "", false.
+func (tc *TsWorkspace) ClosestAncestorPackageJsonDir(dir string) (string, bool) {
+	for {
+		base, _ := path.Split(dir)
+		dir = strings.TrimSuffix(base, "/")
+		if tc.cm.packageJsonDirs[dir] {
+			return dir, true
+		}
+		if dir == "" {
+			return "", false
+		}
 	}
 }
 
@@ -69,35 +94,6 @@ func (tc *TsWorkspace) GetTsConfigFile(rel, groupName string) *TsConfig {
 		return nil
 	}
 	return tc.getTsConfigFromPath(p)
-}
-
-type TsConfigWithGroup struct {
-	Config    *TsConfig
-	GroupName string
-}
-
-func (tc *TsWorkspace) GetAllTsConfigFiles(rel string) []TsConfigWithGroup {
-	inner := tc.cm.configFiles[rel]
-	// Deduplicate by ConfigName, preferring the default ("") group so that
-	// generation-enablement checks in addTsConfigRules are deterministic when
-	// multiple groups share the same config file.
-	byConfig := make(map[string]TsConfigWithGroup, len(inner))
-	for groupName, p := range inner {
-		if c := tc.getTsConfigFromPath(p); c != nil {
-			if existing, exists := byConfig[c.ConfigName]; !exists || existing.GroupName != "" {
-				byConfig[c.ConfigName] = TsConfigWithGroup{Config: c, GroupName: groupName}
-			}
-		}
-	}
-	configs := make([]TsConfigWithGroup, 0, len(byConfig))
-	for _, entry := range byConfig {
-		configs = append(configs, entry)
-	}
-	// Required for deterministic output order of generated targets
-	slices.SortFunc(configs, func(a, b TsConfigWithGroup) int {
-		return strings.Compare(a.Config.ConfigName, b.Config.ConfigName)
-	})
-	return configs
 }
 
 func (tc *TsWorkspace) getTsConfigFromPath(p *workspacePath) *TsConfig {
@@ -148,20 +144,32 @@ func (tc *TsWorkspace) tsConfigResolver(dir, rel string) []string {
 	return possible
 }
 
-func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
+// FindConfig walks up from `dir` for `groupName`'s tsconfig, falling back to
+// the default. Returns (anchorRel, configRel, config): the ts_config rule's
+// dir (a closer forwarding rule if one exists), the tsconfig file's dir, and
+// the parsed config (nil if none).
+func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, string, *TsConfig) {
 	// The closest default in case no group config is found
 	var defaultRel string
 	var defaultConfig *TsConfig
+
+	// Group-specific config, if found.
+	var configRel string
+	var config *TsConfig
+
+	// Closest forwarding ts_config rule; substituted for the config dir in
+	// returned labels so callers anchor here, not past us at the real tsconfig.
+	packageJsonDirRel, foundPackageJsonDir := "", false
 
 	for {
 		if dir == "." {
 			dir = ""
 		}
 
-		// Return the first group config found
 		if groupName != "" {
 			if c := tc.GetTsConfigFile(dir, groupName); c != nil {
-				return dir, c
+				configRel, config = dir, c
+				break
 			}
 		}
 
@@ -170,9 +178,13 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 			if c := tc.GetTsConfigFile(dir, ""); c != nil {
 				defaultRel, defaultConfig = dir, c
 				if groupName == "" {
-					return defaultRel, defaultConfig
+					break
 				}
 			}
+		}
+
+		if !foundPackageJsonDir && tc.cm.packageJsonDirs[dir] && defaultConfig == nil {
+			packageJsonDirRel, foundPackageJsonDir = dir, true
 		}
 
 		if dir == "" {
@@ -183,12 +195,21 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, *TsConfig) {
 		dir = strings.TrimSuffix(dir, "/")
 	}
 
-	return defaultRel, defaultConfig
+	// Fall back to the default if no group-specific config was found.
+	if config == nil {
+		configRel, config = defaultRel, defaultConfig
+	}
+
+	anchorRel := configRel
+	if foundPackageJsonDir && config != nil {
+		anchorRel = packageJsonDirRel
+	}
+	return anchorRel, configRel, config
 }
 
 func (tc *TsWorkspace) ExpandPaths(from, f, groupName string) []string {
 	d, _ := path.Split(from)
-	_, c := tc.FindConfig(d, groupName)
+	_, _, c := tc.FindConfig(d, groupName)
 	if c == nil {
 		return []string{}
 	}

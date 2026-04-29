@@ -30,6 +30,9 @@ const (
 	Directive_TsconfigFile = "js_tsconfig_file"
 	// Ignore and do not generate a tsconfig related `ts_project` attribute
 	Directive_TypeScriptConfigIgnore = "js_tsconfig_ignore"
+	// Add package.json files to generated ts_config deps; emits forwarding
+	// ts_config rules in package.json-only dirs. See README for details.
+	Directive_TsConfigPackageDeps = "js_tsconfig_package_deps"
 	// Directive_IgnoreImports represents the directive that controls the
 	// ignored dependencies from the generated targets.
 	// Sub-packages extend this value.
@@ -189,7 +192,8 @@ type JsGazelleConfig struct {
 	pnpmLockDir  string
 	pnpmLockPath string
 
-	groupTsConfigs map[string]*targetTsConfig
+	groupTsConfigs      map[string]*targetTsConfig
+	tsConfigPackageDeps bool
 
 	ignoreDependencies       []common.GlobExpr
 	resolves                 []jsResolve
@@ -228,6 +232,7 @@ func newRootConfig() *JsGazelleConfig {
 		pnpmLockDir:                "",
 		pnpmLockPath:               "pnpm-lock.yaml",
 		groupTsConfigs:             map[string]*targetTsConfig{"": {enabled: boolPtr(true), fileName: "tsconfig.json"}},
+		tsConfigPackageDeps:        true,
 		ignoreDependencies:         []common.GlobExpr{},
 		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,
@@ -347,6 +352,24 @@ func (c *JsGazelleConfig) GetTsConfigGenerationEnabled(groupName string) bool {
 		return *def.enabled
 	}
 	return true
+}
+
+func (c *JsGazelleConfig) SetTsConfigPackageDepsEnabled(enabled bool) {
+	c.tsConfigPackageDeps = enabled
+}
+
+func (c *JsGazelleConfig) GetTsConfigPackageDepsEnabled() bool {
+	return c.tsConfigPackageDeps
+}
+
+// TsConfigGroupNames returns group names sorted; the default group ("") sorts first.
+func (c *JsGazelleConfig) TsConfigGroupNames() []string {
+	names := make([]string, 0, len(c.groupTsConfigs))
+	for name := range c.groupTsConfigs {
+		names = append(names, name)
+	}
+	slices.Sort(names)
+	return names
 }
 
 func (c *JsGazelleConfig) SetProtoGenerationEnabled(enabled bool) {

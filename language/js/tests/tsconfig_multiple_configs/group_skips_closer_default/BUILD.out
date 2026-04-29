@@ -1,0 +1,35 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Validates that a target requesting a group-specific tsconfig walks past a
+# closer default tsconfig (here: local tsconfig.lib.json) to find an ancestor's
+# group-specific config (here: root's tsconfig.test.json).
+
+ts_project(
+    name = "group_skips_closer_default",
+    srcs = ["main.ts"],
+    composite = True,
+    tsconfig = ":tsconfig_lib",
+    deps = ["//:node_modules/tslib"],
+)
+
+ts_project(
+    name = "group_skips_closer_default_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    composite = True,
+    tsconfig = "//:tsconfig_test",
+    deps = [
+        ":group_skips_closer_default",
+        "//:node_modules/tslib",
+    ],
+)
+
+ts_config(
+    name = "tsconfig_lib",
+    src = "tsconfig.lib.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//:package.json",
+        "//:tsconfig_base",
+    ],
+)

@@ -1,0 +1,38 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Validate js_tsconfig_package_deps applies to non-default tsconfig groups too:
+# - Root: both the default and the {dirname}_tests group ts_config rules get
+#   package.json added to deps.
+# - Child Bazel package: a forwarding ts_config rule is generated for each
+#   configured group.
+
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
+# gazelle:js_tsconfig_package_deps enabled
+
+ts_project(
+    name = "tsconfig_package_deps_groups",
+    srcs = ["main.ts"],
+    tsconfig = ":tsconfig",
+)
+
+ts_project(
+    name = "tsconfig_package_deps_groups_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    tsconfig = ":tsconfig_test",
+    deps = [":tsconfig_package_deps_groups"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)
+
+ts_config(
+    name = "tsconfig_test",
+    src = "tsconfig.test.json",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)

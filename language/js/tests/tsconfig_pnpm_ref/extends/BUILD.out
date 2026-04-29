@@ -18,5 +18,8 @@ ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
-    deps = [":node_modules/@tsconfig-test/tools"],
+    deps = [
+        ":node_modules/@tsconfig-test/tools",
+        ":package.json",
+    ],
 )

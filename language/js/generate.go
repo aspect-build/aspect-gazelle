@@ -181,8 +181,8 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// Resolve the tsconfig for each target for quick-access in per-file loops below.
 	groupTsconfigs := make(map[string]groupTsconfig, len(targets))
 	for _, group := range targets {
-		rel, c := ts.tsconfig.FindConfig(args.Rel, group.name)
-		groupTsconfigs[group.name] = groupTsconfig{rel: rel, config: c}
+		anchorRel, _, c := ts.tsconfig.FindConfig(args.Rel, group.name)
+		groupTsconfigs[group.name] = groupTsconfig{rel: anchorRel, config: c}
 	}
 
 	// Build a classifier to efficiently determine a file's target group.
@@ -422,27 +422,77 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	BazelLog.Infof("add rule '%s' '%s:%s'", cfg.packageTargetKind, args.Rel, packageTargetName)
 }
 
+// collectTsConfigPackageJsonDeps returns label deps for the package.json files
+// tsc consults: every package.json in this Bazel package, plus the closest
+// ancestor's if none is local (tsc stops at the first package.json walking up).
+func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal bool) {
+	for _, f := range args.RegularFiles {
+		if path.Base(f) == NpmPackageFilename {
+			l := label.New(args.Config.RepoName, args.Rel, f)
+			deps = append(deps, &l)
+			hasLocal = true
+		}
+	}
+	if !hasLocal {
+		if ancestor, ok := ts.tsconfig.ClosestAncestorPackageJsonDir(args.Rel); ok {
+			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
+			deps = append(deps, &l)
+		}
+	}
+	return deps, hasLocal
+}
+
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
-	for _, entry := range ts.tsconfig.GetAllTsConfigFiles(args.Rel) {
-		if !cfg.GetTsConfigGenerationEnabled(entry.GroupName) {
+	var packageJsonDeps []*label.Label
+	var hasLocalPackageJson bool
+	if cfg.GetTsConfigPackageDepsEnabled() {
+		packageJsonDeps, hasLocalPackageJson = ts.collectTsConfigPackageJsonDeps(args)
+	}
+
+	emittedNames := make(map[string]bool)
+	for _, groupName := range cfg.TsConfigGroupNames() {
+		if !cfg.GetTsConfigGenerationEnabled(groupName) {
 			continue
 		}
 
-		tsconfig := entry.Config
-
-		imports := newTsProjectInfo(entry.GroupName)
-		for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
-			imports.AddImport(impt)
+		_, configRel, tsconfig := ts.tsconfig.FindConfig(args.Rel, groupName)
+		if tsconfig == nil {
+			continue
+		}
+		hasLocalTsconfigFile := configRel == args.Rel
+		if !hasLocalTsconfigFile && !hasLocalPackageJson {
+			continue
 		}
 
 		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
-		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
-		src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
-		if args.Rel != "" {
-			src = strings.TrimPrefix(src, args.Rel+"/")
+		// Multiple groups can resolve to the same tsconfig file; emit once.
+		if emittedNames[tsconfigName] {
+			continue
 		}
-		tsconfigRule.SetAttr("src", src)
+		emittedNames[tsconfigName] = true
+
+		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
 		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
+
+		imports := newTsProjectInfo(groupName)
+		imports.staticDeps = append(imports.staticDeps, packageJsonDeps...)
+
+		if hasLocalTsconfigFile {
+			for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
+				imports.AddImport(impt)
+			}
+			src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
+			if args.Rel != "" {
+				src = strings.TrimPrefix(src, args.Rel+"/")
+			}
+			tsconfigRule.SetAttr("src", src)
+		} else {
+			// Forward to the closest ancestor ts_config (forwarding or real) so
+			// the nearest package.json is in scope per group.
+			parentAnchorRel, _, _ := ts.tsconfig.FindConfig(path.Dir(args.Rel), groupName)
+			parentLabel := label.New("", parentAnchorRel, tsconfigName).Rel("", args.Rel)
+			tsconfigRule.SetAttr("src", parentLabel.BzlExpr())
+		}
 
 		result.Gen = append(result.Gen, tsconfigRule)
 		result.Imports = append(result.Imports, imports)

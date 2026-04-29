@@ -73,6 +73,9 @@ type TsProjectInfo struct {
 
 	// The 'srcs' of this project
 	sources *treeset.Set[string]
+
+	// Pre-resolved deps
+	staticDeps []*label.Label
 }
 
 func newTsProjectInfo(groupName string) *TsProjectInfo {

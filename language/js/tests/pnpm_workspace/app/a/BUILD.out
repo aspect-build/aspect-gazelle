@@ -1,4 +1,4 @@
-load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
 npm_link_all_packages(name = "node_modules")
@@ -6,7 +6,7 @@ npm_link_all_packages(name = "node_modules")
 ts_project(
     name = "a",
     srcs = ["main.ts"],
-    tsconfig = "//:tsconfig",
+    tsconfig = ":tsconfig",
     deps = [
         ":node_modules/@aspect-test/a",
         ":node_modules/@aspect-test/g",
@@ -14,4 +14,11 @@ ts_project(
         "//:node_modules/@aspect-test/b",
         "//:node_modules/@aspect-test/c",
     ],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "//:tsconfig",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
 )
