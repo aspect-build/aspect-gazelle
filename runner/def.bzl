@@ -4,15 +4,20 @@ Aspect enhanced Gazelle
 
 load("//:rules.bzl", "aspect_gazelle_runner")
 
-# The aspect_gazelle() default language set. The first three entries mirror
-# upstream bazel-gazelle's DEFAULT_LANGUAGES; the rest are aspect-runner
-# additions. Order matters — it affects resolution precedence.
+# The aspect_gazelle() default language set. The first entries mirror
+# upstream bazel-gazelle's DEFAULT_LANGUAGES (minus "go", see below); the
+# rest are aspect-runner additions. Order matters — it affects resolution
+# precedence.
 DEFAULT_LANGUAGES = [
     # Upstream bazel-gazelle defaults:
     # https://github.com/bazel-contrib/bazel-gazelle/blob/v0.50.0/def.bzl#L59-L63
     "visibility_extension",
     "proto",
-    "go",
+
+    # "go" is shipped in the binary but not enabled by default: it requires
+    # `repo_config` (typically `@bazel_gazelle_go_repository_config//:WORKSPACE`)
+    # or the resolver hangs on network lookups for every unknown import.
+    # "go",
 
     # Aspect-runner additions.
     "starlark",
@@ -45,9 +50,8 @@ def aspect_gazelle(
 
     Several well-supported languages are built into the prebuilt binary. The
     `languages` argument selects which to enable and defaults to `DEFAULT_LANGUAGES`
-    — the aspect_gazelle default set, which is broader than upstream bazel-gazelle's
-    `DEFAULT_LANGUAGES` (it adds starlark, python, and js on top of visibility, proto,
-    and go). Pass an explicit list to narrow or replace it.
+    — the aspect_gazelle default set: visibility, proto, starlark, python, and js.
+    Pass an explicit list to narrow or replace it.
 
     Aspect Orion extensions are Starlark-based plugins that provide additional BUILD
     file generation capabilities beyond the standard language extensions. These can be
@@ -70,9 +74,7 @@ def aspect_gazelle(
         # Default name "gazelle", only "js" language, plus a `:gazelle.check` target for CI.
         aspect_gazelle(languages = ["js"], with_check = True)
 
-        # Enable only specific languages
-        # repo_config is required because Go is enabled; pass None to opt out
-        # if your repo has no external Go dependencies.
+        # Enable only specific languages. repo_config is required when "go" is enabled.
         aspect_gazelle(
             name = "gazelle_go_proto",
             languages = ["go", "proto"],
