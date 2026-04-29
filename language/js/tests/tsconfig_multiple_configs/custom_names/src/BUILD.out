@@ -13,7 +13,7 @@ ts_project(
     testonly = True,
     srcs = ["app.spec.ts"],
     composite = True,
-    tsconfig = "//custom_names:tsconfig_lib",
+    tsconfig = "//:tsconfig_test",
     deps = [
         ":src_lib",
         "//:node_modules/tslib",
