@@ -1,0 +1,20 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Only `lib_a` `# keep`'s `util.ts`; `lib_b` should still get a real dep on `lib_a`.
+# gazelle:js_files there-are-no-default-files
+# gazelle:js_files lib_a a.ts
+# gazelle:js_files lib_b b.ts
+
+ts_project(
+    name = "lib_a",
+    srcs = [
+        "a.ts",
+        "util.ts",  # keep
+    ],
+)
+
+ts_project(
+    name = "lib_b",
+    srcs = ["b.ts"],
+    deps = [":lib_a"],
+)

@@ -1,0 +1,21 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Two custom groups both `# keep` `util.ts`; neither should dep on the other.
+# gazelle:js_files lib_a a.ts
+# gazelle:js_files lib_b b.ts
+
+ts_project(
+    name = "lib_a",
+    srcs = [
+        "a.ts",
+        "util.ts",  # keep
+    ],
+)
+
+ts_project(
+    name = "lib_b",
+    srcs = [
+        "b.ts",
+        "util.ts",  # keep
+    ],
+)

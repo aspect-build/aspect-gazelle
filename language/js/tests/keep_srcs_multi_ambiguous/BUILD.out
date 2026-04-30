@@ -1,0 +1,20 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Two ts_projects both `# keep`'ing util.ts; an external importer in sub/ hits multi-match.
+# gazelle:js_files extras b.ts
+
+ts_project(
+    name = "keep_srcs_multi_ambiguous",
+    srcs = [
+        "a.ts",
+        "util.ts",  # keep
+    ],
+)
+
+ts_project(
+    name = "extras",
+    srcs = [
+        "b.ts",
+        "util.ts",  # keep
+    ],
+)
