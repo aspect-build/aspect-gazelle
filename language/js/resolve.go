@@ -525,29 +525,21 @@ func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 		return Resolution_NotFound, nil, nil
 	}
 
-	var resultMatch *label.Label
-
+	// Exclude self-imports
 	for _, match := range matches {
-		// Prevent from adding itself as a dependency.
 		if match.IsSelfImport(from) {
-			continue
+			return Resolution_None, nil, nil
 		}
-
-		// Too many results, don't know which is correct
-		if resultMatch != nil {
-			return Resolution_Error, nil, fmt.Errorf(
-				"Import %q from %q resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
-				impStm.ImportPath, impStm.SourcePath, targetListFromResults(matches))
-		}
-
-		resultMatch = &match.Label
 	}
 
-	// The matches were self imports, no dependency is needed
-	if resultMatch == nil {
-		return Resolution_None, nil, nil
+	// Too many results, don't know which is correct
+	if len(matches) > 1 {
+		return Resolution_Error, nil, fmt.Errorf(
+			"Import %q from %q resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
+			impStm.ImportPath, impStm.SourcePath, targetListFromResults(matches))
 	}
 
+	resultMatch := &matches[0].Label
 	BazelLog.Tracef("resolve %q import %q as %q", from, impStm.Imp, resultMatch)
 
 	return Resolution_Label, resultMatch, nil
