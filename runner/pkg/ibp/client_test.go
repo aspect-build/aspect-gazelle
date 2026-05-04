@@ -124,4 +124,23 @@ func TestConvertWireCycle_MissingOptionalFieldsDefaultsToEmpty(t *testing.T) {
 	if cycle.TraceId != "" || cycle.SpanId != "" {
 		t.Fatalf("expected empty trace/span for non-string input, got trace=%q span=%q", cycle.TraceId, cycle.SpanId)
 	}
+	if cycle.Sources == nil {
+		t.Fatalf("expected non-nil Sources for empty-map delta, got nil")
+	}
+}
+
+func TestConvertWireCycle_NullSourcesIsFreshInstanceSignal(t *testing.T) {
+	msg := map[string]any{
+		"kind":     "CYCLE",
+		"cycle_id": float64(1),
+		"sources":  nil,
+	}
+
+	cycle, err := convertWireCycle(msg)
+	if err != nil {
+		t.Fatalf("convertWireCycle returned error: %v", err)
+	}
+	if cycle.Sources != nil {
+		t.Fatalf("expected nil Sources for fresh-instance signal, got %#v", cycle.Sources)
+	}
 }
