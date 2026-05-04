@@ -70,6 +70,7 @@ go_library(
         "@gazelle//language/bazel/visibility",
         "@gazelle//language/go",
         "@gazelle//language/proto",
+        "@gazelle//rule",
         "@gazelle_cc//language/cc",
         "@io_opentelemetry_go_otel//:otel",
         "@io_opentelemetry_go_otel//attribute",

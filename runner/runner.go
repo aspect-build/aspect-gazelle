@@ -18,11 +18,13 @@ package runner
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/EngFlow/gazelle_cc/language/cc"
 	"github.com/aspect-build/aspect-gazelle/common/cache"
@@ -40,6 +42,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language/bazel/visibility"
 	golang "github.com/bazelbuild/bazel-gazelle/language/go"
 	"github.com/bazelbuild/bazel-gazelle/language/proto"
+	"github.com/bazelbuild/bazel-gazelle/rule"
 	buf "github.com/bufbuild/rules_buf/gazelle/buf"
 	"go.opentelemetry.io/otel"
 	traceAttr "go.opentelemetry.io/otel/attribute"
@@ -269,13 +272,15 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 	wc := cache.NewWatchCache()
 	cache.SetCacheFactory(wc.NewCache)
 
+	invalidator := &walkCacheInvalidator{}
+
 	// Params for the underlying gazelle call
 	fixArgs := p.prepareGazelleArgs(mode, args)
 
 	// Initial run and status update to stdout.
 	fmt.Printf("Initialize BUILD file generation --watch in %v\n", p.workspaceDir)
 	languages := p.instantiateLanguages()
-	configs := p.instantiateConfigs()
+	configs := append(p.instantiateConfigs(), invalidator)
 	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, fixArgs)
 	if err != nil {
 		return fmt.Errorf("failed to run gazelle fix/update: %w", err)
@@ -304,8 +309,10 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 
 		// Evict cache entries for paths the protocol reports changed.
 		changedPaths := make([]string, 0, len(cs.Sources))
+		invalidator.dirs = invalidator.dirs[:0]
 		for f := range cs.Sources {
 			changedPaths = append(changedPaths, f)
+			invalidator.dirs = append(invalidator.dirs, path.Dir(f))
 		}
 		wc.Invalidate(changedPaths)
 
@@ -317,7 +324,7 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 
 		// Run gazelle
 		languages := p.instantiateLanguages()
-		configs := p.instantiateConfigs()
+		configs := append(p.instantiateConfigs(), invalidator)
 		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, append(fixArgs, changedDirs...))
 		if err != nil {
 			return fmt.Errorf("failed to run gazelle fix/update: %w", err)
@@ -373,5 +380,47 @@ func hasBuildFile(rootDir, rel string) bool {
 		}
 	}
 
+	return false
+}
+
+// Opt-in via ASPECT_GAZELLE_WALK_CACHE. Carries gazelle's walker cache across
+// successive RunGazelleFixUpdate calls in the same process, evicting `dirs`
+// (the cycle's changed dirs) before transferring.
+type walkCacheInvalidator struct {
+	dirs              []string
+	previousWalkCache *sync.Map
+}
+
+func (i *walkCacheInvalidator) RegisterFlags(fs *flag.FlagSet, cmd string, c *config.Config) {}
+func (i *walkCacheInvalidator) CheckFlags(fs *flag.FlagSet, c *config.Config) error {
+	if os.Getenv("ASPECT_GAZELLE_WALK_CACHE") == "" {
+		return nil
+	}
+	c.Exts["aspect:walkCache:load"] = func(arg any) {
+		newCache := arg.(*sync.Map)
+		if i.previousWalkCache != nil {
+			i.previousWalkCache.Range(func(key, value any) bool {
+				if !walkCacheEntryInvalidated(key.(string), i.dirs) {
+					newCache.Store(key, value)
+				}
+				return true
+			})
+		}
+		i.previousWalkCache = newCache
+	}
+	return nil
+}
+func (i *walkCacheInvalidator) KnownDirectives() []string                            { return nil }
+func (i *walkCacheInvalidator) Configure(c *config.Config, rel string, f *rule.File) {}
+
+func walkCacheEntryInvalidated(rel string, dirs []string) bool {
+	for _, d := range dirs {
+		if rel == d {
+			return true
+		}
+		if len(rel) > len(d) && rel[len(d)] == '/' && strings.HasPrefix(rel, d) {
+			return true
+		}
+	}
 	return false
 }
