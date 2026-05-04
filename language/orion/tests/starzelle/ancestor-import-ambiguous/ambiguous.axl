@@ -1,0 +1,44 @@
+aspect.gazelle_rule_kind("provider_a", {
+    "From": "@ambiguous-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("provider_b", {
+    "From": "@ambiguous-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("amb_consumer", {
+    "From": "@ambiguous-test//:rules.bzl",
+    "ResolveAttrs": ["cfg"],
+})
+
+PROVIDER = "amb-test"
+
+def declare(ctx):
+    # Two rules in the same package both register the same Symbol id; the
+    # ancestor lookup at this level should detect ambiguity and error.
+    ctx.targets.add(
+        name = "provider_a",
+        kind = "provider_a",
+        symbols = [aspect.Symbol(id = "config", provider = PROVIDER)],
+    )
+    ctx.targets.add(
+        name = "provider_b",
+        kind = "provider_b",
+        symbols = [aspect.Symbol(id = "config", provider = PROVIDER)],
+    )
+    ctx.targets.add(
+        name = "consumer",
+        kind = "amb_consumer",
+        attrs = {
+            "cfg": aspect.Import(
+                id = "config",
+                provider = PROVIDER,
+                ancestor = True,
+            ),
+        },
+    )
+
+aspect.orion_extension(
+    id = "ambiguous",
+    declare = declare,
+)

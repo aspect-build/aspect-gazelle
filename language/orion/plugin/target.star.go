@@ -62,12 +62,14 @@ func (ti TargetImport) Attr(name string) (starlark.Value, error) {
 		return starlark.String(ti.From), nil
 	case "optional":
 		return starlark.Bool(ti.Optional), nil
+	case "ancestor":
+		return starlark.Bool(ti.Ancestor), nil
 	}
 
 	return nil, fmt.Errorf("no such attribute: %s on %s", name, ti.Type())
 }
 func (ti TargetImport) AttrNames() []string {
-	return []string{"id", "provider", "from", "optional"}
+	return []string{"id", "provider", "from", "optional", "ancestor"}
 }
 
 // ---------------- TargetSymbol

@@ -1,0 +1,26 @@
+aspect.gazelle_rule_kind("req_consumer", {
+    "From": "@required-test//:rules.bzl",
+    "ResolveAttrs": ["cfg"],
+})
+
+PROVIDER = "req-test"
+
+def declare(ctx):
+    # Non-optional ancestor import; nothing in the workspace provides this
+    # symbol, so resolution must error.
+    ctx.targets.add(
+        name = "consumer",
+        kind = "req_consumer",
+        attrs = {
+            "cfg": aspect.Import(
+                id = "no-provider",
+                provider = PROVIDER,
+                ancestor = True,
+            ),
+        },
+    )
+
+aspect.orion_extension(
+    id = "required",
+    declare = declare,
+)
