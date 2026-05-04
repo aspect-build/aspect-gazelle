@@ -83,7 +83,63 @@ type Watcher interface {
 	Close() error
 }
 
-type watchmanSocket = socket.Socket[[]any, map[string]any]
+// controlResponse unions the PDU shapes received on the control socket
+// (watch-project, clock, query, watch-del, state-enter, state-leave).
+type controlResponse struct {
+	Error string `json:"error"`
+
+	// watch-project
+	Watch        string `json:"watch"`
+	RelativePath string `json:"relative_path"`
+
+	// clock + query
+	Clock           string   `json:"clock"`
+	Files           []string `json:"files"`
+	IsFreshInstance bool     `json:"is_fresh_instance"`
+
+	// watch-del. *bool to distinguish absent (nil) from explicit false.
+	WatchDel *bool `json:"watch-del"`
+
+	// state-enter / state-leave (value is the state name)
+	StateEnter *string `json:"state-enter"`
+	StateLeave *string `json:"state-leave"`
+}
+
+// subscribeResponse unions the PDU shapes received on a subscribe socket
+// (initial response, change notifications, state PDUs, stream-end PDUs).
+type subscribeResponse struct {
+	Error string `json:"error"`
+
+	// Initial subscribe response (carries the subscription name back).
+	Subscribe string `json:"subscribe"`
+
+	// Change notification
+	Clock           string               `json:"clock"`
+	Root            string               `json:"root"`
+	Files           []subscribeFileEntry `json:"files"`
+	IsFreshInstance bool                 `json:"is_fresh_instance"`
+
+	// Stream-end PDUs. *bool = presence test.
+	Unsubscribe *bool `json:"unsubscribe"`
+	Canceled    *bool `json:"canceled"`
+
+	// Unilateral state PDUs (value is the state name).
+	StateEnter *string `json:"state-enter"`
+	StateLeave *string `json:"state-leave"`
+}
+
+// subscribeFileEntry is one entry in a Subscribe `files` array (object form,
+// because Subscribe requests `fields: ["name", "content.sha1hex"]`).
+//
+// Sha1Hex is RawMessage because watchman emits either a hex string or an
+// error object like `{"error": "..."}` when hashing failed/was unavailable.
+type subscribeFileEntry struct {
+	Name    string          `json:"name"`
+	Sha1Hex json.RawMessage `json:"content.sha1hex"`
+}
+
+type watchmanSocket = socket.Socket[[]any, controlResponse]
+type subscribeSocketType = socket.Socket[[]any, subscribeResponse]
 
 type WatchmanWatcher struct {
 	// Root of the bazel workspace being watched
@@ -193,20 +249,29 @@ func (w *WatchmanWatcher) getWatchmanSocket() (string, error) {
 }
 
 func (w *WatchmanWatcher) connect() (watchmanSocket, error) {
+	return connectTyped[controlResponse](w)
+}
+
+func (w *WatchmanWatcher) connectSubscribe() (subscribeSocketType, error) {
+	return connectTyped[subscribeResponse](w)
+}
+
+// connectTyped is a free function because Go methods can't have type parameters.
+func connectTyped[R any](w *WatchmanWatcher) (socket.Socket[[]any, R], error) {
 	sockname, err := w.getWatchmanSocket()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get watchman socket: %w", err)
 	}
-	socket, err := socket.ConnectJsonSocket[[]any, map[string]any](sockname)
+	sock, err := socket.ConnectJsonSocket[[]any, R](sockname)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to watchman socket: %w", err)
 	}
-	return socket, nil
+	return sock, nil
 }
 
-func (w *WatchmanWatcher) recv() (map[string]any, error) {
+func (w *WatchmanWatcher) recv() (controlResponse, error) {
 	if w.socket == nil {
-		return nil, fmt.Errorf("watchman socket closed")
+		return controlResponse{}, fmt.Errorf("watchman socket closed")
 	}
 	return w.socket.Recv()
 }
@@ -238,28 +303,21 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 
 	// Check for error in query response
 	// https://facebook.github.io/watchman/docs/cmd/query#response
-	if resp["error"] != nil {
-		return nil, fmt.Errorf("query error response: %s", resp["error"])
+	if resp.Error != "" {
+		return nil, fmt.Errorf("query error response: %s", resp.Error)
 	}
 
-	files := []string{}
-
-	if resp["files"] != nil {
-		rf := resp["files"].([]any)
-		files = make([]string, len(rf))
-		for i, f := range rf {
-			files[i] = f.(string)
-		}
+	files := resp.Files
+	if files == nil {
+		files = []string{}
 	}
-	w.lastClockSpec = resp["clock"].(string)
-
-	isFreshInstance, _ := resp["is_fresh_instance"].(bool)
+	w.lastClockSpec = resp.Clock
 
 	return &ChangeSet{
 		Paths:           files,
 		Root:            w.workspaceDir,
 		ClockSpec:       w.lastClockSpec,
-		IsFreshInstance: isFreshInstance,
+		IsFreshInstance: resp.IsFreshInstance,
 	}, nil
 }
 
@@ -286,16 +344,12 @@ func (w *WatchmanWatcher) Start() error {
 		return fmt.Errorf("failed to receive watch-project response: %w", err)
 	}
 
-	if resp["error"] != nil {
-		return fmt.Errorf("watch-project error response: %s", resp["error"])
+	if resp.Error != "" {
+		return fmt.Errorf("watch-project error response: %s", resp.Error)
 	}
 
-	w.watchedRoot = resp["watch"].(string)
-	w.watchedRelPath = ""
-
-	if resp["relative_path"] != nil {
-		w.watchedRelPath = resp["relative_path"].(string)
-	}
+	w.watchedRoot = resp.Watch
+	w.watchedRelPath = resp.RelativePath
 
 	if err := w.send("clock", w.watchedRoot); err != nil {
 		return fmt.Errorf("failed to send clock command: %w", err)
@@ -305,16 +359,11 @@ func (w *WatchmanWatcher) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to receive clock response: %w", err)
 	}
-	if resp["clock"] == nil {
-		return fmt.Errorf("failed to get clock: %v", resp)
+	if resp.Clock == "" {
+		return fmt.Errorf("failed to get clock: %+v", resp)
 	}
 
-	clock, ok := resp["clock"].(string)
-	if !ok {
-		return fmt.Errorf("invalid clock response: %v", clock)
-	}
-
-	w.lastClockSpec = clock
+	w.lastClockSpec = resp.Clock
 
 	return nil
 }
@@ -335,8 +384,8 @@ func (w *WatchmanWatcher) Stop() error {
 	if err != nil {
 		return fmt.Errorf("failed to receive watch-del response: %w", err)
 	}
-	if rsp["watch-del"] == nil || !rsp["watch-del"].(bool) {
-		return fmt.Errorf("unknown watch-del response: %v", rsp)
+	if rsp.WatchDel == nil || !*rsp.WatchDel {
+		return fmt.Errorf("unknown watch-del response: %+v", rsp)
 	}
 	return nil
 }
@@ -375,7 +424,7 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 		ctxCancel, cancel := context.WithCancel(ctx)
 		defer cancel() // Ensure the goroutine exits when the iterator completes
 
-		sock, err := w.connect()
+		sock, err := w.connectSubscribe()
 		if err != nil {
 			yield(nil, err)
 			return
@@ -408,19 +457,19 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			return
 		}
 
-		if resp["error"] != nil {
-			yield(nil, fmt.Errorf("failed to subscribe to project: %s", resp["error"]))
+		if resp.Error != "" {
+			yield(nil, fmt.Errorf("failed to subscribe to project: %s", resp.Error))
 			return
 		}
 
-		if resp["subscribe"].(string) != subscriptionName {
-			yield(nil, fmt.Errorf("wrong subscription name: %s != %s", resp["subscribe"], subscriptionName))
+		if resp.Subscribe != subscriptionName {
+			yield(nil, fmt.Errorf("wrong subscription name: %q != %q", resp.Subscribe, subscriptionName))
 			return
 		}
 
-		// NOTE: this initial resp["subscribe"] object will NOT contain the initial
+		// NOTE: this initial subscribe response will NOT contain the initial
 		// "files" because of the "empty_on_fresh_instance" parameter.
-		// This also means the "is_fresh_instance" is irrelevant and essentially always true.
+		// This also means "is_fresh_instance" is irrelevant and essentially always true.
 
 		// BEST EFFORT: if the subscriber panics, try to unsubscribe from watchman
 		defer sock.Send([]any{"unsubscribe", w.watchedRoot, subscriptionName})
@@ -434,53 +483,38 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			}
 
 			// There was an error. Yield the error and stop.
-			if resp["error"] != nil {
-				yield(nil, fmt.Errorf("watchman error: %s", resp["error"]))
+			if resp.Error != "" {
+				yield(nil, fmt.Errorf("watchman error: %s", resp.Error))
 				return
 			}
 
-			// This the unsubscribe PDU meaning we are done here.
-			if ok := resp["unsubscribe"]; ok != nil {
+			// Stream-end PDUs.
+			if resp.Unsubscribe != nil || resp.Canceled != nil {
 				return
 			}
 
-			// This the canceled PDU meaning we are done here.
-			if ok := resp["canceled"]; ok != nil {
-				return
-			}
-
-			// Skip state-enter PDU
-			if ok := resp["state-enter"]; ok != nil {
-				continue
-			}
-			// Skip state-leave PDU
-			if ok := resp["state-leave"]; ok != nil {
+			// Skip state-enter / state-leave PDUs.
+			if resp.StateEnter != nil || resp.StateLeave != nil {
 				continue
 			}
 
 			paths := []string{}
-			clockSpec := resp["clock"].(string)
+			clockSpec := resp.Clock
 
-			if resp["files"] != nil {
-				rf := resp["files"].([]any)
-				diffHashes := make(map[string]string, len(rf))
-				paths = make([]string, len(rf))
-				for i, f := range rf {
-					fileEntry := f.(map[string]any)
-					fileName := fileEntry["name"].(string)
-					paths[i] = fileName
-
-					sha1hex, hasSha1 := fileEntry["content.sha1hex"]
-					if hasSha1 {
-						sha1hex, hasSha1 = sha1hex.(string)
-					}
-
-					if !hasSha1 {
+			// Only run dedup when the PDU actually carried a files field.
+			if resp.Files != nil {
+				diffHashes := make(map[string]string, len(resp.Files))
+				paths = make([]string, len(resp.Files))
+				for i, f := range resp.Files {
+					paths[i] = f.Name
+					// content.sha1hex is either a hex string or an error object;
+					// peek the first byte to distinguish without re-decoding.
+					if len(f.Sha1Hex) > 2 && f.Sha1Hex[0] == '"' {
+						diffHashes[f.Name] = string(f.Sha1Hex[1 : len(f.Sha1Hex)-1])
+					} else {
 						// No known sha1 or error calculating the sha1, use the
 						// clock spec as a proxy for file content change
-						diffHashes[fileName] = clockSpec
-					} else {
-						diffHashes[fileName] = sha1hex.(string)
+						diffHashes[f.Name] = clockSpec
 					}
 				}
 
@@ -498,16 +532,11 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 				prevDiffHashes = diffHashes
 			}
 
-			// is_fresh_instance can legitimately appear on subscription notifications
-			// (recrawl, kernel queue overflow, daemon restart). Propagate it so
-			// callers can invalidate caches. See ChangeSet.IsFreshInstance.
-			isFreshInstance, _ := resp["is_fresh_instance"].(bool)
-
 			cs := ChangeSet{
 				Paths:           paths,
-				Root:            path.Join(resp["root"].(string), w.watchedRelPath),
+				Root:            path.Join(resp.Root, w.watchedRelPath),
 				ClockSpec:       clockSpec,
-				IsFreshInstance: isFreshInstance,
+				IsFreshInstance: resp.IsFreshInstance,
 			}
 			if !yield(&cs, nil) {
 				return
@@ -524,12 +553,11 @@ func (w *WatchmanWatcher) StateEnter(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to receive state-enter command response: %w", err)
 	}
-	enterState, isEnterState := resp["state-enter"]
-	if !isEnterState {
-		return fmt.Errorf("unknown state-enter response: %v", resp)
+	if resp.StateEnter == nil {
+		return fmt.Errorf("unknown state-enter response: %+v", resp)
 	}
-	if enterState.(string) != name {
-		return fmt.Errorf("failed to state-enter: %s != %s in %v", name, enterState, resp)
+	if *resp.StateEnter != name {
+		return fmt.Errorf("failed to state-enter: %s != %s in %+v", name, *resp.StateEnter, resp)
 	}
 	return nil
 }
@@ -542,12 +570,11 @@ func (w *WatchmanWatcher) StateLeave(name string) error {
 	if err != nil {
 		return fmt.Errorf("failed to receive state-leave command response: %w", err)
 	}
-	leaveState, isLeaveState := resp["state-leave"]
-	if !isLeaveState {
-		return fmt.Errorf("unknown state-leave response: %v", resp)
+	if resp.StateLeave == nil {
+		return fmt.Errorf("unknown state-leave response: %+v", resp)
 	}
-	if leaveState.(string) != name {
-		return fmt.Errorf("failed to state-leave: %s != %s in %v", name, leaveState, resp)
+	if *resp.StateLeave != name {
+		return fmt.Errorf("failed to state-leave: %s != %s in %+v", name, *resp.StateLeave, resp)
 	}
 	return nil
 }
