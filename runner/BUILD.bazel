@@ -1,6 +1,6 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
 load("@gazelle//:def.bzl", "gazelle")
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 load("//:def.bzl", "aspect_gazelle")
 
 # Use the gazelle bazel modules instead of go.mod modules
@@ -93,4 +93,10 @@ bzl_library(
     srcs = ["def.bzl"],
     visibility = ["//visibility:public"],
     deps = ["//:rules"],
+)
+
+go_test(
+    name = "runner_test",
+    srcs = ["runner_test.go"],
+    embed = [":runner"],
 )
