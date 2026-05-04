@@ -433,6 +433,12 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 				return
 			}
 
+			// There was an error. Yield the error and stop.
+			if resp["error"] != nil {
+				yield(nil, fmt.Errorf("watchman error: %s", resp["error"]))
+				return
+			}
+
 			// This the unsubscribe PDU meaning we are done here.
 			if ok := resp["unsubscribe"]; ok != nil {
 				return
@@ -450,12 +456,6 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			// Skip state-leave PDU
 			if ok := resp["state-leave"]; ok != nil {
 				continue
-			}
-
-			// There was an error, stop the iterator and cleanup.
-			if resp["error"] != nil {
-				yield(nil, fmt.Errorf("watchman error: %s", resp["error"]))
-				return
 			}
 
 			paths := []string{}
