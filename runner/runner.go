@@ -415,6 +415,11 @@ func (i *walkCacheInvalidator) Configure(c *config.Config, rel string, f *rule.F
 
 func walkCacheEntryInvalidated(rel string, dirs []string) bool {
 	for _, d := range dirs {
+		// A change at the root invalidates every entry.
+		// Support "." returned by path.Dir() in addition to standard ""
+		if d == "." || d == "" {
+			return true
+		}
 		if rel == d {
 			return true
 		}
