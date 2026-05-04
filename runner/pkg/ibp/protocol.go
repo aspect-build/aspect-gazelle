@@ -319,7 +319,11 @@ func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, source
 func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
-	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
+	if changes == nil {
+		fmt.Printf("%s Sending cycle #%v (fresh-instance reset) to %s\n", color.GreenString("INFO:"), cycle_id, p.socketPath)
+	} else {
+		fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
+	}
 
 	// Support: Protocol0 did not have the concept of scope so remove it from the message if
 	// the connection does not support it to maintain compatibility with older clients.

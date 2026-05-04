@@ -213,14 +213,19 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 
 	cycleId := int(cycleIdFloat)
 
-	sources := make(SourceInfoMap, len(msg["sources"].(map[string]any)))
-	for k, v := range msg["sources"].(map[string]any) {
-		if v == nil {
-			sources[k] = nil
-		} else {
-			sources[k] = &SourceInfo{
-				IsSymlink: readOptionalBool(v.(map[string]any), "is_symlink"),
-				IsSource:  readOptionalBool(v.(map[string]any), "is_source"),
+	// `sources: null` (or absent / non-object) is the fresh-instance reset
+	// signal — leaves sources nil. `sources: {...}` is a delta.
+	var sources SourceInfoMap
+	if rawSources, ok := msg["sources"].(map[string]any); ok {
+		sources = make(SourceInfoMap, len(rawSources))
+		for k, v := range rawSources {
+			if v == nil {
+				sources[k] = nil
+			} else {
+				sources[k] = &SourceInfo{
+					IsSymlink: readOptionalBool(v.(map[string]any), "is_symlink"),
+					IsSource:  readOptionalBool(v.(map[string]any), "is_source"),
+				}
 			}
 		}
 	}
