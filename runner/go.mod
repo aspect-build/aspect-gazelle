@@ -22,7 +22,7 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/a8m/envsubst v1.4.3 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
@@ -51,14 +51,14 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mikefarah/yq/v4 v4.52.5 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/mikefarah/yq/v4 v4.53.2 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/rs/zerolog v1.35.0 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
-	github.com/yuin/gopher-lua v1.1.1 // indirect
-	github.com/zclconf/go-cty v1.18.0 // indirect
+	github.com/yuin/gopher-lua v1.1.2 // indirect
+	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.42.0 // indirect
 	go.starlark.net v0.0.0-20260326113308-fadfc96def35 // indirect

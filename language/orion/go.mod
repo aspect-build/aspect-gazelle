@@ -3,12 +3,12 @@ module github.com/aspect-build/aspect-gazelle/language/orion
 go 1.26.1
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260414035224-3e8227d8b688
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260504054243-b0097601e8e7
 	github.com/bazelbuild/bazel-gazelle v0.50.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/itchyny/gojq v0.12.19
-	github.com/mikefarah/yq/v4 v4.52.5
+	github.com/mikefarah/yq/v4 v4.53.2
 	go.starlark.net v0.0.0-20260326113308-fadfc96def35
 	golang.org/x/sync v0.20.0
 )
@@ -31,12 +31,12 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
-	github.com/yuin/gopher-lua v1.1.1 // indirect
-	github.com/zclconf/go-cty v1.18.0 // indirect
+	github.com/yuin/gopher-lua v1.1.2 // indirect
+	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
 	golang.org/x/mod v0.35.0 // indirect
 	golang.org/x/net v0.53.0 // indirect
