@@ -1,0 +1,1 @@
+Resolution Error: Import "config" from "" (ambiguous) resolved to multiple targets (@ambiguous-test//:provider_a, @ambiguous-test//:provider_b) - this must be fixed using the "aspect:resolve" directive

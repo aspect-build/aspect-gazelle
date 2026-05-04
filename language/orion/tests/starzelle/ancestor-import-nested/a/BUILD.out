@@ -1,0 +1,3 @@
+load("@nested-test//:rules.bzl", "cfg_provider")
+
+cfg_provider(name = "config")

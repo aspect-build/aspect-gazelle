@@ -283,6 +283,7 @@ Args:
 * `provider`: the symbol type being imported. Imported symbols must have the same symbol type as the rule defining the symbols such as `js` for the JS/TS `configure` extension.
 * `optional`: whether the import is optional and should be ignored if not found
 * `src`: the source of the import (optional). Only used for debugging and error messages.
+* `ancestor`: when `True`, the resolver searches for `join(parent, id)` at the importing rule's package and each ancestor directory up to the workspace root, returning the first match (eg for `id = "tsconfig.json"` from `//a/b`: tries `a/b/tsconfig.json`, `a/tsconfig.json`, then `tsconfig.json`).
 
 ## Query Types
 

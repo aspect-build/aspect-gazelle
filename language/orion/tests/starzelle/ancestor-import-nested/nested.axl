@@ -1,0 +1,53 @@
+aspect.gazelle_rule_kind("cfg_provider", {
+    "From": "@nested-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("cfg_consumer", {
+    "From": "@nested-test//:rules.bzl",
+    "ResolveAttrs": ["cfg"],
+})
+
+PROVIDER = "nested-test"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = {
+            "provider": [aspect.SourceExtensions(".cfg")],
+            "consumer": [aspect.SourceExtensions(".consume")],
+        },
+    )
+
+def declare(ctx):
+    # Provider declares a multi-component Symbol id under its own pkg.
+    # For a producer at //a this becomes "a/nested/config".
+    if len(ctx.sources.provider) > 0:
+        ctx.targets.add(
+            name = "config",
+            kind = "cfg_provider",
+            symbols = [aspect.Symbol(
+                id = path.join(ctx.rel, "nested", "config"),
+                provider = PROVIDER,
+            )],
+        )
+
+    # Consumer imports a multi-component id; ancestor walk searches for the WHOLE
+    # "nested/config" path joined to each ancestor pkg, eg from //a/sub:
+    #   "a/sub/nested/config", "a/nested/config", "nested/config"
+    if len(ctx.sources.consumer) > 0:
+        ctx.targets.add(
+            name = "consumer",
+            kind = "cfg_consumer",
+            attrs = {
+                "cfg": aspect.Import(
+                    id = "nested/config",
+                    provider = PROVIDER,
+                    ancestor = True,
+                ),
+            },
+        )
+
+aspect.orion_extension(
+    id = "ancestor-import-nested",
+    prepare = prepare,
+    declare = declare,
+)

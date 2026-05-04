@@ -1,0 +1,4 @@
+# Override an ancestor import via the standard gazelle:resolve directive.
+# Format: gazelle:resolve <import-lang> <resolver-lang> <import> <label>
+# Here cfg-test is the import's provider type and orion is the resolver language.
+# gazelle:resolve cfg-test orion config //elsewhere:override-target

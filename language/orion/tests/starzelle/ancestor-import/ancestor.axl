@@ -1,0 +1,78 @@
+aspect.gazelle_rule_kind("cfg_provider", {
+    "From": "@ancestor-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("cfg_consumer", {
+    "From": "@ancestor-test//:rules.bzl",
+    "ResolveAttrs": ["cfg", "missing"],
+})
+
+# A rule that provides AND imports the same Symbol id; exercises self-import
+# filtering during ancestor walk.
+aspect.gazelle_rule_kind("self_rule", {
+    "From": "@ancestor-test//:rules.bzl",
+    "ResolveAttrs": ["self_cfg"],
+})
+
+PROVIDER = "cfg-test"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = {
+            "default": [aspect.SourceExtensions(".cfg")],
+            "self": [aspect.SourceExtensions(".self")],
+        },
+    )
+
+def declare(ctx):
+    if len(ctx.sources.default) > 0:
+        ctx.targets.add(
+            name = "config",
+            kind = "cfg_provider",
+            symbols = [aspect.Symbol(
+                id = path.join(ctx.rel, "config"),
+                provider = PROVIDER,
+            )],
+        )
+
+    if len(ctx.sources.self) > 0:
+        ctx.targets.add(
+            name = "self_rule",
+            kind = "self_rule",
+            symbols = [aspect.Symbol(
+                id = path.join(ctx.rel, "self_id"),
+                provider = PROVIDER,
+            )],
+            attrs = {
+                "self_cfg": aspect.Import(
+                    id = "self_id",
+                    provider = PROVIDER,
+                    ancestor = True,
+                    optional = True,
+                ),
+            },
+        )
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "cfg_consumer",
+        attrs = {
+            "cfg": aspect.Import(
+                id = "config",
+                provider = PROVIDER,
+                ancestor = True,
+            ),
+            "missing": aspect.Import(
+                id = "no-such-symbol",
+                provider = PROVIDER,
+                ancestor = True,
+                optional = True,
+            ),
+        },
+    )
+
+aspect.orion_extension(
+    id = "ancestor-import",
+    prepare = prepare,
+    declare = declare,
+)

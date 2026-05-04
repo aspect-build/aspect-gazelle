@@ -1,0 +1,48 @@
+aspect.gazelle_rule_kind("cfg_provider", {
+    "From": "@ancestor-lazy-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("cfg_consumer", {
+    "From": "@ancestor-lazy-test//:rules.bzl",
+    "ResolveAttrs": ["cfg"],
+})
+
+PROVIDER = "lazy-cfg"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = {
+            "provider": [aspect.SourceExtensions(".cfg")],
+            "consumer": [aspect.SourceExtensions(".consume")],
+        },
+    )
+
+def declare(ctx):
+    if len(ctx.sources.provider) > 0:
+        ctx.targets.add(
+            name = "config",
+            kind = "cfg_provider",
+            symbols = [aspect.Symbol(
+                id = path.join(ctx.rel, "config"),
+                provider = PROVIDER,
+            )],
+        )
+
+    if len(ctx.sources.consumer) > 0:
+        ctx.targets.add(
+            name = "consumer",
+            kind = "cfg_consumer",
+            attrs = {
+                "cfg": aspect.Import(
+                    id = "config",
+                    provider = PROVIDER,
+                    ancestor = True,
+                ),
+            },
+        )
+
+aspect.orion_extension(
+    id = "ancestor-import-lazy",
+    prepare = prepare,
+    declare = declare,
+)
