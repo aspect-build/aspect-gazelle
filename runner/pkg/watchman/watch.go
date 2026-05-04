@@ -418,6 +418,10 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 			return
 		}
 
+		// NOTE: this initial resp["subscribe"] object will NOT contain the initial
+		// "files" because of the "empty_on_fresh_instance" parameter.
+		// This also means the "is_fresh_instance" is irrelevant and essentially always true.
+
 		// BEST EFFORT: if the subscriber panics, try to unsubscribe from watchman
 		defer sock.Send([]any{"unsubscribe", w.watchedRoot, subscriptionName})
 
