@@ -498,10 +498,16 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 				prevDiffHashes = diffHashes
 			}
 
+			// is_fresh_instance can legitimately appear on subscription notifications
+			// (recrawl, kernel queue overflow, daemon restart). Propagate it so
+			// callers can invalidate caches. See ChangeSet.IsFreshInstance.
+			isFreshInstance, _ := resp["is_fresh_instance"].(bool)
+
 			cs := ChangeSet{
-				Paths:     paths,
-				Root:      path.Join(resp["root"].(string), w.watchedRelPath),
-				ClockSpec: clockSpec,
+				Paths:           paths,
+				Root:            path.Join(resp["root"].(string), w.watchedRelPath),
+				ClockSpec:       clockSpec,
+				IsFreshInstance: isFreshInstance,
 			}
 			if !yield(&cs, nil) {
 				return
