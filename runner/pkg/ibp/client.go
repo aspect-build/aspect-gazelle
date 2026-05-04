@@ -213,14 +213,21 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 
 	cycleId := int(cycleIdFloat)
 
-	sources := make(SourceInfoMap, len(msg["sources"].(map[string]any)))
-	for k, v := range msg["sources"].(map[string]any) {
-		if v == nil {
-			sources[k] = nil
-		} else {
-			sources[k] = &SourceInfo{
-				IsSymlink: readOptionalBool(v.(map[string]any), "is_symlink"),
-				IsSource:  readOptionalBool(v.(map[string]any), "is_source"),
+	// `sources: null` (a nil map on the Go side) is a fresh-instance reset
+	// signal — the receiver must discard accumulated state. `sources: {}` is
+	// a no-op delta. Distinguish the two by leaving sources nil when the
+	// wire field is absent or null.
+	var sources SourceInfoMap
+	if rawSources, ok := msg["sources"].(map[string]any); ok {
+		sources = make(SourceInfoMap, len(rawSources))
+		for k, v := range rawSources {
+			if v == nil {
+				sources[k] = nil
+			} else {
+				sources[k] = &SourceInfo{
+					IsSymlink: readOptionalBool(v.(map[string]any), "is_symlink"),
+					IsSource:  readOptionalBool(v.(map[string]any), "is_source"),
+				}
 			}
 		}
 	}

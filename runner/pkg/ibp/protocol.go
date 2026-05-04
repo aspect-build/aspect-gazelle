@@ -21,6 +21,12 @@ const (
 	LATEST_VERSION   ProtocolVersion = VERSION_1
 )
 
+// CYCLE messages with `sources: null` (a nil SourceInfoMap) signal a
+// fresh-instance reset — the sender's source-of-truth was invalidated (e.g.
+// watchman recrawl) and the receiver must discard its accumulated state. A
+// non-nil map (even empty) is an incremental delta. Old clients that decoded
+// `sources` as a required object will need to tolerate null.
+
 func (v ProtocolVersion) HasCapMessage() bool {
 	// Only "version 0" did not have the CAPS message
 	return v > 0
@@ -112,7 +118,10 @@ type CycleMessage struct {
 
 type CycleSourcesMessage struct {
 	CycleMessage
-	Scope   WatchScope    `json:"scope,omitempty"`
+	Scope WatchScope `json:"scope,omitempty"`
+	// Sources is the source-info delta. A nil map serializes as JSON `null`
+	// and signals a fresh-instance reset (the receiver must discard
+	// accumulated state). A non-nil map (including empty `{}`) is a delta.
 	Sources SourceInfoMap `json:"sources"`
 }
 
@@ -319,7 +328,11 @@ func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, source
 func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
-	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
+	if changes == nil {
+		fmt.Printf("%s Sending cycle #%v (fresh-instance reset) to %s\n", color.GreenString("INFO:"), cycle_id, p.socketPath)
+	} else {
+		fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
+	}
 
 	// Support: Protocol0 did not have the concept of scope so remove it from the message if
 	// the connection does not support it to maintain compatibility with older clients.

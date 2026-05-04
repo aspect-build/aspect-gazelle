@@ -1,7 +1,9 @@
 package ibp
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"testing"
 
 	"go.opentelemetry.io/otel/trace"
@@ -246,5 +248,54 @@ func TestCycle_V1KeepsScope(t *testing.T) {
 	}
 	if msg.Scope != WatchScope_Sources {
 		t.Fatalf("expected sources scope for v1 protocol, got %q", msg.Scope)
+	}
+	if msg.Sources == nil {
+		t.Fatalf("expected non-nil Sources for delta cycle, got nil")
+	}
+}
+
+func TestCycle_NilSourcesSignalsFreshInstance(t *testing.T) {
+	socket := &fakeServerSocket{
+		recvQueue: []map[string]any{
+			{
+				"kind":     "CYCLE_COMPLETED",
+				"cycle_id": float64(1),
+			},
+		},
+	}
+	p := &aspectBazelProtocol{
+		socket:           socket,
+		socketPath:       "test.sock",
+		connectedVersion: VERSION_1,
+	}
+
+	if err := p.Cycle(context.Background(), WatchScope_Sources, nil); err != nil {
+		t.Fatalf("Cycle returned error: %v", err)
+	}
+
+	msg, ok := socket.sent[0].(CycleSourcesMessage)
+	if !ok {
+		t.Fatalf("expected CycleSourcesMessage, got %T", socket.sent[0])
+	}
+	if msg.Sources != nil {
+		t.Fatalf("expected nil Sources to propagate to wire message, got %#v", msg.Sources)
+	}
+}
+
+func TestCycle_NilSourcesSerializesToJSONNull(t *testing.T) {
+	msg := CycleSourcesMessage{
+		CycleMessage: CycleMessage{
+			Message: Message{Kind: "CYCLE"},
+			CycleId: 1,
+		},
+		Scope:   WatchScope_Sources,
+		Sources: nil,
+	}
+	b, err := json.Marshal(msg)
+	if err != nil {
+		t.Fatalf("marshal returned error: %v", err)
+	}
+	if !bytes.Contains(b, []byte(`"sources":null`)) {
+		t.Fatalf("expected sources to serialize as null, got %s", b)
 	}
 }

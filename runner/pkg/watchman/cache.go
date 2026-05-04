@@ -143,14 +143,15 @@ func (c *watchmanCache) read() {
 		return
 	}
 
-	// If the watcher has restarted, discard the cache.
-	if cs.IsFreshInstance {
+	// If the watcher has restarted, discard the cache. Watchman signals a
+	// fresh instance via a nil Files slice (see watchman.ChangeSet).
+	if cs.Files == nil {
 		BazelLog.Infof("Watchman state is stale, clearing")
-		c.lastClockSpec = cs.ClockSpec
+		c.lastClockSpec = cs.Clock
 		return
 	}
 
-	for _, p := range cs.Paths {
+	for _, p := range cs.Files {
 		// Discard entries which have changed since the last cache write.
 		delete(v.Entries, p)
 
@@ -162,7 +163,7 @@ func (c *watchmanCache) read() {
 
 	// Persist the still valid entries as the "old" cache state
 	c.FileComputeCache.LoadEntries(v.Entries)
-	c.lastClockSpec = cs.ClockSpec
+	c.lastClockSpec = cs.Clock
 	c.walkCache = previousWalkCache
 
 	// Persist the fact that all persisted paths are not symlinks.

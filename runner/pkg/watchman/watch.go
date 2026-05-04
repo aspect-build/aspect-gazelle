@@ -15,25 +15,31 @@ import (
 	"github.com/aspect-build/aspect-gazelle/runner/pkg/socket"
 )
 
+// ChangeSet mirrors the shape of a watchman query/subscribe response PDU
+// (https://facebook.github.io/watchman/docs/cmd/subscribe#subscription-results).
+// Field names match watchman's wire field names so the mapping is direct.
 type ChangeSet struct {
-	// Workspace Relative paths of changed files. eg: ["src/urchin/urchin.go", "src/urchin/urchin_test.go"]
-	Paths []string
-	// Root of the workspace. eg: /Users/thesayyn/Documents/urchin
-	Root string
-	// ClockSpec is a point in time that represents the state of the filesystem
-	// you could use this to query changes since then but DO NOT rely on the specifics
-	// of this string, treat it as an opaque token
-	ClockSpec string
+	// Clock mirrors watchman's `clock` field — an opaque token representing a
+	// point in time in the filesystem. Treat as opaque; do not parse.
+	Clock string
 
-	// Fresh instance means that the watchman daemon has no prior knowledge of the state of the filesystem
-	// and is starting from scratch.
+	// Root mirrors watchman's `root` field — the watched workspace root.
+	// (eg: /Users/thesayyn/Documents/urchin)
+	Root string
+
+	// Files mirrors watchman's `files` field — the workspace-relative list
+	// of changed files (eg: ["src/urchin/urchin.go", "src/urchin/urchin_test.go"]).
 	//
-	// Normally watchman would report all the files in the workspace as changed in this case but we set the
-	// `empty_on_fresh_instance` parameter to true in the query to avoid this because we want to traverse the
-	// filesystem ourselves. In the future we mgiht to rely on watchman to get initial state of the filesystem
-	// instead of traversing it ourselves.
+	// A nil Files slice signals a fresh-instance reset: watchman has no
+	// prior knowledge of the filesystem state and the consumer must discard
+	// any cache and re-traverse the workspace. An empty (non-nil) slice
+	// means "no changes since the last cycle" — distinct from a reset.
 	//
-	// Here are some cases where `IsFreshInstance` might be true:
+	// We set `empty_on_fresh_instance: true` in the query so watchman does
+	// not flood us with every file on a fresh instance; we surface the
+	// reset signal as nil-Files instead.
+	//
+	// Cases where watchman reports a fresh instance (`is_fresh_instance: true`):
 	//
 	// 1. The watchman daemon was restarted since your last query
 	// 2. The workspace watch was cancelled and restarted.
@@ -43,9 +49,7 @@ type ChangeSet struct {
 	// 5. You're using timestamps rather than clocks and the timestamp is out of range of known events.
 	// 6. You're using a `named cursor`` and that name has not been used before.
 	// 7. You're using a blank clock string for the since generator in a query (this is not the same thing as a since term in a query expression!)
-	//
-	// IMPORTANT: IsFreshInstance ought to indicate a cache discard and a full traversal of the filesystem.
-	IsFreshInstance bool
+	Files []string
 }
 
 type SubscribeOptions interface {
@@ -242,24 +246,28 @@ func (w *WatchmanWatcher) GetDiff(clockspec string) (*ChangeSet, error) {
 		return nil, fmt.Errorf("query error response: %s", resp["error"])
 	}
 
-	files := []string{}
-
-	if resp["files"] != nil {
-		rf := resp["files"].([]any)
-		files = make([]string, len(rf))
-		for i, f := range rf {
-			files[i] = f.(string)
-		}
-	}
 	w.lastClockSpec = resp["clock"].(string)
 
-	isFreshInstance, _ := resp["is_fresh_instance"].(bool)
+	// A fresh instance is signaled to callers as nil Files (distinct from an
+	// empty-but-non-nil slice meaning "no changes"). With
+	// empty_on_fresh_instance set, watchman returns an empty files list on
+	// fresh instances; we collapse that to nil here.
+	var files []string
+	if isFreshInstance, _ := resp["is_fresh_instance"].(bool); !isFreshInstance {
+		files = []string{}
+		if resp["files"] != nil {
+			rf := resp["files"].([]any)
+			files = make([]string, len(rf))
+			for i, f := range rf {
+				files[i] = f.(string)
+			}
+		}
+	}
 
 	return &ChangeSet{
-		Paths:           files,
-		Root:            w.workspaceDir,
-		ClockSpec:       w.lastClockSpec,
-		IsFreshInstance: isFreshInstance,
+		Files: files,
+		Root:  w.workspaceDir,
+		Clock: w.lastClockSpec,
 	}, nil
 }
 
@@ -458,56 +466,62 @@ func (w *WatchmanWatcher) Subscribe(ctx context.Context, options ...SubscribeOpt
 				continue
 			}
 
-			paths := []string{}
-			clockSpec := resp["clock"].(string)
-
-			if resp["files"] != nil {
-				rf := resp["files"].([]any)
-				diffHashes := make(map[string]string, len(rf))
-				paths = make([]string, len(rf))
-				for i, f := range rf {
-					fileEntry := f.(map[string]any)
-					fileName := fileEntry["name"].(string)
-					paths[i] = fileName
-
-					sha1hex, hasSha1 := fileEntry["content.sha1hex"]
-					if hasSha1 {
-						sha1hex, hasSha1 = sha1hex.(string)
-					}
-
-					if !hasSha1 {
-						// No known sha1 or error calculating the sha1, use the
-						// clock spec as a proxy for file content change
-						diffHashes[fileName] = clockSpec
-					} else {
-						diffHashes[fileName] = sha1hex.(string)
-					}
-				}
-
-				if maps.Equal(diffHashes, prevDiffHashes) {
-					// Check for sequential duplicate change events from watchman and ignore them.
-					// Watchman can sometimes send duplicate events for the same change depending
-					// on the platform, filesystem and things such as which tool made the fs change.
-					//
-					// For example it has been reported that the coreutils `cp` command on macOS
-					// can trigger duplicate events for the same file copy operation while other forms
-					// of file copy do not.
-					continue
-				}
-
-				prevDiffHashes = diffHashes
-			}
+			clock := resp["clock"].(string)
 
 			// is_fresh_instance can legitimately appear on subscription notifications
-			// (recrawl, kernel queue overflow, daemon restart). Propagate it so
-			// callers can invalidate caches. See ChangeSet.IsFreshInstance.
+			// (recrawl, kernel queue overflow, daemon restart). Surface it as a
+			// nil Files slice so callers can invalidate caches. See ChangeSet.Files.
 			isFreshInstance, _ := resp["is_fresh_instance"].(bool)
 
+			var files []string
+			if !isFreshInstance {
+				files = []string{}
+				if resp["files"] != nil {
+					rf := resp["files"].([]any)
+					diffHashes := make(map[string]string, len(rf))
+					files = make([]string, len(rf))
+					for i, f := range rf {
+						fileEntry := f.(map[string]any)
+						fileName := fileEntry["name"].(string)
+						files[i] = fileName
+
+						sha1hex, hasSha1 := fileEntry["content.sha1hex"]
+						if hasSha1 {
+							sha1hex, hasSha1 = sha1hex.(string)
+						}
+
+						if !hasSha1 {
+							// No known sha1 or error calculating the sha1, use the
+							// clock as a proxy for file content change
+							diffHashes[fileName] = clock
+						} else {
+							diffHashes[fileName] = sha1hex.(string)
+						}
+					}
+
+					if maps.Equal(diffHashes, prevDiffHashes) {
+						// Check for sequential duplicate change events from watchman and ignore them.
+						// Watchman can sometimes send duplicate events for the same change depending
+						// on the platform, filesystem and things such as which tool made the fs change.
+						//
+						// For example it has been reported that the coreutils `cp` command on macOS
+						// can trigger duplicate events for the same file copy operation while other forms
+						// of file copy do not.
+						continue
+					}
+
+					prevDiffHashes = diffHashes
+				}
+			} else {
+				// Fresh-instance reset must invalidate any prior dedup state so a
+				// post-reset event matching the last hash isn't suppressed.
+				prevDiffHashes = nil
+			}
+
 			cs := ChangeSet{
-				Paths:           paths,
-				Root:            path.Join(resp["root"].(string), w.watchedRelPath),
-				ClockSpec:       clockSpec,
-				IsFreshInstance: isFreshInstance,
+				Files: files,
+				Root:  path.Join(resp["root"].(string), w.watchedRelPath),
+				Clock: clock,
 			}
 			if !yield(&cs, nil) {
 				return

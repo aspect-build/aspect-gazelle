@@ -60,11 +60,11 @@ func TestWatchStart(t *testing.T) {
 		t.Errorf("Expected to get diff: %s", err)
 	}
 
-	if len(changeset.Paths) != 1 {
+	if len(changeset.Files) != 1 {
 		t.Errorf("Expected to get one change")
 	}
 
-	if changeset.Paths[0] != "test" {
+	if changeset.Files[0] != "test" {
 		t.Errorf("Expected to get test file")
 	}
 }
@@ -82,14 +82,14 @@ func TestGetDiffFreshInstance(t *testing.T) {
 	defer w.Close()
 
 	// A clockspec watchman doesn't recognize (e.g. from a previous daemon
-	// instance) must produce IsFreshInstance=true so callers can discard
-	// stale caches.
+	// instance) must produce a nil Files slice so callers can discard stale
+	// caches. See watchman.ChangeSet for the nil-Files convention.
 	cs, err := w.GetDiff("c:0:0:0:0")
 	if err != nil {
 		t.Fatalf("GetDiff returned error: %s", err)
 	}
-	if !cs.IsFreshInstance {
-		t.Errorf("Expected IsFreshInstance=true for unknown clockspec, got false")
+	if cs.Files != nil {
+		t.Errorf("Expected nil Files for unknown clockspec (fresh-instance signal), got %#v", cs.Files)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestSubscribe(t *testing.T) {
 	go func() {
 		for cs := range w.Subscribe(context.TODO()) {
 			t.Log(cs)
-			if len(cs.Paths) == 0 {
+			if len(cs.Files) == 0 {
 				break
 			}
 			changeset <- *cs
@@ -124,11 +124,11 @@ func TestSubscribe(t *testing.T) {
 	os.WriteFile(tmp+"/test", []byte("test"), 0644)
 
 	cs := <-changeset
-	if len(cs.Paths) != 1 {
+	if len(cs.Files) != 1 {
 		t.Errorf("Expected to get one change")
 	}
 
-	if cs.Paths[0] != "test" {
+	if cs.Files[0] != "test" {
 		t.Errorf("Expected to get test file")
 	}
 
