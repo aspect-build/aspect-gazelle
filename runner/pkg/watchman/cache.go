@@ -2,7 +2,6 @@ package watchman
 
 import (
 	"encoding/gob"
-	"log"
 	"os"
 	"path"
 	"path/filepath"
@@ -45,7 +44,7 @@ func NewWatchmanCache(c *config.Config) cache.Cache {
 	// Start the watcher
 	w := NewWatchman(c.RepoRoot)
 	if err := w.Start(); err != nil {
-		log.Fatalf("failed to start the watcher: %v", err)
+		BazelLog.Fatalf("failed to start the watcher: %v", err)
 	}
 
 	return newWatchmanCache(c, w, cache.FilePath(c))

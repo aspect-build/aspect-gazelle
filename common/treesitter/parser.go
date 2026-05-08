@@ -20,10 +20,10 @@ import (
 	"context"
 	"fmt"
 	"iter"
-	"log"
 	"path"
 	"unsafe"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
@@ -150,11 +150,11 @@ var extLanguages = map[string]LanguageGrammar{
 	"jsh":  Java,
 	"json": JSON,
 
-	"hcl":      HCL,
-	"nomad":    HCL,
-	"tf":       HCL,
-	"tfvars":   HCL,
-	"tofu":     HCL,
+	"hcl":    HCL,
+	"nomad":  HCL,
+	"tf":     HCL,
+	"tfvars": HCL,
+	"tofu":   HCL,
 
 	// Not commonly used, although linguist says this is HCL.
 	// "workflow": HCL,
@@ -179,7 +179,7 @@ func extensionToLanguage(ext string) LanguageGrammar {
 
 	// TODO: allow override or fallback language for files
 	if !found {
-		log.Panicf("Unknown source file extension %q", ext)
+		BazelLog.Fatalf("Unknown source file extension %q", ext)
 	}
 
 	return lang

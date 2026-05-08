@@ -1,12 +1,11 @@
 package parser
 
 import (
-	"log"
 	"path"
 	"regexp"
 	"strings"
 
-	Log "github.com/aspect-build/aspect-gazelle/common/logger"
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
 
@@ -155,6 +154,8 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 
 	lang := filenameToLanguage(filePath)
 
+	BazelLog.Debugf("Parsing JS source: %s (%v)", filePath, lang)
+
 	// Parse the source code
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
 	if err != nil {
@@ -172,10 +173,10 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 		// Query for more complex non-root node imports.
 		q, err := treeutils.GetQuery(lang, querySource)
 		if err != nil {
-			log.Fatalf("Failed to create js 'importsQuery': %v", err)
+			BazelLog.Fatalf("Failed to create js 'importsQuery': %v", err)
 		}
 		for queryResult := range tree.Query(q) {
-			Log.Tracef("AST Query %q: %v", filePath, queryResult)
+			BazelLog.Tracef("AST Query %q: %v", filePath, queryResult)
 
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
@@ -192,16 +193,16 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			} else if defined, isDefined := caps["defined"]; isDefined {
 				modules = append(modules, defined)
 			} else {
-				log.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
+				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
 			}
 		}
 
 		// Parse errors. Only log them due to many false positives potentially caused by issues
 		// such as only parsing a single file at a time so type information from other files is missing.
-		if Log.IsTraceEnabled() {
+		if BazelLog.IsTraceEnabled() {
 			treeErrors := tree.QueryErrors()
 			if treeErrors != nil {
-				Log.Tracef("TreeSitter query errors: %v", treeErrors)
+				BazelLog.Tracef("TreeSitter query errors: %v", treeErrors)
 			}
 		}
 	}

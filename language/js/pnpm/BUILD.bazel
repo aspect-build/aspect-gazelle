@@ -12,6 +12,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/language/js/pnpm",
     visibility = ["//visibility:public"],
     deps = [
+        "@aspect_gazelle//common/logger",
         "@com_github_masterminds_semver_v3//:semver",
         "@gazelle//label",
         "@in_gopkg_yaml_v3//:yaml_v3",

@@ -2,13 +2,13 @@ package gazelle
 
 import (
 	"bytes"
-	"log"
 	"os"
 	"regexp"
 	"slices"
 	"strconv"
 	"strings"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/language"
 	proto_config "github.com/bazelbuild/bazel-gazelle/language/proto"
 	"github.com/bazelbuild/bazel-gazelle/rule"
@@ -113,7 +113,7 @@ func unquoteProtoString(q []byte) string {
 
 	s, err := strconv.Unquote(string(q))
 	if err != nil {
-		log.Panicf("unquoting string literal %s from proto: %v", q, err)
+		BazelLog.Fatalf("unquoting string literal %s from proto: %v", q, err)
 	}
 	return s
 }

@@ -1,8 +1,7 @@
 package queries
 
 import (
-	"log"
-
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
@@ -21,7 +20,7 @@ func RunQueries(queryType plugin.QueryType, fileName string, sourceCode []byte, 
 	case plugin.QueryTypeRaw:
 		return runRawQueries(fileName, sourceCode, queries, queryResults)
 	default:
-		log.Panicf("Unknown query type: %v", queryType)
+		BazelLog.Fatalf("Unknown query type: %v", queryType)
 		return nil
 	}
 }
