@@ -2,13 +2,11 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "hcl",
-    srcs = [
-        "binding.go",
-        "@tree-sitter-hcl//:srcs",  #keep
-    ],
-    cgo = True,
-    copts = ["-Iexternal/*tree-sitter-hcl"],  #keep
+    srcs = ["binding.go"],
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/hcl",
     visibility = ["//visibility:public"],
-    deps = ["//common/treesitter"],
+    deps = [
+        "//common/treesitter",
+        "@com_github_odvcencio_gotreesitter//grammars",
+    ],
 )
