@@ -1,9 +1,13 @@
 package cache
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
@@ -12,6 +16,12 @@ import (
 func fakeConfig(repoName string) *config.Config {
 	c := config.New()
 	c.RepoName = repoName
+	return c
+}
+
+func fakeConfigAt(repoName, repoRoot string) *config.Config {
+	c := fakeConfig(repoName)
+	c.RepoRoot = repoRoot
 	return c
 }
 
@@ -153,13 +163,15 @@ func TestFilePath_EnvVarOverride(t *testing.T) {
 	}
 }
 
-// Without the env var, FilePath returns a per-repo file under os.TempDir.
-// The RepoName is embedded to keep caches distinct across repos.
+// Without the env var, FilePath returns a per-repo, per-worktree file under os.TempDir.
 func TestFilePath_TempDirFallback(t *testing.T) {
 	t.Setenv("ASPECT_GAZELLE_CACHE", "")
 
-	got := FilePath(fakeConfig("myrepo"))
-	want := path.Join(os.TempDir(), "aspect-gazelle-myrepo.cache")
+	root := "/tmp/some/repo"
+	sum := sha256.Sum256([]byte(root))
+	want := path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-myrepo-%s.cache", hex.EncodeToString(sum[:8])))
+
+	got := FilePath(fakeConfigAt("myrepo", root))
 	if got != want {
 		t.Errorf("expected %q, got %q", want, got)
 	}
@@ -170,9 +182,23 @@ func TestFilePath_TempDirFallback(t *testing.T) {
 func TestFilePath_FallbackUsesRepoName(t *testing.T) {
 	t.Setenv("ASPECT_GAZELLE_CACHE", "")
 
-	a := FilePath(fakeConfig("alpha"))
-	b := FilePath(fakeConfig("beta"))
+	a := FilePath(fakeConfigAt("alpha", "/tmp/repo"))
+	b := FilePath(fakeConfigAt("beta", "/tmp/repo"))
 	if a == b {
 		t.Errorf("expected distinct fallback paths per repo, got %q for both", a)
+	}
+}
+
+// Worktrees of the same repo share a RepoName but live at different paths.
+func TestFilePath_FallbackDistinguishesWorktrees(t *testing.T) {
+	t.Setenv("ASPECT_GAZELLE_CACHE", "")
+
+	a := FilePath(fakeConfigAt("repo", "/tmp/repo-main"))
+	b := FilePath(fakeConfigAt("repo", "/tmp/repo-feature"))
+	if a == b {
+		t.Errorf("expected distinct fallback paths per worktree, got %q for both", a)
+	}
+	if !strings.Contains(a, "aspect-gazelle-repo-") || !strings.Contains(b, "aspect-gazelle-repo-") {
+		t.Errorf("expected RepoName prefix in both paths, got %q and %q", a, b)
 	}
 }

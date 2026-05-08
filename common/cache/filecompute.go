@@ -1,7 +1,9 @@
 package cache
 
 import (
+	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path"
@@ -11,12 +13,13 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/config"
 )
 
-// FilePath returns ASPECT_GAZELLE_CACHE if set, otherwise a per-repo file under os.TempDir.
+// FilePath returns ASPECT_GAZELLE_CACHE if set, otherwise a per-repo, per-worktree file under os.TempDir.
 func FilePath(cfg *config.Config) string {
 	if p := os.Getenv("ASPECT_GAZELLE_CACHE"); p != "" {
 		return p
 	}
-	return path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-%v.cache", cfg.RepoName))
+	sum := sha256.Sum256([]byte(cfg.RepoRoot))
+	return path.Join(os.TempDir(), fmt.Sprintf("aspect-gazelle-%v-%s.cache", cfg.RepoName, hex.EncodeToString(sum[:8])))
 }
 
 func init() {

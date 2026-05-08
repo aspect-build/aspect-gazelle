@@ -10,7 +10,7 @@ File-based caching on the aspect-gazelle binary can be enabled either by flag or
 
 When invoked as a `--watch` protocol client the runner automatically installs a watch-optimized disk cache — no flag needed — and invalidates entries based on the watch protocol's change notifications.
 
-The cache file location defaults to `$TMPDIR/aspect-gazelle-<repo>.cache`; set `ASPECT_GAZELLE_CACHE` to override (e.g. `.cache/aspect-gazelle.cache`). The on-disk format is shared between `--cache=disk` and the watch-mode cache, so entries survive mode switches across runs.
+The cache file location defaults to `$TMPDIR/aspect-gazelle-<repo>-<hash>.cache`, where `<hash>` is a checksum of the absolute repo root so that distinct git worktrees of the same repo do not share a cache file; set `ASPECT_GAZELLE_CACHE` to override (e.g. `.cache/aspect-gazelle.cache`). The on-disk format is shared between `--cache=disk` and the watch-mode cache, so entries survive mode switches across runs.
 
 ## Usage
 
