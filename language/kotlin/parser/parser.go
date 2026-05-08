@@ -1,10 +1,9 @@
 package parser
 
 import (
-	"log"
 	"strings"
 
-	Log "github.com/aspect-build/aspect-gazelle/common/logger"
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
 
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
@@ -75,10 +74,10 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 
 		q, err := treeutils.GetQuery(lang, importsQuery)
 		if err != nil {
-			log.Fatalf("Failed to create kotlin 'importsQuery': %v", err)
+			BazelLog.Fatalf("Failed to create kotlin 'importsQuery': %v", err)
 		}
 		for queryResult := range tree.Query(q) {
-			Log.Tracef("Kotlin AST Query %q: %v", filePath, queryResult)
+			BazelLog.Tracef("Kotlin AST Query %q: %v", filePath, queryResult)
 
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
@@ -90,14 +89,14 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 				result.Imports = append(result.Imports, from)
 			} else if pkg, isPackage := caps["package"]; isPackage {
 				if result.Package != "" {
-					log.Fatalf("Multiple package declarations found in %q: %s and %s", filePath, result.Package, pkg)
+					BazelLog.Fatalf("Multiple package declarations found in %q: %s and %s", filePath, result.Package, pkg)
 				}
 
 				result.Package = pkg
 			} else if _, isMain := caps["equals-main"]; isMain {
 				result.HasMain = true
 			} else {
-				log.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
+				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
 			}
 		}
 

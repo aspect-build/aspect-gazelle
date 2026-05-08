@@ -2,8 +2,8 @@ package starlark
 
 import (
 	"fmt"
-	"log"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"go.starlark.net/starlark"
 )
 
@@ -37,7 +37,7 @@ func Write(v any) starlark.Value {
 		return WriteMap(v, Write)
 	}
 
-	log.Panicf("Failed to write value %v of type %T", v, v)
+	BazelLog.Fatalf("Failed to write value %v of type %T", v, v)
 	return nil
 }
 

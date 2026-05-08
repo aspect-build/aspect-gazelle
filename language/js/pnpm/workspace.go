@@ -1,10 +1,10 @@
 package gazelle
 
 import (
-	"log"
 	"path"
 	"strings"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/label"
 )
 
@@ -65,7 +65,7 @@ func (pm *PnpmProjectMap) NewWorkspace(lockfile string) *PnpmWorkspace {
 
 func (pm *PnpmProjectMap) addProject(project *PnpmProject) {
 	if existing := pm.projects[project.project]; existing != nil {
-		log.Fatalf("Project '%s' (workspace: '%s') already exists from '%s'\n", project.project, project.workspace.lockfile, existing.workspace.lockfile)
+		BazelLog.Fatalf("Project '%s' (workspace: '%s') already exists from '%s'", project.project, project.workspace.lockfile, existing.workspace.lockfile)
 	}
 
 	pm.projects[project.project] = project

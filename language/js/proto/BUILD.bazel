@@ -6,6 +6,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/language/js/proto",
     visibility = ["//visibility:public"],
     deps = [
+        "@aspect_gazelle//common/logger",
         "@gazelle//language",
         "@gazelle//language/proto",
         "@gazelle//rule",

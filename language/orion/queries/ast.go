@@ -1,8 +1,6 @@
 package queries
 
 import (
-	"log"
-
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
@@ -90,7 +88,7 @@ func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Lan
 		return tsx.NewLanguage()
 	}
 
-	log.Panicf("Unknown LanguageGrammar %q", lang)
+	BazelLog.Fatalf("Unknown LanguageGrammar %q", lang)
 	return nil
 }
 

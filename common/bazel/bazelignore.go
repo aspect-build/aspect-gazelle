@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"os"
 	"path"
 	"strings"
 	"sync"
+
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 )
 
 var ignores sync.Map
@@ -50,7 +51,7 @@ func loadBazelIgnore(repoRoot string) ([]string, error) {
 		// Bazel ignore paths are always relative to repo root.
 		// Glob patterns are not supported.
 		if strings.ContainsAny(ignore, "*?[") {
-			log.Printf("the .bazelignore exclusion pattern must not be a glob %s", ignore)
+			BazelLog.Warnf("the .bazelignore exclusion pattern must not be a glob %s", ignore)
 			continue
 		}
 

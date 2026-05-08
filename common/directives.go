@@ -1,9 +1,9 @@
 package gazelle
 
 import (
-	"log"
 	"strings"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/rule"
 )
 
@@ -14,7 +14,7 @@ func ReadEnabled(d rule.Directive) bool {
 	case "disabled":
 		return false
 	default:
-		log.Fatalf("Invalid directive %s enabled/disabled value: %s", d.Key, d.Value)
+		BazelLog.Fatalf("Invalid directive %s enabled/disabled value: %s", d.Key, d.Value)
 		return false
 	}
 }

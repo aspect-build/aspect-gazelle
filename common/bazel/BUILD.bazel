@@ -8,5 +8,8 @@ go_library(
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common/bazel",
     visibility = ["//visibility:public"],
-    deps = ["//common/bazel/workspace"],
+    deps = [
+        "//common/bazel/workspace",
+        "//common/logger",
+    ],
 )
