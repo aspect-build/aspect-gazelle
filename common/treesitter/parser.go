@@ -17,26 +17,24 @@
 package treesitter
 
 import (
-	"context"
 	"fmt"
 	"iter"
 	"path"
-	"unsafe"
+	"sync"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	sitter "github.com/smacker/go-tree-sitter"
+	sitter "github.com/odvcencio/gotreesitter"
 )
 
-// Background tree deletion channel. Trees are sent here from Close() and
-// deleted by a pool of goroutines, so the ts_tree_delete CGo call does not
-// block parsing from completing.
-var treeDeleteCh = make(chan *sitter.Tree, 128)
+// Background tree release channel. Trees are sent here from Close() and
+// released by a pool of goroutines so arena teardown does not block parsing.
+var treeReleaseCh = make(chan *sitter.Tree, 128)
 
 func init() {
 	for range 3 {
 		go func() {
-			for t := range treeDeleteCh {
-				t.Close()
+			for t := range treeReleaseCh {
+				t.Release()
 			}
 		}()
 	}
@@ -60,23 +58,36 @@ const (
 
 type Language any
 
-func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
-	return &treeLanguage{
-		grammar: grammar,
-		lang:    sitter.NewLanguage(langPtr),
-	}
-}
+// languageCache memoizes treeLanguage wrappers per *sitter.Language so the
+// ParserPool inside the wrapper survives across calls. Per-language bindings
+// (tsx.NewLanguage(), typescript.NewLanguage(), …) invoke NewLanguage on
+// every parse, so without this dedupe the pool would be recreated empty
+// every time.
+var languageCache sync.Map // key: *sitter.Language → *treeLanguage
 
-func NewLanguageFromSitter(grammar LanguageGrammar, lang *sitter.Language) Language {
-	return &treeLanguage{
+func NewLanguage(grammar LanguageGrammar, lang *sitter.Language) Language {
+	if cached, ok := languageCache.Load(lang); ok {
+		return cached.(*treeLanguage)
+	}
+	tl := &treeLanguage{
 		grammar: grammar,
 		lang:    lang,
+		// ParserPool is concurrency-safe and scrubs request-local state
+		// (reuseCursor/reuseScratch node refs, recoveryParser) on release.
+		// One pool per language, held for the process lifetime.
+		pool: sitter.NewParserPool(lang, sitter.WithParserPoolTimeoutMicros(parseTimeoutMicros)),
 	}
+	actual, _ := languageCache.LoadOrStore(lang, tl)
+	return actual.(*treeLanguage)
 }
 
 type treeLanguage struct {
 	grammar LanguageGrammar
 	lang    *sitter.Language
+
+	// pool amortizes gotreesitter's per-language table preprocessing
+	// (buildSmallLookup, buildRecoverActionsByState, …) across parses.
+	pool *sitter.ParserPool
 }
 
 func (tree *treeLanguage) String() string {
@@ -111,12 +122,12 @@ func (tree *treeAst) Close() {
 	tree.sourceCode = nil
 	if t != nil {
 		// Pass the tree to the background deletion channel and nil out the reference here
-		treeDeleteCh <- t
+		treeReleaseCh <- t
 	}
 }
 
 func (tree *treeAst) String() string {
-	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().String())
+	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().SExpr(tree.lang.lang))
 }
 
 func PathToLanguage(p string) LanguageGrammar {
@@ -185,17 +196,19 @@ func extensionToLanguage(ext string) LanguageGrammar {
 	return lang
 }
 
+// parseTimeoutMicros caps gotreesitter's per-file parse time. Without this,
+// gotreesitter's retryFullParseWithDFA path can spend many seconds on a single
+// file when the first parse hits a stack/iteration/node cap — the retry forks
+// the GLR stacks widely and merge-dedup goes O(stacks² × depth).
+const parseTimeoutMicros uint64 = 100_000
+
 func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, error) {
-	ctx := context.Background()
+	tl := lang.(*treeLanguage)
 
-	parser := sitter.NewParser()
-	defer parser.Close()
-	parser.SetLanguage(lang.(*treeLanguage).lang)
-
-	tree, err := parser.ParseCtx(ctx, nil, sourceCode)
+	tree, err := tl.pool.Parse(sourceCode)
 	if err != nil {
 		return nil, err
 	}
 
-	return &treeAst{lang: lang.(*treeLanguage), filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
+	return &treeAst{lang: tl, filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
 }

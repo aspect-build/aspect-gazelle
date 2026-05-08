@@ -2,13 +2,11 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "kotlin",
-    srcs = [
-        "binding.go",
-        "@tree-sitter-kotlin//:srcs",  #keep
-    ],
-    cgo = True,
-    copts = ["-Iexternal/*tree-sitter-kotlin"],  #keep
+    srcs = ["binding.go"],
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin",
     visibility = ["//visibility:public"],
-    deps = ["//common/treesitter"],
+    deps = [
+        "//common/treesitter",
+        "@com_github_odvcencio_gotreesitter//grammars",
+    ],
 )

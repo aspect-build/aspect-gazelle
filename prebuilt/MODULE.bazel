@@ -21,10 +21,3 @@ register_toolchains("//toolchain:all")
 # Dev only
 
 bazel_dep(name = "gazelle", version = "0.50.0", dev_dependency = True)
-
-go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
-go_deps.module_override(
-    patch_strip = 1,
-    patches = ["@aspect_gazelle//common/patches:go-tree-sitter-abi15.patch"],
-    path = "github.com/smacker/go-tree-sitter",
-)

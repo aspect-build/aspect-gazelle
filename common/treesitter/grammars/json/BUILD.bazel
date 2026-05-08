@@ -2,13 +2,11 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "json",
-    srcs = [
-        "binding.go",
-        "@tree-sitter-json//:srcs",  #keep
-    ],
-    cgo = True,
-    copts = ["-Iexternal/*tree-sitter-json"],  #keep
+    srcs = ["binding.go"],
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json",
     visibility = ["//visibility:public"],
-    deps = ["//common/treesitter"],
+    deps = [
+        "//common/treesitter",
+        "@com_github_odvcencio_gotreesitter//grammars",
+    ],
 )

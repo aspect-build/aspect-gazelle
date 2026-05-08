@@ -54,61 +54,80 @@ func (pe *ParseErrors) Error() string {
 // - triple-slash: a triple-slash directive comment
 // - defined: a string representing a defined module name
 const importsQuery = `
+	; require/import("...") with optional leading comments. Each pattern
+	; pins the string via dot anchors. We avoid (comment)+ because
+	; gotreesitter's anchor-after-quantifier is buggy and lets the string
+	; capture jump past intervening non-comment args.
 	(call_expression
-		function: [
-			(identifier) @equals-require
-			(import)
-		]
-		arguments: (arguments . (comment)* . (string (string_fragment) @from))
+		function: (identifier) @equals-require
+		arguments: (arguments . (string (string_fragment) @from))
+
+		(#eq? @equals-require "require")
+	)
+	(call_expression
+		function: (identifier) @equals-require
+		arguments: (arguments . (comment) . (string (string_fragment) @from))
+
+		(#eq? @equals-require "require")
+	)
+	(call_expression
+		function: (identifier) @equals-require
+		arguments: (arguments . (comment) . (comment) . (string (string_fragment) @from))
 
 		(#eq? @equals-require "require")
 	)
 
-	(program
-		(import_statement
-			source: (string (string_fragment) @from)
-		)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (string (string_fragment) @from))
+	)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (comment) . (string (string_fragment) @from))
+	)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (comment) . (comment) . (string (string_fragment) @from))
 	)
 
-	(program
-		(export_statement
-			source: (string (string_fragment) @from)
-		)
+	(import_statement
+		source: (string (string_fragment) @from)
 	)
 
-	(program
-		(comment) @triple-slash
+	(export_statement
+		source: (string (string_fragment) @from)
+	)
+
+	; Triple-slash directives are top-level only by spec. (program (comment) ...)
+	; would be ideal but gotreesitter only yields the first matching child for
+	; that pattern shape (instead of one match per child). Use bare (comment)
+	; with #not-has-parent? to exclude comments inside function/class bodies.
+	((comment) @triple-slash
 		(#match? @triple-slash "^///\\s*<reference\\s+(?:path|types)\\s*=")
-	)
+		(#not-has-parent? @triple-slash
+			function_declaration
+			generator_function_declaration
+			class_declaration
+			class_body
+			method_definition
+			function_expression
+			arrow_function
+			statement_block
+			module
+			internal_module
+			ambient_declaration))
 
-	(program
-		(ambient_declaration
-			(module
-				body: (statement_block [
-					(import_statement
-						source: (string (string_fragment) @from)
-					)
-					(export_statement
-						source: (string (string_fragment) @from)
-					)
-				])
-			)
-		)
-	)
-
-	(program
-		(ambient_declaration
-			(module
-				name: (string (string_fragment) @defined)
-			)
+	(ambient_declaration
+		(module
+			name: (string (string_fragment) @defined)
 		)
 	)
 
 	(new_expression
 		constructor: (identifier) @equals-url
 		arguments: (arguments
-			. (string (string_fragment) @url-from)
-			. (member_expression
+			(string (string_fragment) @url-from)
+			(member_expression
 				object: (meta_property)
 				property: (property_identifier) @meta-url
 			)

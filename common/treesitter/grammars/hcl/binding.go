@@ -1,17 +1,10 @@
 package hcl
 
-//#include "tree_sitter/parser.h"
-//TSLanguage *tree_sitter_hcl();
-import "C"
 import (
-	"unsafe"
-
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"github.com/odvcencio/gotreesitter/grammars"
 )
 
 func NewLanguage() treesitter.Language {
-	return treesitter.NewLanguage(
-		treesitter.HCL,
-		unsafe.Pointer(C.tree_sitter_hcl()),
-	)
+	return treesitter.NewLanguage(treesitter.HCL, grammars.HclLanguage())
 }
