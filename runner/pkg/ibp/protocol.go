@@ -18,7 +18,8 @@ type ProtocolVersion int
 const (
 	LEGACY_VERSION_0 ProtocolVersion = 0
 	VERSION_1        ProtocolVersion = 1
-	LATEST_VERSION   ProtocolVersion = VERSION_1
+	VERSION_2        ProtocolVersion = 2
+	LATEST_VERSION   ProtocolVersion = VERSION_2
 )
 
 func (v ProtocolVersion) HasCapMessage() bool {
@@ -29,6 +30,11 @@ func (v ProtocolVersion) HasCapMessage() bool {
 func (v ProtocolVersion) HasScopeCap() bool {
 	// Only "version 0" did not have the watch-scope capability within the CAPS message
 	return v > 0
+}
+
+func (v ProtocolVersion) HasResetMessage() bool {
+	// CYCLE_RESET was added in v2.
+	return v >= VERSION_2
 }
 
 type WatchCapability string
@@ -51,6 +57,7 @@ type IncrementalBazel interface {
 	// Messaging to the client
 	Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error
 	Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error
+	CycleReset(ctx context.Context) error
 	Exit(ctx context.Context, err error) error
 
 	// Server + Connection to client
@@ -110,19 +117,32 @@ type CycleMessage struct {
 	CycleId int `json:"cycle_id"`
 }
 
+// An interface to wrap all CycleMessage types for golang convenience
+type CycleEvent interface {
+	cycleId() int
+}
+
 type CycleSourcesMessage struct {
 	CycleMessage
 	Scope   WatchScope    `json:"scope,omitempty"`
 	Sources SourceInfoMap `json:"sources"`
 }
 
+type CycleResetMessage struct {
+	CycleMessage
+}
+
+func (m *CycleSourcesMessage) cycleId() int { return m.CycleId }
+func (m *CycleResetMessage) cycleId() int   { return m.CycleId }
+
 // The versions supported by this host implementation of the protocol.
 // Listed in PRIORITY ORDER, i.e. the first version is the most preferred version to use.
 var abazelSupportedProtocolVersions = []ProtocolVersion{
 	// Latest+preferred version
-	VERSION_1,
+	VERSION_2,
 
-	// Fallback for older clients...
+	// Fallbacks for older clients...
+	VERSION_1,
 	LEGACY_VERSION_0,
 }
 
@@ -319,11 +339,7 @@ func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, source
 func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
 	cycle_id := int(p.cycle_id.Add(1))
 
-	if changes == nil {
-		fmt.Printf("%s Sending cycle #%v (fresh-instance reset) to %s\n", color.GreenString("INFO:"), cycle_id, p.socketPath)
-	} else {
-		fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
-	}
+	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
 
 	// Support: Protocol0 did not have the concept of scope so remove it from the message if
 	// the connection does not support it to maintain compatibility with older clients.
@@ -343,6 +359,31 @@ func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, chang
 		return err
 	}
 
+	return p.awaitCycleResponse(cycle_id)
+}
+
+func (p *aspectBazelProtocol) CycleReset(ctx context.Context) error {
+	if !p.connectedVersion.HasResetMessage() {
+		return fmt.Errorf("CYCLE_RESET requires protocol >= v%d, negotiated v%d", VERSION_2, p.connectedVersion)
+	}
+
+	cycle_id := int(p.cycle_id.Add(1))
+	fmt.Printf("%s Sending cycle reset #%v to %s\n", color.GreenString("INFO:"), cycle_id, p.socketPath)
+
+	c := CycleResetMessage{
+		CycleMessage: CycleMessage{
+			Message: p.otelMessage(ctx, "CYCLE_RESET"),
+			CycleId: cycle_id,
+		},
+	}
+	if err := p.socket.Send(c); err != nil {
+		return err
+	}
+
+	return p.awaitCycleResponse(cycle_id)
+}
+
+func (p *aspectBazelProtocol) awaitCycleResponse(cycle_id int) error {
 	for {
 		resp, err := p.socket.Recv()
 		if err != nil {

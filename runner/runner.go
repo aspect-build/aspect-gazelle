@@ -299,18 +299,46 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 	defer t.End()
 
 	// Subscribe to further changes
-	for cs, err := range watch.AwaitCycle() {
+	for ev, err := range watch.AwaitCycle() {
 		if err != nil {
 			fmt.Printf("ERROR: watch cycle error: %v\n", err)
 			return err
 		}
 
-		_, t := p.tracer.Start(ctx, "GazelleRunner.Watch.Trigger")
+		if err := p.runWatchCycle(ctx, ev, cmd, fixArgs, invalidator, wc); err != nil {
+			return err
+		}
+	}
 
+	fmt.Printf("BUILD file generation --watch exiting...\n")
+
+	return nil
+}
+
+func (p *GazelleRunner) runWatchCycle(
+	ctx context.Context,
+	ev ibp.CycleEvent,
+	cmd GazelleCommand,
+	fixArgs []string,
+	invalidator *walkCacheInvalidator,
+	wc *cache.WatchCache,
+) error {
+	_, t := p.tracer.Start(ctx, "GazelleRunner.Watch.Trigger")
+	defer t.End()
+
+	// Reset per-cycle invalidation state up-front; the branch below sets
+	// either a delta (dirs) or a full wipe.
+	invalidator.dirs = invalidator.dirs[:0]
+	invalidator.wipe = false
+
+	// Cap capacity at len so any append reallocates instead of leaking into fixArgs's spare capacity.
+	runArgs := fixArgs[:len(fixArgs):len(fixArgs)]
+
+	switch e := ev.(type) {
+	case *ibp.CycleSourcesMessage:
 		// Evict cache entries for paths the protocol reports changed.
-		changedPaths := make([]string, 0, len(cs.Sources))
-		invalidator.dirs = invalidator.dirs[:0]
-		for f := range cs.Sources {
+		changedPaths := make([]string, 0, len(e.Sources))
+		for f := range e.Sources {
 			changedPaths = append(changedPaths, f)
 			invalidator.dirs = append(invalidator.dirs, path.Dir(f))
 		}
@@ -318,28 +346,33 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 
 		// The directories that have changed which gazelle should update.
 		// This assumes all enabled gazelle languages support incremental updates.
-		changedDirs := computeUpdatedDirs(p.workspaceDir, cs.Sources)
-
+		changedDirs := computeUpdatedDirs(p.workspaceDir, e.Sources)
 		fmt.Printf("Detected changes in %v\n", changedDirs)
+		runArgs = append(runArgs, changedDirs...)
 
-		// Run gazelle
-		languages := p.instantiateLanguages()
-		configs := append(p.instantiateConfigs(), invalidator)
-		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, append(fixArgs, changedDirs...))
-		if err != nil {
-			return fmt.Errorf("failed to run gazelle fix/update: %w", err)
-		}
+	case *ibp.CycleResetMessage:
+		// Host signalled CYCLE_RESET: delta state is gone. Drop every
+		// cached entry and run gazelle across the whole workspace.
+		fmt.Printf("Received CYCLE_RESET, recomputing from scratch\n")
+		wc.InvalidateAll()
+		invalidator.wipe = true
 
-		// Only output when changes were made, otherwise hopefully the execution was fast enough to be unnoticeable.
-		if updated > 0 {
-			fmt.Printf("%v/%v BUILD files updated\n", updated, visited)
-		}
-
-		t.End()
+	default:
+		return fmt.Errorf("unexpected cycle event %T", ev)
 	}
 
-	fmt.Printf("BUILD file generation --watch exiting...\n")
+	// Run gazelle
+	languages := p.instantiateLanguages()
+	configs := append(p.instantiateConfigs(), invalidator)
+	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, runArgs)
+	if err != nil {
+		return fmt.Errorf("failed to run gazelle fix/update: %w", err)
+	}
 
+	// Only output when changes were made, otherwise hopefully the execution was fast enough to be unnoticeable.
+	if updated > 0 {
+		fmt.Printf("%v/%v BUILD files updated\n", updated, visited)
+	}
 	return nil
 }
 
@@ -384,10 +417,12 @@ func hasBuildFile(rootDir, rel string) bool {
 }
 
 // Opt-in via ASPECT_GAZELLE_WALK_CACHE. Carries gazelle's walker cache across
-// successive RunGazelleFixUpdate calls in the same process, evicting `dirs`
-// (the cycle's changed dirs) before transferring.
+// successive RunGazelleFixUpdate calls in the same process, evicting entries
+// under `dirs` before transferring. When `wipe` is set, the previous cache is
+// dropped entirely — used when the caller has lost its delta state.
 type walkCacheInvalidator struct {
 	dirs              []string
+	wipe              bool
 	previousWalkCache *sync.Map
 }
 
@@ -398,7 +433,7 @@ func (i *walkCacheInvalidator) CheckFlags(fs *flag.FlagSet, c *config.Config) er
 	}
 	c.Exts["aspect:walkCache:load"] = func(arg any) {
 		newCache := arg.(*sync.Map)
-		if i.previousWalkCache != nil {
+		if i.previousWalkCache != nil && !i.wipe {
 			i.previousWalkCache.Range(func(key, value any) bool {
 				if !walkCacheEntryInvalidated(key.(string), i.dirs) {
 					newCache.Store(key, value)
