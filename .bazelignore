@@ -1,6 +1,7 @@
 language
 runner
 prebuilt
+treesitter
 
 # Go workspaces are used only to sync go deps outside bazel
 # and can not be used by rules_go when used across MODULEs

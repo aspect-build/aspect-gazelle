@@ -28,6 +28,12 @@ local_path_override(
     path = "../language/orion",
 )
 
+bazel_dep(name = "aspect_treesitter_grammars", version = "1.0.0")
+local_path_override(
+    module_name = "aspect_treesitter_grammars",
+    path = "../treesitter",
+)
+
 bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "gazelle", version = "0.51.0")  # must match go.mod
 

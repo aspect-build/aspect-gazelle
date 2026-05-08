@@ -29,3 +29,11 @@ local_path_override(
     module_name = "aspect_gazelle_orion",
     path = "../../../language/orion",
 )
+
+# aspect_treesitter_grammars is a transitive bazel_dep via aspect_gazelle_runner.
+# It isn't published to BCR yet, so wire up the local path.
+bazel_dep(name = "aspect_treesitter_grammars", version = "1.0.0")
+local_path_override(
+    module_name = "aspect_treesitter_grammars",
+    path = "../../../treesitter",
+)

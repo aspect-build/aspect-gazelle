@@ -4,9 +4,8 @@ import (
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
-
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"github.com/aspect-build/aspect-gazelle/treesitter/kotlin"
 )
 
 type ParseResult struct {
@@ -63,7 +62,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 
 	var errs []error
 
-	lang := kotlin.NewLanguage()
+	lang := treeutils.NewLanguageFromSitter(treeutils.Kotlin, kotlin.NewLanguage())
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
 	if err != nil {
 		errs = append(errs, err)
