@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "golang",
+    srcs = [
+        "binding.go",
+        "@tree-sitter-go//:srcs",
+    ],
+    cgo = True,
+    copts = ["-Iexternal/*tree-sitter-go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/treesitter/golang",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_smacker_go_tree_sitter//:go-tree-sitter"],
+)

@@ -35,3 +35,11 @@ local_path_override(
 # makes `@llvm` visible by apparent name for the `--@llvm//config:...` flags in
 # tools/rust.bazelrc.
 bazel_dep(name = "llvm", version = "0.7.7")
+
+# aspect_treesitter_grammars is a transitive bazel_dep via aspect_gazelle_runner.
+# It isn't published to BCR yet, so wire up the local path.
+bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
+local_path_override(
+    module_name = "aspect_treesitter_grammars",
+    path = "../../../treesitter",
+)

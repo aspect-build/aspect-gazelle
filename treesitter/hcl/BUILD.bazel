@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "hcl",
+    srcs = [
+        "binding.go",
+        "@tree-sitter-hcl//:srcs",
+    ],
+    cgo = True,
+    copts = ["-Iexternal/*tree-sitter-hcl"],
+    importpath = "github.com/aspect-build/aspect-gazelle/treesitter/hcl",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_smacker_go_tree_sitter//:go-tree-sitter"],
+)

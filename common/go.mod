@@ -3,6 +3,7 @@ module github.com/aspect-build/aspect-gazelle/common
 go 1.26.3
 
 require (
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-00010101000000-000000000000
 	github.com/bazelbuild/bazel-gazelle v0.51.0
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/bmatcuk/doublestar/v4 v4.10.0

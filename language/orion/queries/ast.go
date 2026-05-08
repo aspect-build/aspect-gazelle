@@ -4,18 +4,18 @@ import (
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/golang"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/hcl"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/java"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/json"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/kotlin"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/python"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/ruby"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/rust"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/starlark"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
+	"github.com/aspect-build/aspect-gazelle/treesitter/golang"
+	"github.com/aspect-build/aspect-gazelle/treesitter/hcl"
+	"github.com/aspect-build/aspect-gazelle/treesitter/java"
+	"github.com/aspect-build/aspect-gazelle/treesitter/json"
+	"github.com/aspect-build/aspect-gazelle/treesitter/kotlin"
+	"github.com/aspect-build/aspect-gazelle/treesitter/python"
+	"github.com/aspect-build/aspect-gazelle/treesitter/ruby"
+	"github.com/aspect-build/aspect-gazelle/treesitter/rust"
+	"github.com/aspect-build/aspect-gazelle/treesitter/starlark"
+	"github.com/aspect-build/aspect-gazelle/treesitter/tsx"
+	"github.com/aspect-build/aspect-gazelle/treesitter/typescript"
 )
 
 func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
@@ -65,27 +65,27 @@ func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Lan
 
 	switch lang {
 	case treesitter.Go:
-		return golang.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Go, golang.NewLanguage())
 	case treesitter.HCL:
-		return hcl.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.HCL, hcl.NewLanguage())
 	case treesitter.Java:
-		return java.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Java, java.NewLanguage())
 	case treesitter.JSON:
-		return json.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.JSON, json.NewLanguage())
 	case treesitter.Kotlin:
-		return kotlin.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Kotlin, kotlin.NewLanguage())
 	case treesitter.Python:
-		return python.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Python, python.NewLanguage())
 	case treesitter.Ruby:
-		return ruby.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Ruby, ruby.NewLanguage())
 	case treesitter.Rust:
-		return rust.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Rust, rust.NewLanguage())
 	case treesitter.Starlark:
-		return starlark.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Starlark, starlark.NewLanguage())
 	case treesitter.Typescript:
-		return typescript.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.Typescript, typescript.NewLanguage())
 	case treesitter.TypescriptX:
-		return tsx.NewLanguage()
+		return treesitter.NewLanguageFromSitter(treesitter.TypescriptX, tsx.NewLanguage())
 	}
 
 	BazelLog.Fatalf("Unknown LanguageGrammar %q", lang)
