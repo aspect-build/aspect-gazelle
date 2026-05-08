@@ -6,7 +6,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "bzl",
     srcs = ["gazelle.go"],
-    importpath = "github.com/aspect-build/aspect-gazelle/runner/language/bzl",
+    importpath = "github.com/aspect-build/aspect-gazelle/runner/vendored/bzl",
     visibility = ["//visibility:public"],
     deps = [
         "@com_github_bazelbuild_buildtools//build",
