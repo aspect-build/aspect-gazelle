@@ -36,7 +36,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
-	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
+	github.com/odvcencio/gotreesitter v0.16.0 // indirect
 	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
@@ -48,3 +48,5 @@ require (
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 )
+
+replace github.com/aspect-build/aspect-gazelle/common => ../../common

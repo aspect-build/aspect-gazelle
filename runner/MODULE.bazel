@@ -74,11 +74,6 @@ go_deps2.module_override(
     ],
     path = "github.com/bazelbuild/bazel-gazelle",
 )
-go_deps2.module_override(
-    patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
-    path = "github.com/smacker/go-tree-sitter",
-)
 
 # The LLVM and Rust toolchains (used for all cgo here, including the Rust js
 # parser) are registered by @aspect_gazelle_js and inherited transitively. This

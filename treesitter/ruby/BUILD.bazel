@@ -2,13 +2,11 @@ load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "ruby",
-    srcs = [
-        "binding.go",
-        "@tree-sitter-ruby//:srcs",
-    ],
-    cgo = True,
-    copts = ["-Iexternal/*tree-sitter-ruby"],
+    srcs = ["binding.go"],
     importpath = "github.com/aspect-build/aspect-gazelle/treesitter/ruby",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_smacker_go_tree_sitter//:go-tree-sitter"],
+    deps = [
+        "@com_github_odvcencio_gotreesitter//:gotreesitter",
+        "@com_github_odvcencio_gotreesitter//grammars",
+    ],
 )

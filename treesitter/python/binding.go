@@ -1,10 +1,10 @@
 package python
 
 import (
-	sitter "github.com/smacker/go-tree-sitter"
-	sitter_python "github.com/smacker/go-tree-sitter/python"
+	sitter "github.com/odvcencio/gotreesitter"
+	"github.com/odvcencio/gotreesitter/grammars"
 )
 
 func NewLanguage() *sitter.Language {
-	return sitter_python.GetLanguage()
+	return grammars.PythonLanguage()
 }
