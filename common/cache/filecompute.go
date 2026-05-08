@@ -58,6 +58,12 @@ func (c *FileComputeCache) Invalidate(paths []string) {
 	}
 }
 
+// InvalidateAll drops every cache entry. Use when the host has lost its
+// delta state and the in-memory entries can no longer be trusted.
+func (c *FileComputeCache) InvalidateAll() {
+	c.entries.Clear()
+}
+
 // LoadEntries populates the cache from a deserialized map, typically after
 // reading a cache file with a custom format.
 func (c *FileComputeCache) LoadEntries(m map[string]map[string]any) {

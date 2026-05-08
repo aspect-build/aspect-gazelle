@@ -75,9 +75,16 @@ func TestConvertWireCycle_ParsesScopeAndTraceFields(t *testing.T) {
 		},
 	}
 
-	cycle, err := convertWireCycle(msg)
+	event, err := convertWireCycle(msg)
 	if err != nil {
 		t.Fatalf("convertWireCycle returned error: %v", err)
+	}
+	if event.cycleId() != 7 {
+		t.Fatalf("expected cycleId() to return 7, got %d", event.cycleId())
+	}
+	cycle, ok := event.(*CycleSourcesMessage)
+	if !ok {
+		t.Fatalf("expected *CycleSourcesMessage, got %T", event)
 	}
 
 	if cycle.CycleId != 7 {
@@ -114,9 +121,13 @@ func TestConvertWireCycle_MissingOptionalFieldsDefaultsToEmpty(t *testing.T) {
 		"sources":  map[string]any{},
 	}
 
-	cycle, err := convertWireCycle(msg)
+	event, err := convertWireCycle(msg)
 	if err != nil {
 		t.Fatalf("convertWireCycle returned error: %v", err)
+	}
+	cycle, ok := event.(*CycleSourcesMessage)
+	if !ok {
+		t.Fatalf("expected *CycleSourcesMessage, got %T", event)
 	}
 	if cycle.Scope != "" {
 		t.Fatalf("expected empty scope for non-string input, got %q", cycle.Scope)
@@ -129,18 +140,42 @@ func TestConvertWireCycle_MissingOptionalFieldsDefaultsToEmpty(t *testing.T) {
 	}
 }
 
-func TestConvertWireCycle_NullSourcesIsFreshInstanceSignal(t *testing.T) {
+func TestConvertWireCycle_CycleResetReturnsCycleResetMessage(t *testing.T) {
 	msg := map[string]any{
-		"kind":     "CYCLE",
-		"cycle_id": float64(1),
-		"sources":  nil,
+		"kind":     "CYCLE_RESET",
+		"cycle_id": float64(3),
+		"trace_id": "trace-9",
 	}
 
-	cycle, err := convertWireCycle(msg)
+	event, err := convertWireCycle(msg)
 	if err != nil {
 		t.Fatalf("convertWireCycle returned error: %v", err)
 	}
-	if cycle.Sources != nil {
-		t.Fatalf("expected nil Sources for fresh-instance signal, got %#v", cycle.Sources)
+	if event.cycleId() != 3 {
+		t.Fatalf("expected cycleId() to return 3, got %d", event.cycleId())
+	}
+	reset, ok := event.(*CycleResetMessage)
+	if !ok {
+		t.Fatalf("expected *CycleResetMessage for CYCLE_RESET, got %T", event)
+	}
+	if reset.Kind != "CYCLE_RESET" {
+		t.Fatalf("expected kind CYCLE_RESET, got %q", reset.Kind)
+	}
+	if reset.CycleId != 3 {
+		t.Fatalf("expected cycle_id=3, got %d", reset.CycleId)
+	}
+	if reset.TraceId != "trace-9" {
+		t.Fatalf("expected trace_id to round-trip on CYCLE_RESET, got %q", reset.TraceId)
+	}
+}
+
+func TestConvertWireCycle_RejectsUnknownKind(t *testing.T) {
+	msg := map[string]any{
+		"kind":     "BOGUS",
+		"cycle_id": float64(1),
+	}
+
+	if _, err := convertWireCycle(msg); err == nil {
+		t.Fatal("expected error for unknown kind, got nil")
 	}
 }

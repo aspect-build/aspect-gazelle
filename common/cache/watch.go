@@ -67,3 +67,10 @@ func (c *WatchCache) Invalidate(paths []string) {
 		c.verified.Delete(p)
 	}
 }
+
+// InvalidateAll wipes every entry, content hash, and verified mark.
+func (c *WatchCache) InvalidateAll() {
+	c.FileComputeCache.InvalidateAll()
+	c.contentHashes.Clear()
+	c.verified.Clear()
+}

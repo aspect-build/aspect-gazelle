@@ -12,7 +12,7 @@ import (
 type IncrementalClient interface {
 	Connect(caps map[WatchCapability]any) error
 	Disconnect() error
-	AwaitCycle() iter.Seq2[*CycleSourcesMessage, error]
+	AwaitCycle() iter.Seq2[CycleEvent, error]
 }
 
 type incClient struct {
@@ -150,8 +150,8 @@ func (c *incClient) Disconnect() error {
 	return nil
 }
 
-func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
-	return func(yield func(*CycleSourcesMessage, error) bool) {
+func (c *incClient) AwaitCycle() iter.Seq2[CycleEvent, error] {
+	return func(yield func(CycleEvent, error) bool) {
 		for {
 			msg, err := c.socket.Recv()
 			if err != nil {
@@ -160,61 +160,83 @@ func (c *incClient) AwaitCycle() iter.Seq2[*CycleSourcesMessage, error] {
 				return
 			}
 
-			if msg["kind"] == "CYCLE" {
-				cycleEvent, cycleErr := convertWireCycle(msg)
+			kind, _ := msg["kind"].(string)
+			switch kind {
+			case "CYCLE", "CYCLE_RESET":
+				event, cycleErr := convertWireCycle(msg)
 				if cycleErr != nil {
 					fmt.Printf("Failed read cycle: %v\n", cycleErr)
 					continue
 				}
+				cycleId := event.cycleId()
 
 				err := c.socket.Send(CycleMessage{
 					Message: Message{
 						Kind: "CYCLE_STARTED",
 					},
-					CycleId: cycleEvent.CycleId,
+					CycleId: cycleId,
 				})
 				if err != nil {
 					yield(nil, err)
 					return
 				}
 
-				r := yield(&cycleEvent, nil)
+				r := yield(event, nil)
 
 				err = c.socket.Send(CycleMessage{
 					Message: Message{
 						Kind: "CYCLE_COMPLETED",
 					},
-					CycleId: cycleEvent.CycleId,
+					CycleId: cycleId,
 				})
 				if err != nil {
-					BazelLog.Warnf("Failed to send CYCLE_COMPLETED for cycle_id=%d: %v\n", cycleEvent.CycleId, err)
+					BazelLog.Warnf("Failed to send CYCLE_COMPLETED for cycle_id=%d: %v\n", cycleId, err)
 				}
 
 				if !r {
 					return
 				}
-			} else {
-				fmt.Printf("Expected CYCLE, received: %v\n", msg)
+			default:
+				fmt.Printf("Expected CYCLE or CYCLE_RESET, received: %v\n", msg)
 				continue
 			}
 		}
 	}
 }
 
-func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
-	if msg["kind"] != "CYCLE" {
-		return CycleSourcesMessage{}, fmt.Errorf("Expected CYCLE, got %v", msg["kind"])
+func convertWireCycle(msg map[string]any) (CycleEvent, error) {
+	kind, _ := msg["kind"].(string)
+	if kind != "CYCLE" && kind != "CYCLE_RESET" {
+		return nil, fmt.Errorf("Expected CYCLE or CYCLE_RESET, got %v", msg["kind"])
 	}
 
 	cycleIdFloat, cycleIdIsFloat := msg["cycle_id"].(float64)
 	if !cycleIdIsFloat {
-		return CycleSourcesMessage{}, fmt.Errorf("Invalid cycle_id type: %T", msg["cycle_id"])
+		return nil, fmt.Errorf("Invalid cycle_id type: %T", msg["cycle_id"])
 	}
 
-	cycleId := int(cycleIdFloat)
+	// OTEL trace+span IDs may be included on any message depending on the
+	// negotiated protocol version/caps. Pass them through if string-typed.
+	var traceId, spanId string
+	if v, ok := msg["trace_id"].(string); ok {
+		traceId = v
+	}
+	if v, ok := msg["span_id"].(string); ok {
+		spanId = v
+	}
 
-	// `sources: null` (or absent / non-object) is the fresh-instance reset
-	// signal — leaves sources nil. `sources: {...}` is a delta.
+	base := CycleMessage{
+		Message: Message{Kind: kind, TraceId: traceId, SpanId: spanId},
+		CycleId: int(cycleIdFloat),
+	}
+
+	// CYCLE_RESET carries no scope and no sources by spec — the reset applies
+	// across every negotiated scope and the receiver recomputes from scratch.
+	if kind == "CYCLE_RESET" {
+		return &CycleResetMessage{CycleMessage: base}, nil
+	}
+
+	// CYCLE provides the scope and the set of changed files.
 	var sources SourceInfoMap
 	if rawSources, ok := msg["sources"].(map[string]any); ok {
 		sources = make(SourceInfoMap, len(rawSources))
@@ -239,23 +261,10 @@ func convertWireCycle(msg map[string]any) (CycleSourcesMessage, error) {
 		}
 	}
 
-	// OTEL trace+span IDs may be included depending on protocol version/caps.
-	// Simply pass them along as-is if present, only assuming 'string' type, otherwise leave blank.
-	var traceId, spanId string
-	if v, ok := msg["trace_id"].(string); ok {
-		traceId = v
-	}
-	if v, ok := msg["span_id"].(string); ok {
-		spanId = v
-	}
-
-	return CycleSourcesMessage{
-		CycleMessage: CycleMessage{
-			Message: Message{Kind: "CYCLE", TraceId: traceId, SpanId: spanId},
-			CycleId: cycleId,
-		},
-		Scope:   scope,
-		Sources: sources,
+	return &CycleSourcesMessage{
+		CycleMessage: base,
+		Scope:        scope,
+		Sources:      sources,
 	}, nil
 }
 
