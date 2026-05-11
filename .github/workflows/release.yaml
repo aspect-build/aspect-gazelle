@@ -35,9 +35,6 @@ jobs:
         aspect-gazelle-*.tar.gz
       # Bypass rerunning the tests - CI already covers this
       bazel_test_command: "true"
-      # Create as draft so the publish workflow can upload attestations before the release
-      # is finalized. GitHub marks published releases as immutable, preventing further uploads.
-      draft: true
   publish:
     needs: [tag, release]
     if: ${{ needs.tag.outputs.prerelease == 'false' }}
@@ -51,25 +48,3 @@ jobs:
       tag_prefix: "prebuilt-v"
     secrets:
       BCR_PUBLISH_TOKEN: ${{ secrets.BCR_PUBLISH_TOKEN }}
-  finalize:
-    needs: [release, publish]
-    # Publish the draft release once all uploads are done.
-    # Run when the release job succeeded and publish either succeeded or was skipped
-    # for pre-releases. Do not finalize if publish failed, since the release would
-    # become immutable before the missing uploads/attestations are added.
-    if: |
-      always() &&
-      !cancelled() &&
-      needs.release.result == 'success' &&
-      contains(fromJSON('["success","skipped"]'), needs.publish.result)
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release edit "${{ github.ref_name }}" \
-            --draft=false \
-            --repo "${{ github.repository }}"
