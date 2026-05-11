@@ -35,6 +35,10 @@ jobs:
         aspect-gazelle-*.tar.gz
       # Bypass rerunning the tests - CI already covers this
       bazel_test_command: "true"
+      # Create as draft so publish-to-bcr can upload attestations.
+      # GitHub immutable releases reject asset uploads after a release is
+      # published, so the release must be finalized only after all uploads.
+      draft: true
   publish:
     needs: [tag, release]
     if: ${{ needs.tag.outputs.prerelease == 'false' }}
@@ -48,3 +52,63 @@ jobs:
       tag_prefix: "prebuilt-v"
     secrets:
       BCR_PUBLISH_TOKEN: ${{ secrets.BCR_PUBLISH_TOKEN }}
+  finalize:
+    needs: [release, publish]
+    # Publish the draft release once all uploads are done. Run when release
+    # succeeded and publish either succeeded or was skipped (pre-releases).
+    # Do not finalize if publish failed, since the release would become
+    # immutable before the missing uploads/attestations are added.
+    if: |
+      always() &&
+      !cancelled() &&
+      needs.release.result == 'success' &&
+      contains(fromJSON('["success","skipped"]'), needs.publish.result)
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release edit "${{ github.ref_name }}" \
+            --draft=false \
+            --repo "${{ github.repository }}"
+  open-bcr-pr:
+    # Open the BCR PR after the release is finalized. publish-to-bcr already
+    # pushed the entry branch to aspect-build/bazel-central-registry; this
+    # just creates the PR against bazelbuild/bazel-central-registry so that
+    # BCR's unauthenticated presubmit sees a non-draft (downloadable) release.
+    needs: [tag, publish, finalize]
+    if: ${{ needs.tag.outputs.prerelease == 'false' && needs.publish.result == 'success' && needs.finalize.result == 'success' }}
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.ref_name }}
+      REPO: ${{ github.repository }}
+      MODULE: aspect_gazelle_prebuilt
+    steps:
+      - name: Open BCR pull request
+        env:
+          GH_TOKEN: ${{ secrets.BCR_PUBLISH_TOKEN }}
+        run: |
+          set -o errexit -o nounset -o pipefail
+          VERSION="${TAG#prebuilt-v}"
+          BRANCH="${MODULE}-${TAG}"
+          BODY=$(printf 'Release: https://github.com/%s/releases/tag/%s\n\n_Automated by [Publish to BCR](https://github.com/bazel-contrib/publish-to-bcr)_' "$REPO" "$TAG")
+          ERR=$(mktemp)
+          if gh api repos/bazelbuild/bazel-central-registry/pulls \
+              --method POST \
+              -f "title=${MODULE}@${VERSION}" \
+              -f "body=${BODY}" \
+              -f "head=aspect-build:${BRANCH}" \
+              -f "base=main" \
+              -F "maintainer_can_modify=true" \
+              -F "draft=false" \
+              --jq .html_url 2>"$ERR"; then
+            echo "Opened BCR pull request"
+          elif grep -q "already exists" "$ERR"; then
+            echo "BCR pull request for ${BRANCH} already exists"
+          else
+            cat "$ERR"
+            exit 1
+          fi
