@@ -76,6 +76,8 @@ func convertYqNodeToValue(node *yqlib.CandidateNode) interface{} {
 			s = append(s, convertYqNodeToValue(n))
 		}
 		return s
+	case yqlib.AliasNode:
+		return convertYqNodeToValue(node.Alias)
 	case yqlib.ScalarNode:
 		val, err := node.GetValueRep()
 		if err != nil {
