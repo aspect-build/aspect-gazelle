@@ -1,6 +1,7 @@
 # Generates a `filegroup` rule without registering "filegroup" via
-# aspect.gazelle_rule_kind(). It is a builtin rule kind known to orion
-# (see builtin.go) so the extension is allowed to emit it directly.
+# aspect.gazelle_rule_kind(). `filegroup` is a generic bazel kind known
+# to gazelle (rule.GenericKinds) so the extension is allowed to emit it
+# directly.
 
 def prepare(_):
     return aspect.PrepareResult(

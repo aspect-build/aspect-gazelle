@@ -1,1 +1,1 @@
-WARN: gazelle_rule_kind("filegroup") registered by "tests/starzelle/rule-kinds-duplicate-builtin/override.axl" overrides existing registration by "<builtin>"
+WARN: gazelle_rule_kind("copy_to_bin") registered by "tests/starzelle/rule-kinds-duplicate-builtin/override.axl" overrides existing registration by "<builtin>"

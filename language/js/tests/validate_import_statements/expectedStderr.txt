@@ -1,4 +1,4 @@
-Failed to validate dependencies for target "@validate_import_statements//:validate_import_statements":
+Failed to validate dependencies for target "@validate_import_statements":
 
 Import "bad-import" from "main.ts" is an unknown js dependency
 

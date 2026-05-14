@@ -1,6 +1,6 @@
-load("@my_rules//:defs.bzl", "filegroup")
+load("@my_rules//:defs.bzl", "copy_to_bin")
 
-filegroup(
+copy_to_bin(
     name = "all-files",
     srcs = ["override.axl"],
 )

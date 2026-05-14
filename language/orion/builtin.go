@@ -5,16 +5,6 @@ import (
 )
 
 var builtinKinds = []plugin.RuleKind{
-	// Native
-	// TODO: remove once https://github.com/bazel-contrib/bazel-gazelle/pull/2053 lands
-	plugin.RuleKind{
-		Name: "filegroup",
-		KindInfo: plugin.KindInfo{
-			NonEmptyAttrs:  []string{"srcs"},
-			MergeableAttrs: []string{"srcs"},
-		},
-	},
-
 	// @bazel_lib
 	plugin.RuleKind{
 		Name: "copy_to_bin",
