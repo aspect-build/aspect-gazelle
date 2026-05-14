@@ -1,0 +1,6 @@
+# Enable resolving proto-generated imports directly to the proto_library()
+# target. This relies on rules_js consuming the proto_library() via an aspect
+# (https://github.com/aspect-build/rules_js/commit/a413051), so no
+# ts_proto_library() wrapper is generated.
+# gazelle:js_proto aspect
+# gazelle:js_files **/*.{ts,tsx,mts,cts,js,cjs,mjs}

@@ -30,8 +30,8 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | Enable the JavaScript directives. |
 | `# gazelle:js_tsconfig [custom_target_name] enabled\|disabled` | `enabled`              |
 | Enable generation of `ts_config` rules and reflection of tsconfig attributes into `ts_project` rules. When a custom target name is provided (e.g. `{dirname}_e2e disabled`), controls generation for that specific target group only. Without a target name, sets the default for all targets.<br />This value is inherited by sub-directories. |
-| `# gazelle:js_proto enabled\|disabled`                  | `enabled`                   |
-| Enable generation of `ts_proto_library` targets.                                      |
+| `# gazelle:js_proto enabled\|disabled\|aspect`          | `enabled`                   |
+| `enabled` generates a `ts_proto_library` wrapping each `proto_library`. `aspect` (**EXPERIMENTAL**) skips `ts_proto_library` and resolves proto-generated imports (`*_pb`, `*_pb.js`, `*_pb.d.ts`) directly to the `proto_library` target — requires rules_js >= the aspect-on-proto_library change ([rules_js#a413051](https://github.com/aspect-build/rules_js/commit/a413051)) so `js_library`/`ts_project` can depend on a `proto_library` directly. `disabled` generates no proto-related target and leaves proto-generated imports unresolved. |
 | `# gazelle:js_npm_package enabled\|disabled\|referenced`| `referenced`                |
 | Enable generation of `npm_package` targets.<br />DEPRECATED: `referenced` will only generate `npm_package` targets for packages that are referenced by other projects. |
 | `# gazelle:js_package_rule_kind js_library\|npm_package`| `npm_package`               |

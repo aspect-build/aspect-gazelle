@@ -104,7 +104,7 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 	ts.addSourceRules(cfg, args, &result)
 	ts.addTsConfigRules(cfg, args, &result)
 
-	if cfg.ProtoGenerationEnabled() {
+	if cfg.ProtoTsTargetGenerationEnabled() {
 		ts.addTsProtoRules(cfg, args, &result)
 	}
 

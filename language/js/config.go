@@ -81,6 +81,27 @@ const (
 	NpmPackageReferencedMode NpmPackageMode = "referenced"
 )
 
+// ProtoMode controls how proto_library() targets are integrated with the JS/TS
+// generation: whether a ts_proto_library() wrapper is generated, or whether
+// proto_library() is consumed directly via a rules_js aspect.
+type ProtoMode string
+
+const (
+	// ProtoModeEnabled: gazelle generates a ts_proto_library() wrapping each
+	// proto_library() and resolves proto-generated import specs to that
+	// wrapper. The default.
+	ProtoModeEnabled ProtoMode = "enabled"
+	// ProtoModeDisabled: no ts_proto_library() is generated and proto-generated
+	// imports are not resolved.
+	ProtoModeDisabled ProtoMode = "disabled"
+	// ProtoModeAspect: no ts_proto_library() is generated; instead a rules_js
+	// aspect on proto_library() produces the JS/TS outputs (see
+	// https://github.com/aspect-build/rules_js/commit/a413051) so
+	// js_library/ts_project can depend directly on a proto_library() target.
+	// Gazelle resolves proto-generated import specs to the proto_library().
+	ProtoModeAspect ProtoMode = "aspect"
+)
+
 const (
 	DefaultNpmLinkAllTargetName = "node_modules"
 	TargetNameDirectoryVar      = "{dirname}"
@@ -185,7 +206,7 @@ type JsGazelleConfig struct {
 
 	packageTargetKind PackageTargetKind
 
-	protoGenerationEnabled   bool
+	protoMode                ProtoMode
 	packageGenerationEnabled NpmPackageMode
 
 	pnpmLockRel  string
@@ -225,7 +246,7 @@ func newRootConfig() *JsGazelleConfig {
 	return &JsGazelleConfig{
 		rel:                        "",
 		generationEnabled:          true,
-		protoGenerationEnabled:     true,
+		protoMode:                  ProtoModeEnabled,
 		packageGenerationEnabled:   NpmPackageReferencedMode,
 		packageTargetKind:          PackageTargetKind_Package,
 		pnpmLockRel:                "",
@@ -372,13 +393,23 @@ func (c *JsGazelleConfig) TsConfigGroupNames() []string {
 	return names
 }
 
-func (c *JsGazelleConfig) SetProtoGenerationEnabled(enabled bool) {
-	c.protoGenerationEnabled = enabled
+func (c *JsGazelleConfig) SetProtoMode(mode ProtoMode) {
+	c.protoMode = mode
 }
 
-// If ts_proto_library extension is enabled.
-func (c *JsGazelleConfig) ProtoGenerationEnabled() bool {
-	return c.generationEnabled && c.protoGenerationEnabled
+func (c *JsGazelleConfig) GetProtoMode() ProtoMode {
+	return c.protoMode
+}
+
+// If ts_proto_library() target generation is enabled.
+func (c *JsGazelleConfig) ProtoTsTargetGenerationEnabled() bool {
+	return c.generationEnabled && c.protoMode == ProtoModeEnabled
+}
+
+// If proto-generated imports should resolve directly to proto_library() targets
+// (the rules_js aspect mode).
+func (c *JsGazelleConfig) ProtoAspectEnabled() bool {
+	return c.generationEnabled && c.protoMode == ProtoModeAspect
 }
 
 func (c *JsGazelleConfig) SetNpmPackageGenerationMode(mode NpmPackageMode) {

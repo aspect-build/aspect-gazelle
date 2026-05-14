@@ -135,7 +135,16 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			}
 			config.SetTsConfigGenerationEnabled(groupName, strings.TrimSpace(groupValue) == "enabled")
 		case Directive_TypeScriptProtoExtension:
-			config.SetProtoGenerationEnabled(common.ReadEnabled(d))
+			switch value {
+			case string(ProtoModeEnabled):
+				config.SetProtoMode(ProtoModeEnabled)
+			case string(ProtoModeDisabled):
+				config.SetProtoMode(ProtoModeDisabled)
+			case string(ProtoModeAspect):
+				config.SetProtoMode(ProtoModeAspect)
+			default:
+				BazelLog.Fatalf("Invalid %s value: %q (expected enabled, disabled, or aspect)", Directive_TypeScriptProtoExtension, d.Value)
+			}
 		case Directive_NpmPackageExtension:
 			if strings.TrimSpace(d.Value) == string(NpmPackageReferencedMode) {
 				config.SetNpmPackageGenerationMode(NpmPackageReferencedMode)
