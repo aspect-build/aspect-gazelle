@@ -20,7 +20,7 @@ register_toolchains("//toolchain:all")
 
 # Dev only
 
-bazel_dep(name = "gazelle", version = "0.50.0", dev_dependency = True)
+bazel_dep(name = "gazelle", version = "0.51.0", dev_dependency = True)
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps.module_override(

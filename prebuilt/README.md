@@ -44,7 +44,7 @@ lookups against the Go module proxy for every unknown import and appears to hang
 ```starlark
 # MODULE.bazel
 bazel_dep(name = "aspect_gazelle_prebuilt", version = "...") # for BUILD generation
-bazel_dep(name = "gazelle", version = "0.50.0")  # for go_deps
+bazel_dep(name = "gazelle", version = "0.51.0")  # for go_deps
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")

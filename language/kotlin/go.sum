@@ -1,9 +1,10 @@
 github.com/aspect-build/aspect-gazelle/common v0.0.0-20260315054354-c9bd89ae01a1 h1:nA7KEHtoHm+UhJPoINJ48at84jO8i48PiMU8XnansMQ=
 github.com/aspect-build/aspect-gazelle/common v0.0.0-20260315054354-c9bd89ae01a1/go.mod h1:bA1OZBcic91y6KmKXlEGziq58q3sgzslPln5UrLQ9Rk=
+github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-1 h1:Aney60tyjQn3ON+KPFQhEZ7saU1EtOhlCrGTKGkxiEI=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
-github.com/bazelbuild/bazel-gazelle v0.50.0 h1:/QNWnew6d0y9afP+0uWiGFIApw+spvE5fdVdNjcpHg0=
-github.com/bazelbuild/bazel-gazelle v0.50.0/go.mod h1:qtev3UlNStnHm6TEBM0pkDgOc1wSMBcbD/3wktJL7i8=
+github.com/bazelbuild/bazel-gazelle v0.51.0 h1:YbX6BOge2VzaGH75/KGvxzVzfTvdCKLwRkF84FuH8lo=
+github.com/bazelbuild/bazel-gazelle v0.51.0/go.mod h1:qtev3UlNStnHm6TEBM0pkDgOc1wSMBcbD/3wktJL7i8=
 github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f h1:khsR2MoXO+WButt3L5nnkAOGO17BAr0G/pGHZczF5/E=
 github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f/go.mod h1:PLNUetjLa77TCCziPsz0EI8a6CUxgC+1jgmWv0H25tg=
 github.com/bazelbuild/rules_go v0.60.0 h1:apGSxTTrFUyLNvX9NQmF4CbntWAO0/S5eALeVgB/6Qk=

@@ -1,4 +1,4 @@
-Failed to validate dependencies for target "@tsx_css_not-found//:tsx_css_not-found":
+Failed to validate dependencies for target "@tsx_css_not-found":
 
 Import "/abs/styles.css" from "main.tsx" is an unknown js dependency
 
