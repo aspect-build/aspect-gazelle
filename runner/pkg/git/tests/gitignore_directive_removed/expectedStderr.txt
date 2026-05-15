@@ -1,0 +1,1 @@
+gazelle: the # gazelle:gitignore directive has been removed (found in //). Use the --gitignore[=true|false] command-line flag instead (default: true).

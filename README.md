@@ -18,7 +18,13 @@ The [runner](./runner) enables these enhancements automatically, otherwise manua
 
 ### Gitignore
 
-Support for `.gitignore` when generating BUILD files, enabled by the `# gazelle:gitignore enabled|disabled` directive.
+Support for `.gitignore` when generating BUILD files. Files (and directories) matched by any `.gitignore` in the workspace are skipped during the walk, so they don't become BUILD-file sources.
+
+Enabled by default. To opt out, pass `--gitignore=false` to gazelle (in `extra_args` on the gazelle target, or on the command line):
+
+```sh
+bazel run //:gazelle -- --gitignore=false
+```
 
 ### Caching
 

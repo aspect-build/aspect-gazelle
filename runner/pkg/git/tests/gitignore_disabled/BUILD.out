@@ -1,13 +1,12 @@
 load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 
-# gazelle:gitignore disabled
+# gazelle:generation_mode update_only
 
 ts_project(
-    name = "subtarget-disabled",
+    name = "gitignore_disabled",
     srcs = [
+        "main.ts",
         "nested/star-ig.ts",
         "nested/y.starstar-ig.ts",
-        "star-ig.ts",
-        "y.starstar-ig.ts",
     ],
 )
