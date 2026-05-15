@@ -478,12 +478,12 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
 		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
 
-		imports := newTsProjectInfo(groupName)
-		imports.staticDeps = append(imports.staticDeps, packageJsonDeps...)
+		info := newTsProjectInfo(groupName)
+		info.staticDeps = append(info.staticDeps, packageJsonDeps...)
 
 		if hasLocalTsconfigFile {
 			for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
-				imports.AddImport(impt)
+				info.AddImport(impt)
 			}
 			src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
 			if args.Rel != "" {
@@ -499,8 +499,8 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		}
 
 		result.Gen = append(result.Gen, tsconfigRule)
-		result.Imports = append(result.Imports, imports)
-		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
+		result.Imports = append(result.Imports, info)
+		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info)...)
 	}
 }
 
