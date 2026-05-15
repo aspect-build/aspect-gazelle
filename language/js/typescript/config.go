@@ -57,16 +57,14 @@ func (tc *TsWorkspace) RegisterPackageJsonDir(rel string) {
 // ClosestAncestorPackageJsonDir returns the closest strictly-ancestor dir of
 // `dir` registered as a package.json dir, or "", false.
 func (tc *TsWorkspace) ClosestAncestorPackageJsonDir(dir string) (string, bool) {
-	for {
+	for dir != "" {
 		base, _ := path.Split(dir)
 		dir = strings.TrimSuffix(base, "/")
 		if _, ok := tc.cm.packageJsonDirs[dir]; ok {
 			return dir, true
 		}
-		if dir == "" {
-			return "", false
-		}
 	}
+	return "", false
 }
 
 func (tc *TsWorkspace) SetTsConfigFile(root, rel, groupName, fileName string) {
