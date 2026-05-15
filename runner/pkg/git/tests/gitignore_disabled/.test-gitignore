@@ -1,0 +1,3 @@
+# Patterns that would filter out files if --gitignore were enabled.
+*/star-ig.ts
+**/*.starstar-ig.ts

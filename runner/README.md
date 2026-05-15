@@ -9,7 +9,7 @@ truth for releases and is intended for contributors and from-source builds.
 The binary provides an enhanced version of the `gazelle_binary()` rule with:
 
 - enable/disable languages at runtime instead of at build time
-- gitignore support
+- gitignore support (on by default; opt out with `--gitignore=false`)
 - opentelemetry tracing support
 - watch protocol support
 - caching of gazelle source code analysis
