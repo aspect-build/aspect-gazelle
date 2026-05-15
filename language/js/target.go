@@ -74,7 +74,8 @@ type TsProjectInfo struct {
 	// The 'srcs' of this project
 	sources *treeset.Set[string]
 
-	// Pre-resolved deps
+	// Deps known at generate time as concrete labels (not import paths). Added to
+	// the rule's `deps` verbatim during Resolve, bypassing import resolution.
 	staticDeps []*label.Label
 }
 

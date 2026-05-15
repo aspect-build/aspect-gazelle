@@ -24,6 +24,7 @@ type TsConfigMap struct {
 	configFiles map[string]map[string]*workspacePath
 
 	// Dirs with a package.json; anchors for forwarding ts_config rules.
+	// Same configure-phase-write / generate-phase-read invariant as `configFiles`.
 	packageJsonDirs map[string]bool
 
 	configs      map[string]*TsConfig
