@@ -232,7 +232,7 @@ func newRootConfig() *JsGazelleConfig {
 		pnpmLockDir:                "",
 		pnpmLockPath:               "pnpm-lock.yaml",
 		groupTsConfigs:             map[string]*targetTsConfig{"": {enabled: boolPtr(true), fileName: "tsconfig.json"}},
-		tsConfigPackageDeps:        true,
+		tsConfigPackageDeps:        false,
 		ignoreDependencies:         []common.GlobExpr{},
 		resolves:                   []jsResolve{},
 		validateImportStatements:   ValidationError,

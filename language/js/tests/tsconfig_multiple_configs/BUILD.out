@@ -24,20 +24,14 @@ ts_config(
     name = "tsconfig_lib",
     src = "tsconfig.lib.json",
     visibility = [":__subpackages__"],
-    deps = [
-        ":package.json",
-        ":tsconfig_base",
-    ],
+    deps = [":tsconfig_base"],
 )
 
 ts_config(
     name = "tsconfig_e2e",
     src = "tsconfig.e2e.json",
     visibility = [":__subpackages__"],
-    deps = [
-        ":package.json",
-        ":tsconfig_base",
-    ],
+    deps = [":tsconfig_base"],
 )
 
 ts_config(
@@ -46,7 +40,6 @@ ts_config(
     visibility = [":__subpackages__"],
     deps = [
         ":node_modules/jest",
-        ":package.json",
         ":tsconfig_base",
         ":tsconfig_lib",
     ],

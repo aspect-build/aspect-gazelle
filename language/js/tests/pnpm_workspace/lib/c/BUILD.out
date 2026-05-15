@@ -1,5 +1,5 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
-load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
 # gazelle:js_package_rule_kind js_library
@@ -21,11 +21,4 @@ js_library(
     srcs = [],
     visibility = ["//:__pkg__"],
     deps = [":c_lib"],
-)
-
-ts_config(
-    name = "tsconfig",
-    src = "//:tsconfig",
-    visibility = [":__subpackages__"],
-    deps = [":package.json"],
 )
