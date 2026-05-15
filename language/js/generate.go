@@ -453,7 +453,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		packageJsonDeps, hasLocalPackageJson = ts.collectTsConfigPackageJsonDeps(args)
 	}
 
-	emittedNames := make(map[string]bool)
+	emittedNames := make(map[string]struct{})
 	for _, groupName := range cfg.TsConfigGroupNames() {
 		if !cfg.GetTsConfigGenerationEnabled(groupName) {
 			continue
@@ -470,10 +470,10 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 
 		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
 		// Multiple groups can resolve to the same tsconfig file; emit once.
-		if emittedNames[tsconfigName] {
+		if _, emitted := emittedNames[tsconfigName]; emitted {
 			continue
 		}
-		emittedNames[tsconfigName] = true
+		emittedNames[tsconfigName] = struct{}{}
 
 		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
 		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})

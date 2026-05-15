@@ -25,7 +25,7 @@ type TsConfigMap struct {
 
 	// Dirs with a package.json; anchors for forwarding ts_config rules.
 	// Same configure-phase-write / generate-phase-read invariant as `configFiles`.
-	packageJsonDirs map[string]bool
+	packageJsonDirs map[string]struct{}
 
 	configs      map[string]*TsConfig
 	configsMutex sync.RWMutex
@@ -40,7 +40,7 @@ func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
 	return &TsWorkspace{
 		cm: &TsConfigMap{
 			configFiles:     make(map[string]map[string]*workspacePath),
-			packageJsonDirs: make(map[string]bool),
+			packageJsonDirs: make(map[string]struct{}),
 			configs:         make(map[string]*TsConfig),
 			pnpmProjects:    pnpmProjects,
 			configsMutex:    sync.RWMutex{},
@@ -51,7 +51,7 @@ func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
 // RegisterPackageJsonDir records a dir containing a package.json so FindConfig
 // anchors at the local forwarding ts_config rather than the ancestor tsconfig.
 func (tc *TsWorkspace) RegisterPackageJsonDir(rel string) {
-	tc.cm.packageJsonDirs[rel] = true
+	tc.cm.packageJsonDirs[rel] = struct{}{}
 }
 
 // ClosestAncestorPackageJsonDir returns the closest strictly-ancestor dir of
@@ -60,7 +60,7 @@ func (tc *TsWorkspace) ClosestAncestorPackageJsonDir(dir string) (string, bool) 
 	for {
 		base, _ := path.Split(dir)
 		dir = strings.TrimSuffix(base, "/")
-		if tc.cm.packageJsonDirs[dir] {
+		if _, ok := tc.cm.packageJsonDirs[dir]; ok {
 			return dir, true
 		}
 		if dir == "" {
@@ -184,8 +184,10 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, string, *TsCon
 			}
 		}
 
-		if !foundPackageJsonDir && tc.cm.packageJsonDirs[dir] && defaultConfig == nil {
-			packageJsonDirRel, foundPackageJsonDir = dir, true
+		if !foundPackageJsonDir && defaultConfig == nil {
+			if _, ok := tc.cm.packageJsonDirs[dir]; ok {
+				packageJsonDirRel, foundPackageJsonDir = dir, true
+			}
 		}
 
 		if dir == "" {
