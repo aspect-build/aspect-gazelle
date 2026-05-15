@@ -181,8 +181,12 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// Resolve the tsconfig for each target for quick-access in per-file loops below.
 	groupTsconfigs := make(map[string]groupTsconfig, len(targets))
 	for _, group := range targets {
-		anchorRel, _, c := ts.tsconfig.FindConfig(args.Rel, group.name)
-		groupTsconfigs[group.name] = groupTsconfig{rel: anchorRel, config: c}
+		anchorRel, configRel, c := ts.tsconfig.FindConfig(args.Rel, group.name)
+		rel := anchorRel
+		if !cfg.GetTsConfigPackageDepsEnabled() {
+			rel = configRel
+		}
+		groupTsconfigs[group.name] = groupTsconfig{rel: rel, config: c}
 	}
 
 	// Build a classifier to efficiently determine a file's target group.

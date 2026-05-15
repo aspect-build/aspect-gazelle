@@ -8,7 +8,7 @@ ts_project(
     name = "tsc",
     srcs = ["start.ts"],
     out_dir = "dist",
-    tsconfig = ":tsconfig",
+    tsconfig = "//:tsconfig",
 )
 
 npm_package(
