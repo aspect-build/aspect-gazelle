@@ -182,7 +182,8 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, string, *TsCon
 			}
 		}
 
-		if !foundPackageJsonDir && defaultConfig == nil {
+		// Record the closest package.json dir; validated against configRel below.
+		if !foundPackageJsonDir {
 			if _, ok := tc.cm.packageJsonDirs[dir]; ok {
 				packageJsonDirRel, foundPackageJsonDir = dir, true
 			}
@@ -201,8 +202,11 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, string, *TsCon
 		configRel, config = defaultRel, defaultConfig
 	}
 
+	// Use the recorded package.json dir as the anchor only if it sits at or
+	// below configRel (never above it).
 	anchorRel := configRel
-	if foundPackageJsonDir && config != nil {
+	if foundPackageJsonDir && config != nil &&
+		(configRel == "" || packageJsonDirRel == configRel || strings.HasPrefix(packageJsonDirRel, configRel+"/")) {
 		anchorRel = packageJsonDirRel
 	}
 	return anchorRel, configRel, config

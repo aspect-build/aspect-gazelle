@@ -1,0 +1,35 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# A descendant whose default tsconfig is closer than the test group config.
+# The test group walk passes through this dir's default to reach the root's
+# tsconfig.test.json; the forwarding ts_config rule generated here must still
+# be the anchor for the test ts_project so mid's local package.json reaches
+# tsc's sandbox.
+
+ts_project(
+    name = "mid",
+    srcs = ["main.ts"],
+    tsconfig = ":tsconfig",
+)
+
+ts_project(
+    name = "mid_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    tsconfig = ":tsconfig_test",
+    deps = [":mid"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)
+
+ts_config(
+    name = "tsconfig_test",
+    src = "//:tsconfig_test",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)
