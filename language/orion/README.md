@@ -283,6 +283,7 @@ Args:
 * `provider`: the symbol type being imported. Imported symbols must have the same symbol type as the rule defining the symbols such as `js` for the JS/TS `configure` extension.
 * `optional`: whether the import is optional and should be ignored if not found
 * `src`: the source of the import (optional). Only used for debugging and error messages.
+* `ancestor`: when `True`, resolve to the closest rule providing this symbol in the importing rule's package or any ancestor directory, walking up toward the workspace root.
 
 ## Query Types
 

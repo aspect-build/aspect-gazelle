@@ -1,0 +1,8 @@
+load("@ancestor-test//:rules.bzl", "cfg_consumer")
+
+# gazelle:resolve cfg-test orion config //elsewhere:override-target
+
+cfg_consumer(
+    name = "consumer",
+    cfg = "//elsewhere:override-target",
+)

@@ -1,0 +1,10 @@
+load("@ancestor-test//:rules.bzl", "cfg_consumer", "cfg_provider", "self_rule")
+
+cfg_provider(name = "config")
+
+self_rule(name = "self_rule")
+
+cfg_consumer(
+    name = "consumer",
+    cfg = ":config",
+)
