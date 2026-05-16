@@ -459,13 +459,18 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 			continue
 		}
 
-		_, configRel, tsconfig := ts.tsconfig.FindConfig(args.Rel, groupName)
-		if tsconfig == nil {
-			continue
-		}
-		hasLocalTsconfigFile := configRel == args.Rel
+		// Probe the local config first; only walk ancestors when we need to
+		// emit a forwarding rule (no local tsconfig file but a local package.json).
+		tsconfig := ts.tsconfig.GetTsConfigFile(args.Rel, groupName)
+		hasLocalTsconfigFile := tsconfig != nil
 		if !hasLocalTsconfigFile && !hasLocalPackageJson {
 			continue
+		}
+		if !hasLocalTsconfigFile {
+			_, _, tsconfig = ts.tsconfig.FindConfig(args.Rel, groupName)
+			if tsconfig == nil {
+				continue
+			}
 		}
 
 		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
