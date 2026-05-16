@@ -1,0 +1,7 @@
+# Validate the js_tsconfig_package_deps directive:
+# - Same package: package.json is added to the ts_config rule's deps.
+# - Child Bazel package with package.json (no local tsconfig.json): a ts_config
+#   rule is generated whose src is the parent's ts_config rule and whose deps
+#   include the local package.json.
+
+# gazelle:js_tsconfig_package_deps enabled

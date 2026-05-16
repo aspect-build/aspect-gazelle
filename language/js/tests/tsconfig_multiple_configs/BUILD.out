@@ -21,15 +21,15 @@ ts_config(
 npm_link_all_packages(name = "node_modules")
 
 ts_config(
-    name = "tsconfig_e2e",
-    src = "tsconfig.e2e.json",
+    name = "tsconfig_lib",
+    src = "tsconfig.lib.json",
     visibility = [":__subpackages__"],
     deps = [":tsconfig_base"],
 )
 
 ts_config(
-    name = "tsconfig_lib",
-    src = "tsconfig.lib.json",
+    name = "tsconfig_e2e",
+    src = "tsconfig.e2e.json",
     visibility = [":__subpackages__"],
     deps = [":tsconfig_base"],
 )

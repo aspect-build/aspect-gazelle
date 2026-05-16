@@ -73,6 +73,10 @@ type TsProjectInfo struct {
 
 	// The 'srcs' of this project
 	sources *treeset.Set[string]
+
+	// Deps known at generate time as concrete labels (not import paths). Added to
+	// the rule's `deps` verbatim during Resolve, bypassing import resolution.
+	staticDeps []*label.Label
 }
 
 func newTsProjectInfo(groupName string) *TsProjectInfo {

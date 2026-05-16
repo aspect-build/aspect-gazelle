@@ -45,6 +45,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_Lockfile,
 		Directive_TsconfigFile,
 		Directive_TypeScriptConfigIgnore,
+		Directive_TsConfigPackageDeps,
 		Directive_IgnoreImports,
 		Directive_Resolve,
 		Directive_ValidateImportStatements,
@@ -107,6 +108,11 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 		if tc.fileName != "" && common.WalkHasPath(rel, tc.fileName) {
 			ts.tsconfig.SetTsConfigFile(c.RepoRoot, rel, groupName, tc.fileName)
 		}
+	}
+
+	// Anchor for the forwarding ts_config rule generated in package.json-only dirs.
+	if common.WalkHasPath(rel, NpmPackageFilename) {
+		ts.tsconfig.RegisterPackageJsonDir(rel)
 	}
 }
 
@@ -182,6 +188,8 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				groupName = config.ReverseMapTargetName(groupName)
 			}
 			config.AddIgnoredTsConfig(groupName, strings.TrimSpace(propName))
+		case Directive_TsConfigPackageDeps:
+			config.SetTsConfigPackageDepsEnabled(common.ReadEnabled(d))
 		case Directive_IgnoreImports:
 			config.AddIgnoredImport(strings.TrimSpace(value))
 		case Directive_Resolve:

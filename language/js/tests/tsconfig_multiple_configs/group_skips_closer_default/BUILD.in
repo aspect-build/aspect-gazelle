@@ -1,0 +1,3 @@
+# Validates that a target requesting a group-specific tsconfig walks past a
+# closer default tsconfig (here: local tsconfig.lib.json) to find an ancestor's
+# group-specific config (here: root's tsconfig.test.json).

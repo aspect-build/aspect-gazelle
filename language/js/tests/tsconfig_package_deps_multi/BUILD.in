@@ -1,0 +1,8 @@
+# Validate that every package.json file inside the same Bazel package is added
+# to the root ts_config rule's deps. The subdirectories deliberately have no
+# BUILD files of their own so they remain part of the root Bazel package, and
+# generation_mode update_only ensures gazelle does not create BUILD files in
+# them during the test.
+
+# gazelle:generation_mode update_only
+# gazelle:js_tsconfig_package_deps enabled

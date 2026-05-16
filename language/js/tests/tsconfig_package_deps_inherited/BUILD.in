@@ -1,0 +1,7 @@
+# Validates inheritance of `js_tsconfig_package_deps` across Bazel packages:
+#
+#   dir-a/         — has `package.json`, but the directive is set to `disabled`,
+#                    so dir-a's own ts_config rule MUST NOT pick up package.json.
+#   dir-a/child/   — has the directive set to `enabled`, has no local
+#                    package.json, and so MUST pick up dir-a's package.json
+#                    (the closest ancestor) into its ts_config rule's deps.

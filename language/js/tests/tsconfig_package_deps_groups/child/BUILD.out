@@ -1,0 +1,29 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "child",
+    srcs = ["main.ts"],
+    tsconfig = ":tsconfig",
+)
+
+ts_project(
+    name = "child_tests",
+    testonly = True,
+    srcs = ["main.spec.ts"],
+    tsconfig = ":tsconfig_test",
+    deps = [":child"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "//:tsconfig",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)
+
+ts_config(
+    name = "tsconfig_test",
+    src = "//:tsconfig_test",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)

@@ -181,7 +181,11 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 	// Resolve the tsconfig for each target for quick-access in per-file loops below.
 	groupTsconfigs := make(map[string]groupTsconfig, len(targets))
 	for _, group := range targets {
-		rel, c := ts.tsconfig.FindConfig(args.Rel, group.name)
+		anchorRel, configRel, c := ts.tsconfig.FindConfig(args.Rel, group.name)
+		rel := anchorRel
+		if !cfg.GetTsConfigPackageDepsEnabled() {
+			rel = configRel
+		}
 		groupTsconfigs[group.name] = groupTsconfig{rel: rel, config: c}
 	}
 
@@ -422,31 +426,86 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	BazelLog.Infof("add rule '%s' '%s:%s'", cfg.packageTargetKind, args.Rel, packageTargetName)
 }
 
+// collectTsConfigPackageJsonDeps returns label deps for the package.json files
+// tsc consults: every package.json in this Bazel package, plus the closest
+// ancestor's if none is local (tsc stops at the first package.json walking up).
+func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal bool) {
+	for _, f := range args.RegularFiles {
+		if path.Base(f) == NpmPackageFilename {
+			l := label.New(args.Config.RepoName, args.Rel, f)
+			deps = append(deps, &l)
+			hasLocal = true
+		}
+	}
+	if !hasLocal {
+		if ancestor, ok := ts.tsconfig.ClosestAncestorPackageJsonDir(args.Rel); ok {
+			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
+			deps = append(deps, &l)
+		}
+	}
+	return deps, hasLocal
+}
+
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
-	for _, entry := range ts.tsconfig.GetAllTsConfigFiles(args.Rel) {
-		if !cfg.GetTsConfigGenerationEnabled(entry.GroupName) {
+	var packageJsonDeps []*label.Label
+	var hasLocalPackageJson bool
+	if cfg.GetTsConfigPackageDepsEnabled() {
+		packageJsonDeps, hasLocalPackageJson = ts.collectTsConfigPackageJsonDeps(args)
+	}
+
+	emittedNames := make(map[string]struct{})
+	for _, groupName := range cfg.TsConfigGroupNames() {
+		if !cfg.GetTsConfigGenerationEnabled(groupName) {
 			continue
 		}
 
-		tsconfig := entry.Config
-
-		imports := newTsProjectInfo(entry.GroupName)
-		for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
-			imports.AddImport(impt)
+		// Probe the local config first; only walk ancestors when we need to
+		// emit a forwarding rule (no local tsconfig file but a local package.json).
+		tsconfig := ts.tsconfig.GetTsConfigFile(args.Rel, groupName)
+		hasLocalTsconfigFile := tsconfig != nil
+		if !hasLocalTsconfigFile && !hasLocalPackageJson {
+			continue
+		}
+		if !hasLocalTsconfigFile {
+			_, _, tsconfig = ts.tsconfig.FindConfig(args.Rel, groupName)
+			if tsconfig == nil {
+				continue
+			}
 		}
 
 		tsconfigName := cfg.RenderTsConfigName(tsconfig.ConfigName)
-		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
-		src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
-		if args.Rel != "" {
-			src = strings.TrimPrefix(src, args.Rel+"/")
+		// Multiple groups can resolve to the same tsconfig file; emit once.
+		if _, emitted := emittedNames[tsconfigName]; emitted {
+			continue
 		}
-		tsconfigRule.SetAttr("src", src)
+		emittedNames[tsconfigName] = struct{}{}
+
+		tsconfigRule := rule.NewRule(TsConfigKind, tsconfigName)
 		tsconfigRule.SetAttr("visibility", []string{":__subpackages__"})
 
+		info := newTsProjectInfo(groupName)
+		info.staticDeps = append(info.staticDeps, packageJsonDeps...)
+
+		if hasLocalTsconfigFile {
+			for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
+				info.AddImport(impt)
+			}
+			src := path.Join(tsconfig.ConfigDir, tsconfig.ConfigName)
+			if args.Rel != "" {
+				src = strings.TrimPrefix(src, args.Rel+"/")
+			}
+			tsconfigRule.SetAttr("src", src)
+		} else {
+			// Forward to the closest ancestor ts_config (forwarding or real) so
+			// the nearest package.json is in scope per group.
+			parentAnchorRel, _, _ := ts.tsconfig.FindConfig(path.Dir(args.Rel), groupName)
+			parentLabel := label.New("", parentAnchorRel, tsconfigName).Rel("", args.Rel)
+			tsconfigRule.SetAttr("src", parentLabel.BzlExpr())
+		}
+
 		result.Gen = append(result.Gen, tsconfigRule)
-		result.Imports = append(result.Imports, imports)
-		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, imports)...)
+		result.Imports = append(result.Imports, info)
+		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info)...)
 	}
 }
 

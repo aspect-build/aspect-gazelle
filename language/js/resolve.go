@@ -340,6 +340,10 @@ func (ts *typeScriptLang) Resolve(
 			return
 		}
 
+		for _, d := range projectInfo.staticDeps {
+			deps.Add(d)
+		}
+
 		if r.Kind() == TsProjectKind {
 			ts.addTsLib(c, ix, deps, from, projectInfo.groupName)
 		}
@@ -383,7 +387,7 @@ func (ts *typeScriptLang) addTsLib(
 	from label.Label,
 	groupName string,
 ) {
-	_, tsconfig := ts.tsconfig.FindConfig(from.Pkg, groupName)
+	_, _, tsconfig := ts.tsconfig.FindConfig(from.Pkg, groupName)
 	if tsconfig != nil && tsconfig.ImportHelpers {
 		if tslibLabel := ts.findPackage(from.Pkg, "tslib"); tslibLabel != nil {
 			deps.Add(tslibLabel)
