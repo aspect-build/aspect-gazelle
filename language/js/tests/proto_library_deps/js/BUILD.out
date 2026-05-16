@@ -1,0 +1,7 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+js_library(
+    name = "js",
+    srcs = ["index.js"],
+    deps = ["//proto:lib_proto"],
+)

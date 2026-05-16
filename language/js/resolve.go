@@ -289,6 +289,16 @@ func (ts *typeScriptLang) CrossResolve(c *config.Config, ix *resolve.RuleIndex, 
 		}
 	}
 
+	// proto_library() targets when js_proto=aspect. The proto plugin owns the
+	// proto_library kind and indexes each src under Lang: "proto"; we translate
+	// the *_pb js import back to the proto src and query that index.
+	if cfg, ok := c.Exts[LanguageName].(*JsGazelleConfig); ok && cfg.ProtoAspectEnabled() {
+		if protoSrc, ok := jsProtoImpToProtoSrc(imp.Imp); ok {
+			protoSpec := resolve.ImportSpec{Lang: "proto", Imp: protoSrc}
+			results = append(results, ix.FindRulesByImport(protoSpec, "proto")...)
+		}
+	}
+
 	// Imports of js from other languages. Simulate importing from js.
 	if lang != LanguageName {
 		for _, r := range ix.FindRulesByImport(imp, LanguageName) {
@@ -297,6 +307,23 @@ func (ts *typeScriptLang) CrossResolve(c *config.Config, ix *resolve.RuleIndex, 
 	}
 
 	return results
+}
+
+// jsProtoImpToProtoSrc translates a JS/TS proto-generated import spec
+// (foo_pb, foo_pb.js, foo_pb.d.ts) into the matching proto_library() src
+// path (foo.proto). Returns false when the import is not proto-shaped.
+func jsProtoImpToProtoSrc(imp string) (string, bool) {
+	base := imp
+	switch {
+	case strings.HasSuffix(base, ".d.ts"):
+		base = strings.TrimSuffix(base, ".d.ts")
+	case strings.HasSuffix(base, ".js"):
+		base = strings.TrimSuffix(base, ".js")
+	}
+	if !strings.HasSuffix(base, "_pb") {
+		return "", false
+	}
+	return strings.TrimSuffix(base, "_pb") + ".proto", true
 }
 
 // Resolve translates imported libraries for a given rule into Bazel
