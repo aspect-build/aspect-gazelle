@@ -45,12 +45,46 @@ func GetQuery(lang Language, queryStr string) (*sitter.Query, error) {
 	if !found {
 		sq, err := sitter.NewQuery(queryStr, tl.lang)
 		if err != nil {
-			return nil, err
+			return nil, normalizeQueryError(queryStr, err)
 		}
 		queryPredicateCache.Store(sq, parseQueryPostPredicates(queryStr))
 		q, _ = queryCache.LoadOrStore(key, sq)
 	}
 	return q.(*sitter.Query), nil
+}
+
+func normalizeQueryError(queryStr string, err error) error {
+	msg := err.Error()
+	const prefix = "query: unknown node type "
+	if !strings.HasPrefix(msg, prefix) {
+		return err
+	}
+	name, unquoteErr := strconv.Unquote(strings.TrimPrefix(msg, prefix))
+	if unquoteErr != nil || name == "" {
+		return err
+	}
+	line, column := queryPatternPosition(queryStr, name)
+	return fmt.Errorf("invalid node type '%s' at line %d column %d", name, line, column)
+}
+
+func queryPatternPosition(queryStr, name string) (int, int) {
+	idx := strings.Index(queryStr, name)
+	if idx < 0 {
+		return 0, 0
+	}
+	if open := strings.LastIndex(queryStr[:idx], "("); open >= 0 {
+		idx = open
+	}
+	line, col := 1, 0
+	for _, ch := range queryStr[:idx] {
+		if ch == '\n' {
+			line++
+			col = 0
+		} else {
+			col++
+		}
+	}
+	return line, col
 }
 
 type queryResult struct {

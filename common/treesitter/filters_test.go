@@ -406,3 +406,14 @@ func Foo() {}
 		t.Errorf("expected parameter list to win, got %q", got[0]["item"])
 	}
 }
+
+func TestGetQuery_unknownNodeErrorCompatibility(t *testing.T) {
+	_, err := treesitter.GetQuery(goLang, `(import_ statement ( @foo`)
+	if err == nil {
+		t.Fatal("expected query error")
+	}
+	want := "invalid node type 'import_' at line 1 column 0"
+	if err.Error() != want {
+		t.Fatalf("got %q, want %q", err.Error(), want)
+	}
+}

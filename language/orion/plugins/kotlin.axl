@@ -30,33 +30,19 @@ def prepare(_):
                 grammar = "kotlin",
                 filter = "*.kt*",
                 query = """
-                    (source_file
-                        (import_list
-                            (import_header (identifier) @imp (wildcard_import)? @is_star)
-                        )
-                    )
+                    (import_header (identifier) @imp (wildcard_import)? @is_star)
                 """,
             ),
             "package_name": aspect.AstQuery(
                 grammar = "kotlin",
                 filter = "*.kt*",
                 query = """
-                    (source_file
-                        (package_header (identifier) @pkg)
-                    )
+                    (package_header (identifier) @pkg)
                 """,
             ),
-            "has_main": aspect.AstQuery(
-                grammar = "kotlin",
+            "has_main": aspect.RegexQuery(
                 filter = "*.kt*",
-                query = """
-                    (source_file
-                        (function_declaration
-                            (simple_identifier) @variable.funcname
-                            (#eq? @variable.funcname "main")
-                        )
-                    )
-                """,
+                expression = """\\bfun\\s+main\\s*\\(""",
             ),
         },
     )
