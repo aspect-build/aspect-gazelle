@@ -42,7 +42,7 @@ def prepare(_):
             ),
             "has_main": aspect.RegexQuery(
                 filter = "*.kt*",
-                expression = """\\bfun\\s+main\\s*\\(""",
+                expression = """(?m)^fun\\s+main\\s*\\(""",
             ),
         },
     )

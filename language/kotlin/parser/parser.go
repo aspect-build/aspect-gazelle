@@ -53,7 +53,7 @@ const importsQuery = `
 var (
 	kotlinPackageRe = regexp.MustCompile(`(?m)^\s*package\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`)
 	kotlinImportRe  = regexp.MustCompile(`(?m)^\s*import\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*(?:\.\*)?)(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?(?:\s*//.*)?$`)
-	kotlinMainRe    = regexp.MustCompile(`(?m)\bfun\s+main\s*\(`)
+	kotlinMainRe    = regexp.MustCompile(`(?m)^fun\s+main\s*\(`)
 )
 
 func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, []error) {
