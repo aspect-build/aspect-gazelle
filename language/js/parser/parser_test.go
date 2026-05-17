@@ -82,6 +82,16 @@ var testCases = []struct {
 		desc:     "incorrect imports",
 		ts:       `@import "~mapbox.js/dist/mapbox.css";`,
 		filename: "actuallyScss.ts",
+	}, {
+		desc: "triple slash directives are top-level only",
+		ts: `/// <reference types="node" />
+
+			function f() {
+				/// <reference types="jest" />
+			}
+		`,
+		filename:        "triple-slash.ts",
+		expectedImports: []string{"node"},
 	},
 	{
 		desc: "ignores commented out imports",

@@ -276,6 +276,52 @@ func TestMultiplePredicates_allMustPass(t *testing.T) {
 	}
 }
 
+func TestAnyOfPredicate(t *testing.T) {
+	ast := mustParseGo(t, goFunctions)
+	q := mustQuery(t, `(function_declaration name: (identifier) @name
+		(#any-of? @name "Foo" "Bar"))`)
+
+	got := collectCaptures(ast, q, "name")
+	want := []string{"Foo", "Bar"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestNotHasParentPredicate(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+// top-level
+func Foo() {
+	// nested
+}
+`)
+	q := mustQuery(t, `((comment) @comment
+		(#not-has-parent? @comment function_declaration block statement_list))`)
+
+	got := collectCaptures(ast, q, "comment")
+	want := []string{"// top-level"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestHasParentPredicate(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+// top-level
+func Foo() {
+	// nested
+}
+`)
+	q := mustQuery(t, `((comment) @comment
+		(#has-parent? @comment function_declaration block statement_list))`)
+
+	got := collectCaptures(ast, q, "comment")
+	want := []string{"// nested"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestQueryErrors_validSource(t *testing.T) {
 	ast := mustParseGo(t, goFunctions)
 
