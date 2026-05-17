@@ -287,24 +287,33 @@ func TestQueryErrors_validSource(t *testing.T) {
 
 func TestQueryErrors_errorFormat(t *testing.T) {
 	ast := mustParseGo(t, `package foo
-
-)
+func Foo() { if }
 `)
 	errs := ast.QueryErrors()
 	if len(errs) == 0 {
 		t.Fatal("expected parse errors, got none")
 	}
 
-	msg := errs[0].Error()
+	var msg string
+	for _, err := range errs {
+		if strings.Contains(err.Error(), "func Foo() { if") {
+			msg = err.Error()
+			break
+		}
+	}
+	if msg == "" {
+		t.Fatalf("expected function body error, got: %v", errs)
+	}
+
 	lines := strings.SplitN(msg, "\n", 2)
 	if len(lines) != 2 {
 		t.Fatalf("expected two-line error, got: %q", msg)
 	}
-	if lines[0] != "     3: )" {
-		t.Errorf("error line: got %q, want %q", lines[0], "     3: )")
+	if lines[0] != "     2: func Foo() { if" {
+		t.Errorf("error line: got %q, want %q", lines[0], "     2: func Foo() { if")
 	}
-	if lines[1] != "        ^" {
-		t.Errorf("caret line: got %q, want %q", lines[1], "        ^")
+	if lines[1] != "                   ^" {
+		t.Errorf("caret line: got %q, want %q", lines[1], "                   ^")
 	}
 }
 

@@ -31,19 +31,13 @@ func NewParser() Parser {
 }
 
 const importsQuery = `
-	(source_file
-		(import_list
-			(import_header
-				(identifier) @from
-				(wildcard_import)? @from-wild
-			)
-		)
+	(import_header
+		(identifier) @from
+		(wildcard_import)? @from-wild
 	)
 
-	(source_file
-		(package_header
-			(identifier) @package
-		)
+	(package_header
+		(identifier) @package
 	)
 
 	(source_file
