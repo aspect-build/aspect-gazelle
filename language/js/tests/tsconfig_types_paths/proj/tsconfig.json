@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "types": [
+      "./local_typings/local",
+      "../shared/cross_dir",
+      "@scope/missing"
+    ]
+  }
+}
