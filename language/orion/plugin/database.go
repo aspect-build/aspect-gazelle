@@ -5,17 +5,28 @@ import "sync"
 // TODO: move to its own package
 
 type Database struct {
-	Symbols []TargetSymbol
+	symbols map[string][]TargetSymbol
 
-	symbolMutex sync.Mutex
+	mu sync.RWMutex
 }
 
 func (d *Database) AddSymbol(label Label, symbol Symbol) {
-	d.symbolMutex.Lock()
-	defer d.symbolMutex.Unlock()
+	d.mu.Lock()
+	defer d.mu.Unlock()
 
-	d.Symbols = append(d.Symbols, TargetSymbol{
+	if d.symbols == nil {
+		d.symbols = make(map[string][]TargetSymbol)
+	}
+	d.symbols[symbol.Id] = append(d.symbols[symbol.Id], TargetSymbol{
 		Symbol: symbol,
 		Label:  label,
 	})
+}
+
+// LookupSymbols returns all symbols registered with the given id.
+func (d *Database) LookupSymbols(id string) []TargetSymbol {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+
+	return d.symbols[id]
 }

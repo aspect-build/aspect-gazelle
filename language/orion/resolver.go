@@ -269,18 +269,16 @@ func (host *GazelleHost) resolveImport(
 	// }
 
 	// Lookup symbols across plugins in the symbol db
-	for _, symbol := range host.database.Symbols {
-		// TODO: only match correct "providers"
-
-		if importSpec.Imp == symbol.Symbol.Id {
-			l := label.Label{
-				Repo:     symbol.Label.Repo,
-				Pkg:      symbol.Label.Pkg,
-				Name:     symbol.Label.Name,
-				Relative: false,
-			}
-			return Resolution_Label, &l, nil
+	// TODO: only match correct "providers"; ambiguity handling
+	if symbols := host.database.LookupSymbols(impt.Id); len(symbols) > 0 {
+		s := symbols[0]
+		l := label.Label{
+			Repo:     s.Label.Repo,
+			Pkg:      s.Label.Pkg,
+			Name:     s.Label.Name,
+			Relative: false,
 		}
+		return Resolution_Label, &l, nil
 	}
 
 	return Resolution_NotFound, nil, nil
