@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/language/orion
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260504054243-b0097601e8e7
