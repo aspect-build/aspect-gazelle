@@ -529,10 +529,14 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 
 	for _, t := range tsconfig.Types {
 		if !cfg.IsImportIgnored(t) {
+			imp := t
+			if len(t) > 0 && (t[0] == '.' || t[0] == '/') {
+				imp = toImportSpecPath("", SourcePath, t)
+			}
 			imports = append(imports, ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  t,
+					Imp:  imp,
 				},
 				ImportPath: t,
 				SourcePath: SourcePath,
@@ -1251,6 +1255,17 @@ func (ts *typeScriptLang) collectFileLabels(args language.GenerateArgs) {
 
 		for importPath := range toImportPaths(joinPkg(args.Rel, f)) {
 			ts.addFileLabel(importPath, &genLabel)
+		}
+	}
+
+	for _, f := range args.RegularFiles {
+		fileLabel := label.Label{
+			Name: f,
+			Repo: args.Config.RepoName,
+			Pkg:  args.Rel,
+		}
+		for importPath := range toImportPaths(joinPkg(args.Rel, f)) {
+			ts.addFileLabel(importPath, &fileLabel)
 		}
 	}
 

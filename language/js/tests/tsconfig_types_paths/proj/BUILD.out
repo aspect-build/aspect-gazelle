@@ -1,0 +1,13 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+
+# gazelle:js_ignore_imports @scope/missing
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//proj/local_typings",
+        "//shared",
+    ],
+)

@@ -1,0 +1,1 @@
+console.log(TYPES_ROOT_DECL_GLOBAL);
