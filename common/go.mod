@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/common
 
-go 1.26.1
+go 1.26.3
 
 require (
 	github.com/bazelbuild/bazel-gazelle v0.51.0
