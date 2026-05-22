@@ -11,6 +11,13 @@ type TargetImport struct {
 	// Optional imports will not be treated as resolution errors when not found.
 	Optional bool
 
+	// Ancestor resolves to the closest rule providing this Symbol in the importing rule's package or an ancestor.
+	// With ancestor=True the resolver tries Import.Id prefixed with the importing package and each of its ancestors,
+	// ending with the bare Import.Id at the workspace root (eg for Import.Id="tsconfig.json" from //a/b: tries
+	// "a/b/tsconfig.json", "a/tsconfig.json", "tsconfig.json"). Producers should declare Symbol(id) with the
+	// matching full path (eg path.join(ctx.rel, "tsconfig.json")).
+	Ancestor bool
+
 	// Where the import is from such as file path, for debugging
 	From string
 }
