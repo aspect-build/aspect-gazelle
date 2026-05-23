@@ -26,7 +26,7 @@ jobs:
           fi
   release:
     needs: tag
-    uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@v7.4.0
+    uses: bazel-contrib/.github/.github/workflows/release_ruleset.yaml@af28703814cf26522cf5e44d219efece91293123 # v7.4.0
     with:
       prerelease: ${{ needs.tag.outputs.prerelease == 'true' }}
       tag_name: ${{ github.ref_name }}
