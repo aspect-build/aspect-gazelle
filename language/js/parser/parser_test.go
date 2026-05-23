@@ -82,6 +82,16 @@ var testCases = []struct {
 		desc:     "incorrect imports",
 		ts:       `@import "~mapbox.js/dist/mapbox.css";`,
 		filename: "actuallyScss.ts",
+	}, {
+		desc: "triple slash directives are top-level only",
+		ts: `/// <reference types="node" />
+
+			function f() {
+				/// <reference types="jest" />
+			}
+		`,
+		filename:        "triple-slash.ts",
+		expectedImports: []string{"node"},
 	},
 	{
 		desc: "ignores commented out imports",
@@ -239,6 +249,25 @@ var testCases = []struct {
 		`,
 		filename:        "types.ts",
 		expectedImports: []string{"react", "y"},
+	},
+	{
+		desc: "dynamic type import forms",
+		ts: `
+			function x<T>(a: typeof import('jquery')): T {
+				return a as T;
+			}
+			export const F: typeof import('@aspect-test/a') = null as any
+			const f = (x<typeof import('@aspect-test/b')>)(null)
+			const g = (null as any) as typeof import('@aspect-test/c')
+			(function() {
+				return [...(await x<typeof import("@aspect-test/d")>())]
+			})()
+			new Set<typeof import('@aspect-test/e')>()
+			export type * as Foo from '@aspect-test/f'
+			import type * as Bar from '@aspect-test/g'
+		`,
+		filename:        "dynamic-type-imports.ts",
+		expectedImports: []string{"jquery", "@aspect-test/a", "@aspect-test/b", "@aspect-test/c", "@aspect-test/d", "@aspect-test/e", "@aspect-test/f", "@aspect-test/g"},
 	},
 	{
 		desc: "include imports only used as types",
