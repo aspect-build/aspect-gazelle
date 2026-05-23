@@ -6,7 +6,13 @@ format_multirun(
     name = "format",
     go = "@go_sdk//:bin/gofmt",
     shell = "@aspect_rules_lint//format:shfmt",
-    starlark = "@buildifier_prebuilt//:buildifier",
     terraform = "@aspect_rules_lint//format:terraform",
     yaml = "@aspect_rules_lint//format:yamlfmt",
+)
+
+# Starlark-only formatter for the dedicated buildifier CI step.
+# See https://docs.aspect.build/cli/migration/buildifier.
+format_multirun(
+    name = "buildifier",
+    starlark = "@buildifier_prebuilt//:buildifier",
 )

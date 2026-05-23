@@ -1,7 +1,5 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_library", "go_test")
-load("//:def.bzl", "aspect_gazelle")
 
 # Use the gazelle bazel modules instead of go.mod modules
 # gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
@@ -14,26 +12,23 @@ load("//:def.bzl", "aspect_gazelle")
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/kotlin @aspect_gazelle_kotlin
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/runner/(.*) //$1
 
-# Pure gazelle targets
-gazelle(
+# Explicit resolves for go_deps-managed modules whose labels gazelle's go-language
+# resolver computes incorrectly when given the go_deps-generated repo_config
+# WORKSPACE. Without these, gazelle strips the deps as "unrecognized" and the build
+# fails with `compilepkg: missing strict dependencies`.
+# gazelle:resolve go github.com/bazelbuild/buildtools/build @com_github_bazelbuild_buildtools//build
+# gazelle:resolve go github.com/fatih/color @com_github_fatih_color//:color
+# gazelle:resolve go github.com/go-git/go-git/v5/plumbing/format/gitignore @com_github_go_git_go_git_v5//plumbing/format/gitignore
+# gazelle:resolve go github.com/pmezard/go-difflib/difflib @com_github_pmezard_go_difflib//difflib
+# gazelle:resolve go go.opentelemetry.io/otel @io_opentelemetry_go_otel//:otel
+# gazelle:resolve go go.opentelemetry.io/otel/attribute @io_opentelemetry_go_otel//attribute
+# gazelle:resolve go go.opentelemetry.io/otel/trace @io_opentelemetry_go_otel_trace//:trace
+# gazelle:resolve go golang.org/x/term @org_golang_x_term//:term
+# gazelle:resolve go gopkg.in/yaml.v3 @in_gopkg_yaml_v3//:yaml_v3
+
+alias(
     name = "gazelle",
-    extra_args = ["-index=lazy"],
-    gazelle = "@aspect_gazelle//:gazelle_bin",
-)
-
-gazelle(
-    name = "gazelle.check",
-    gazelle = "@aspect_gazelle//:gazelle_bin",
-    mode = "diff",
-)
-
-# Aspect gazelle targets - should be functionally identical to above but with added aspect functionality
-aspect_gazelle(
-    name = "aspect_gazelle",
-    extra_args = ["-index=lazy"],
-    languages = ["go"],
-    repo_config = "@bazel_gazelle_go_repository_config//:WORKSPACE",
-    with_check = True,
+    actual = "//tools/gazelle",
 )
 
 # The target used to publish the prebuilt gazelle binary.
