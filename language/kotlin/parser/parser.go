@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"regexp"
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -32,13 +31,19 @@ func NewParser() Parser {
 }
 
 const importsQuery = `
-	(import_header
-		(identifier) @from
-		(wildcard_import)? @from-wild
+	(source_file
+		(import_list
+			(import_header
+				(identifier) @from
+				(wildcard_import)? @from-wild
+			)
+		)
 	)
 
-	(package_header
-		(identifier) @package
+	(source_file
+		(package_header
+			(identifier) @package
+		)
 	)
 
 	(source_file
@@ -50,12 +55,6 @@ const importsQuery = `
 	)
 `
 
-var (
-	kotlinPackageRe = regexp.MustCompile(`(?m)^\s*package\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)`)
-	kotlinImportRe  = regexp.MustCompile(`(?m)^\s*import\s+([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*(?:\.\*)?)(?:\s+as\s+[A-Za-z_][A-Za-z0-9_]*)?(?:\s*//.*)?$`)
-	kotlinMainRe    = regexp.MustCompile(`(?m)^fun\s+main\s*\(`)
-)
-
 func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, []error) {
 	var result = &ParseResult{
 		File:    filePath,
@@ -63,14 +62,6 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 	}
 
 	var errs []error
-	seenImports := make(map[string]bool)
-	addImport := func(from string) {
-		if from == "" || seenImports[from] {
-			return
-		}
-		seenImports[from] = true
-		result.Imports = append(result.Imports, from)
-	}
 
 	lang := kotlin.NewLanguage()
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
@@ -95,7 +86,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 						from = from[:lastDot]
 					}
 				}
-				addImport(from)
+				result.Imports = append(result.Imports, from)
 			} else if pkg, isPackage := caps["package"]; isPackage {
 				if result.Package != "" {
 					BazelLog.Fatalf("Multiple package declarations found in %q: %s and %s", filePath, result.Package, pkg)
@@ -109,39 +100,11 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			}
 		}
 
-		if BazelLog.IsTraceEnabled() {
-			treeErrors := tree.QueryErrors()
-			if treeErrors != nil {
-				BazelLog.Tracef("Kotlin TreeSitter query errors: %v", treeErrors)
-			}
+		treeErrors := tree.QueryErrors()
+		if treeErrors != nil {
+			errs = append(errs, treeErrors...)
 		}
 	}
-
-	applyTextFallbacks(result, sourceCode, addImport)
 
 	return result, errs
-}
-
-func applyTextFallbacks(result *ParseResult, sourceCode []byte, addImport func(string)) {
-	source := string(sourceCode)
-	if result.Package == "" {
-		if m := kotlinPackageRe.FindStringSubmatch(source); len(m) == 2 {
-			result.Package = m[1]
-		}
-	}
-	if !result.HasMain {
-		result.HasMain = kotlinMainRe.MatchString(source)
-	}
-	for _, m := range kotlinImportRe.FindAllStringSubmatch(source, -1) {
-		if len(m) != 2 {
-			continue
-		}
-		from := m[1]
-		if strings.HasSuffix(from, ".*") {
-			from = strings.TrimSuffix(from, ".*")
-		} else if lastDot := strings.LastIndex(from, "."); lastDot != -1 {
-			from = from[:lastDot]
-		}
-		addImport(from)
-	}
 }
