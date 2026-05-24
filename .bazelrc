@@ -2,9 +2,18 @@
 # Import bazelrc presets
 import %workspace%/tools/preset.bazelrc
 
+common --config=ruleset
+
 # Suppress Apple linker (Xcode 15+) duplicate library warnings from CGO
 # When multiple CGO libraries each link -lm, ld emits "ignoring duplicate libraries: '-lm'"
 build:macos --linkopt=-Wl,-no_warn_duplicate_libraries
 
-# CI configuration (used by Aspect CLI via .aspect/config.axl)
-common:ci --config=ruleset
+# Build without the bytes
+common:ci --remote_download_outputs=minimal
+common:ci --nobuild_runfile_links
+
+# Override the preset's `--lockfile_mode=error` on CI. rules_go's go_sdk
+# extension records non-reproducible facts (fetched from the go.dev SDK
+# manifest), so enforcing the lockfile flakes whenever Go ships a new patch
+# release. We also don't commit MODULE.bazel.lock — see .gitignore.
+common:ci --lockfile_mode=off
