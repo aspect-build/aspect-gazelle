@@ -1,0 +1,8 @@
+load("@gazelle//:def.bzl", "gazelle")
+
+package(default_visibility = ["//visibility:public"])
+
+gazelle(
+    name = "gazelle",
+    gazelle = "@aspect_gazelle_runner//:gazelle_prebuilt_bin",
+)

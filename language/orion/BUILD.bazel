@@ -1,18 +1,10 @@
-load("@gazelle//:def.bzl", "gazelle")
 load("@rules_go//go:def.bzl", "go_library")
 
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
 
-gazelle(
+alias(
     name = "gazelle",
-    extra_args = ["-index=lazy"],
-    gazelle = "@aspect_gazelle//:gazelle_bin",
-)
-
-gazelle(
-    name = "gazelle.check",
-    gazelle = "@aspect_gazelle//:gazelle_bin",
-    mode = "diff",
+    actual = "//tools/gazelle",
 )
 
 # Target name matching MODULE name

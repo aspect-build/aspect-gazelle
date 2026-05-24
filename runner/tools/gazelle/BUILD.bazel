@@ -1,0 +1,19 @@
+load("@gazelle//:def.bzl", "gazelle")
+load("//:def.bzl", "aspect_gazelle")
+
+package(default_visibility = ["//visibility:public"])
+
+# Pure gazelle target.
+gazelle(
+    name = "gazelle",
+    data = ["@bazel_gazelle_go_repository_config//:WORKSPACE"],
+    extra_args = ["-repo_config=$(location @bazel_gazelle_go_repository_config//:WORKSPACE)"],
+    gazelle = "@aspect_gazelle//:gazelle_bin",
+)
+
+# Aspect gazelle target - functionally identical to the above but with added aspect functionality.
+aspect_gazelle(
+    name = "aspect_gazelle",
+    languages = ["go"],
+    repo_config = "@bazel_gazelle_go_repository_config//:WORKSPACE",
+)

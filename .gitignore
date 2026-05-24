@@ -2,5 +2,4 @@
 /*/bazel-*
 /*/e2e/*/bazel-*
 /language/*/bazel-*
-*.bazel.lock
 **/node_modules

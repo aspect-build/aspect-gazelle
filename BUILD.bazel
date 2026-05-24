@@ -1,4 +1,4 @@
-load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+load("@gazelle//:def.bzl", "gazelle_binary")
 
 gazelle_binary(
     name = "gazelle_bin",
@@ -10,16 +10,9 @@ gazelle_binary(
     visibility = ["//visibility:public"],
 )
 
-gazelle(
+alias(
     name = "gazelle",
-    extra_args = ["-index=lazy"],
-    gazelle = ":gazelle_bin",
-)
-
-gazelle(
-    name = "gazelle.check",
-    gazelle = ":gazelle_bin",
-    mode = "diff",
+    actual = "//tools/gazelle",
 )
 
 alias(
@@ -29,10 +22,5 @@ alias(
 
 alias(
     name = "buildifier",
-    actual = "//tools:buildifier",
-)
-
-alias(
-    name = "buildifier.check",
-    actual = "//tools:buildifier.check",
+    actual = "//tools/format:buildifier",
 )
