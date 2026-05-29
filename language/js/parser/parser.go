@@ -3,6 +3,7 @@ package parser
 import (
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -163,6 +164,8 @@ const importsQueryJsx = importsQuery + `
 // See: https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-lib-
 // > This directive allows a file to explicitly include an existing built-in lib file
 var tripleSlashRe = regexp.MustCompile(`^///\s*<reference\s+(?:path|types)\s*=\s*"(?P<lib>[^"]+)"`)
+var typeDynamicImportRe = regexp.MustCompile(`\btypeof\s+import\s*\(\s*['"]([^'"]+)['"]\s*\)`)
+var typeFromImportRe = regexp.MustCompile(`(?m)^\s*(?:import\s+type(?:\s+\*\s+as\s+\w+|\s+\{[^}]*\}|\s+\w+)?|export\s+type\s+\*\s+as\s+\w+)\s+from\s+['"]([^'"]+)['"]`)
 
 func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var imports []string
@@ -170,6 +173,11 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var urlImports []string
 	var modules []string
 	var errs []error
+	addImport := func(from string) {
+		if from != "" && !slices.Contains(imports, from) {
+			imports = append(imports, from)
+		}
+	}
 
 	lang := filenameToLanguage(filePath)
 
@@ -199,7 +207,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
-				imports = append(imports, from)
+				addImport(from)
 			} else if from, isFrom := caps["jsx-from"]; isFrom {
 				jsxImports = append(jsxImports, from)
 			} else if from, isFrom := caps["url-from"]; isFrom {
@@ -207,7 +215,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			} else if tripSlash, isTripSlash := caps["triple-slash"]; isTripSlash {
 				// Parse triple-slash directives
 				if lib, ok := getTripleSlashDirectiveModule(tripSlash); ok {
-					imports = append(imports, lib)
+					addImport(lib)
 				}
 			} else if defined, isDefined := caps["defined"]; isDefined {
 				modules = append(modules, defined)
@@ -225,6 +233,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			}
 		}
 	}
+	addTypeImportFallbacks(sourceCode, addImport)
 
 	result := ParseResult{
 		Imports:    imports,
@@ -239,6 +248,20 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	}
 
 	return result, perr
+}
+
+func addTypeImportFallbacks(sourceCode []byte, addImport func(string)) {
+	source := string(sourceCode)
+	for _, m := range typeDynamicImportRe.FindAllStringSubmatch(source, -1) {
+		if len(m) == 2 {
+			addImport(m[1])
+		}
+	}
+	for _, m := range typeFromImportRe.FindAllStringSubmatch(source, -1) {
+		if len(m) == 2 {
+			addImport(m[1])
+		}
+	}
 }
 
 // Extract the module name out of a triple-slash directive comment.

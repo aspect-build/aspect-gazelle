@@ -3,6 +3,8 @@ package treesitter
 import (
 	"fmt"
 	"iter"
+	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -16,6 +18,24 @@ type TreeQuery any
 
 // A cache of parsed queries per language
 var queryCache = sync.Map{}
+var queryPredicateCache = sync.Map{}
+
+type queryPostPredicateKind int
+
+const (
+	queryPredicateEq queryPostPredicateKind = iota
+	queryPredicateNotEq
+	queryPredicateMatch
+	queryPredicateNotMatch
+)
+
+type queryPostPredicate struct {
+	kind         queryPostPredicateKind
+	leftCapture  string
+	rightCapture string
+	rightLiteral string
+	rightRegex   *regexp.Regexp
+}
 
 func GetQuery(lang Language, queryStr string) (*sitter.Query, error) {
 	tl := lang.(*treeLanguage)
@@ -25,11 +45,46 @@ func GetQuery(lang Language, queryStr string) (*sitter.Query, error) {
 	if !found {
 		sq, err := sitter.NewQuery(queryStr, tl.lang)
 		if err != nil {
-			return nil, err
+			return nil, normalizeQueryError(queryStr, err)
 		}
+		queryPredicateCache.Store(sq, parseQueryPostPredicates(queryStr))
 		q, _ = queryCache.LoadOrStore(key, sq)
 	}
 	return q.(*sitter.Query), nil
+}
+
+func normalizeQueryError(queryStr string, err error) error {
+	msg := err.Error()
+	const prefix = "query: unknown node type "
+	if !strings.HasPrefix(msg, prefix) {
+		return err
+	}
+	name, unquoteErr := strconv.Unquote(strings.TrimPrefix(msg, prefix))
+	if unquoteErr != nil || name == "" {
+		return err
+	}
+	line, column := queryPatternPosition(queryStr, name)
+	return fmt.Errorf("invalid node type '%s' at line %d column %d", name, line, column)
+}
+
+func queryPatternPosition(queryStr, name string) (int, int) {
+	idx := strings.Index(queryStr, name)
+	if idx < 0 {
+		return 0, 0
+	}
+	if open := strings.LastIndex(queryStr[:idx], "("); open >= 0 {
+		idx = open
+	}
+	line, col := 1, 0
+	for _, ch := range queryStr[:idx] {
+		if ch == '\n' {
+			line++
+			col = 0
+		} else {
+			col++
+		}
+	}
+	return line, col
 }
 
 type queryResult struct {
@@ -53,54 +108,181 @@ func (tree *treeAst) Query(query TreeQuery) iter.Seq[ASTQueryResult] {
 			if !ok {
 				break
 			}
+			if !queryMatchPassesPostPredicates(q, m, tree.sourceCode) {
+				continue
+			}
 
-			// gotreesitter can return a single QueryMatch containing multiple
-			// captures with the same name (one per matching child node). The
-			// rest of the codebase expects one result per logical match — i.e.
-			// one capture per name. Expand such matches into per-row results,
-			// pairing each duplicate name's i-th value with the other captures
-			// at the same row index (or with non-duplicated captures).
-			rows := splitMatchRows(m)
-			for _, row := range rows {
-				captures := make(map[string]string, len(row))
-				for _, c := range row {
-					captures[c.Name] = c.Text(tree.sourceCode)
-				}
-				if !yield(&queryResult{QueryCaptures: captures}) {
-					return
-				}
+			captures := tree.mapQueryMatchCaptures(m)
+			if !yield(&queryResult{QueryCaptures: captures}) {
+				return
 			}
 		}
 	}
 }
 
-// splitMatchRows splits a QueryMatch into one or more rows, where each row
-// contains at most one capture per name. When all capture names are unique,
-// a single row is returned. When duplicates exist, captures are zip-aligned
-// across name occurrences.
-func splitMatchRows(m sitter.QueryMatch) [][]sitter.QueryCapture {
-	if len(m.Captures) == 0 {
-		return [][]sitter.QueryCapture{nil}
+func parseQueryPostPredicates(queryStr string) []queryPostPredicate {
+	var out []queryPostPredicate
+	for _, raw := range extractPredicateForms(queryStr) {
+		fields := strings.Fields(raw)
+		if len(fields) < 3 {
+			continue
+		}
+		kind, ok := parsePredicateKind(fields[0])
+		if !ok {
+			continue
+		}
+		left := strings.TrimPrefix(fields[1], "@")
+		if left == fields[1] || left == "" {
+			continue
+		}
+		pred := queryPostPredicate{kind: kind, leftCapture: left}
+		right := fields[2]
+		if strings.HasPrefix(right, "@") {
+			pred.rightCapture = strings.TrimPrefix(right, "@")
+		} else {
+			lit, err := strconv.Unquote(right)
+			if err != nil {
+				continue
+			}
+			if kind == queryPredicateMatch || kind == queryPredicateNotMatch {
+				re, err := regexp.Compile(lit)
+				if err != nil {
+					continue
+				}
+				pred.rightRegex = re
+			} else {
+				pred.rightLiteral = lit
+			}
+		}
+		out = append(out, pred)
 	}
-	maxCount := 1
-	counts := make(map[string]int)
-	for _, c := range m.Captures {
-		counts[c.Name]++
-		if counts[c.Name] > maxCount {
-			maxCount = counts[c.Name]
+	return out
+}
+
+func parsePredicateKind(name string) (queryPostPredicateKind, bool) {
+	switch name {
+	case "#eq?":
+		return queryPredicateEq, true
+	case "#not-eq?":
+		return queryPredicateNotEq, true
+	case "#match?":
+		return queryPredicateMatch, true
+	case "#not-match?":
+		return queryPredicateNotMatch, true
+	default:
+		return 0, false
+	}
+}
+
+func extractPredicateForms(queryStr string) []string {
+	var forms []string
+	for i := 0; i < len(queryStr); i++ {
+		if queryStr[i] != '(' || i+1 >= len(queryStr) || queryStr[i+1] != '#' {
+			continue
+		}
+		start := i + 1
+		inString := false
+		escaped := false
+		for j := i + 1; j < len(queryStr); j++ {
+			ch := queryStr[j]
+			if inString {
+				if escaped {
+					escaped = false
+					continue
+				}
+				switch ch {
+				case '\\':
+					escaped = true
+				case '"':
+					inString = false
+				}
+				continue
+			}
+			switch ch {
+			case '"':
+				inString = true
+			case ')':
+				forms = append(forms, queryStr[start:j])
+				i = j
+				goto nextForm
+			}
+		}
+	nextForm:
+	}
+	return forms
+}
+
+func queryMatchPassesPostPredicates(query *sitter.Query, m sitter.QueryMatch, source []byte) bool {
+	rawPreds, ok := queryPredicateCache.Load(query)
+	if !ok {
+		return true
+	}
+	preds := rawPreds.([]queryPostPredicate)
+	if len(preds) == 0 {
+		return true
+	}
+	captures := captureTextValues(m, source)
+	for _, pred := range preds {
+		left := captures[pred.leftCapture]
+		if len(left) == 0 {
+			continue
+		}
+		if !queryPostPredicatePasses(pred, left, captures) {
+			return false
 		}
 	}
-	if maxCount == 1 {
-		return [][]sitter.QueryCapture{m.Captures}
-	}
-	rows := make([][]sitter.QueryCapture, maxCount)
-	idx := make(map[string]int)
+	return true
+}
+
+func captureTextValues(m sitter.QueryMatch, source []byte) map[string][]string {
+	out := make(map[string][]string)
 	for _, c := range m.Captures {
-		i := idx[c.Name]
-		rows[i] = append(rows[i], c)
-		idx[c.Name] = i + 1
+		out[c.Name] = append(out[c.Name], c.Text(source))
 	}
-	return rows
+	return out
+}
+
+func queryPostPredicatePasses(pred queryPostPredicate, left []string, captures map[string][]string) bool {
+	switch pred.kind {
+	case queryPredicateEq, queryPredicateNotEq:
+		var right []string
+		if pred.rightCapture != "" {
+			right = captures[pred.rightCapture]
+			if len(right) != len(left) {
+				return false
+			}
+		}
+		for i, value := range left {
+			cmp := pred.rightLiteral
+			if pred.rightCapture != "" {
+				cmp = right[i]
+			}
+			equal := value == cmp
+			if pred.kind == queryPredicateEq && !equal {
+				return false
+			}
+			if pred.kind == queryPredicateNotEq && equal {
+				return false
+			}
+		}
+		return true
+	case queryPredicateMatch, queryPredicateNotMatch:
+		if pred.rightRegex == nil {
+			return true
+		}
+		for _, value := range left {
+			matched := pred.rightRegex.MatchString(value)
+			if pred.kind == queryPredicateMatch && !matched {
+				return false
+			}
+			if pred.kind == queryPredicateNotMatch && matched {
+				return false
+			}
+		}
+		return true
+	default:
+		return true
+	}
 }
 
 func (tree *treeAst) mapQueryMatchCaptures(m sitter.QueryMatch) map[string]string {
