@@ -8,7 +8,7 @@ gazelle(
     name = "gazelle",
     data = ["@bazel_gazelle_go_repository_config//:WORKSPACE"],
     extra_args = ["-repo_config=$(location @bazel_gazelle_go_repository_config//:WORKSPACE)"],
-    gazelle = "@aspect_gazelle//:gazelle_bin",
+    gazelle = "@com_github_aspect_build_aspect_gazelle_common//:gazelle_bin",
 )
 
 # Aspect gazelle target - functionally identical to the above but with added aspect functionality.

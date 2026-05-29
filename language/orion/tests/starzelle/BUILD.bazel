@@ -1,4 +1,4 @@
-load("@aspect_gazelle//:gazelle.bzl", "gazelle_generation_test")
+load("@com_github_aspect_build_aspect_gazelle_common//:gazelle.bzl", "gazelle_generation_test")
 
 # General starzelle unit tests. Each test has its own *.star plugins and only the host language.
 

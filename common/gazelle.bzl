@@ -1,6 +1,11 @@
-"""Utils for writing aspect-cli gazelle plugins"""
+"""Utils for writing aspect-cli gazelle plugins.
 
-load("@gazelle//:def.bzl", _gazelle_generation_test = "gazelle_generation_test")
+Lives here (rather than in the aspect_gazelle umbrella MODULE) so consumers can
+reach it through the go_deps materialization of this Go module — no extra
+bazel_dep required.
+"""
+
+load("@bazel_gazelle//:def.bzl", _gazelle_generation_test = "gazelle_generation_test")
 
 def gazelle_generation_test(name, gazelle_binary, dir, data = [], **kwargs):
     """Creates a gazelle_generation_test target while supporting files such as ".gitignore" by prefixing with ".test-*"

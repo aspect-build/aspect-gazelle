@@ -1,4 +1,17 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@bazel_gazelle//:def.bzl", "gazelle_binary")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+# Exports for downstream consumers that read this module's go.mod
+exports_files(["go.mod"])
+
+# Shared gazelle binary used by consumers. Lives here so it can be reached
+# via this module's go_deps materialization (@com_github_..._common//:gazelle_bin)
+# without requiring an aspect_gazelle bazel_dep.
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = ["@bazel_gazelle//language/go:go_default_library"],
+    visibility = ["//visibility:public"],
+)
 
 go_library(
     name = "common",
@@ -14,14 +27,14 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/logger",
+        "//logger",
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//label",
+        "@bazel_gazelle//rule",
+        "@bazel_gazelle//walk",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods_v2//sets/treeset",
-        "@gazelle//config",
-        "@gazelle//label",
-        "@gazelle//rule",
-        "@gazelle//walk",
     ],
 )
 
@@ -34,9 +47,9 @@ go_test(
     ],
     embed = [":common"],
     deps = [
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//label",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
-        "@gazelle//config",
-        "@gazelle//label",
     ],
 )

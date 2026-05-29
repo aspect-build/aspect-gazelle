@@ -10,8 +10,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260504054243-b0097601e8e7 h1:MivYoNdUN+zHlX89cJhg56jnqDVy44xpoiswdqPzHFI=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260504054243-b0097601e8e7/go.mod h1:UTQA/PgQFE770aiMb5H/nJ60qRQgONQ7PCX+Mp4qTH8=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260529185231-06063c00df50 h1:RSwQIJDcS4RWdEAyoeOP8O2aDJx2hoh/MHcbGwd1vY4=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260529185231-06063c00df50/go.mod h1:RU8UWdvy1HAXRlB/X2MoEHEZBPxC28Dh421n3BJhp6Y=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-1 h1:Aney60tyjQn3ON+KPFQhEZ7saU1EtOhlCrGTKGkxiEI=
 github.com/bazelbuild/bazel-gazelle v0.51.0 h1:YbX6BOge2VzaGH75/KGvxzVzfTvdCKLwRkF84FuH8lo=
 github.com/bazelbuild/bazel-gazelle v0.51.0/go.mod h1:qtev3UlNStnHm6TEBM0pkDgOc1wSMBcbD/3wktJL7i8=

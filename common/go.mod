@@ -3,7 +3,7 @@ module github.com/aspect-build/aspect-gazelle/common
 go 1.26.3
 
 require (
-	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-00010101000000-000000000000
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260529185231-06063c00df50
 	github.com/bazelbuild/bazel-gazelle v0.51.0
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/bmatcuk/doublestar/v4 v4.10.0
@@ -16,12 +16,9 @@ require (
 require (
 	github.com/Masterminds/semver/v3 v3.5.0 // indirect
 	github.com/bazelbuild/rules_go v0.60.0 // indirect
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
-	github.com/stretchr/testify v1.11.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect

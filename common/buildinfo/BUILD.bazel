@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 # Under --stamp, the Go linker will fill in these placeholders with VCS info
 # see https://github.com/bazelbuild/rules_go/blob/master/go/core.rst#stamping-with-the-workspace-status-script
