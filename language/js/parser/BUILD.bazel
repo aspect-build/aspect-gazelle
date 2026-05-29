@@ -3,14 +3,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "parser",
     srcs = ["parser.go"],
+    cdeps = ["//crates/js-parser"],  # keep
+    cgo = True,
     importpath = "github.com/aspect-build/aspect-gazelle/language/js/parser",
     visibility = ["//visibility:public"],
-    deps = [
-        "@aspect_gazelle//common/logger",
-        "@aspect_gazelle//common/treesitter",
-        "@aspect_gazelle//common/treesitter/grammars/tsx",
-        "@aspect_gazelle//common/treesitter/grammars/typescript",
-    ],
 )
 
 go_test(

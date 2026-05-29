@@ -1,0 +1,19 @@
+[package]
+name = "js-parser"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+
+[lib]
+name = "js_parser"
+# staticlib -> linked into the gazelle Go binary via cgo cdeps.
+# rlib      -> `cargo test` / unit tests.
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+oxc_allocator.workspace = true
+oxc_ast.workspace = true
+oxc_ast_visit.workspace = true
+oxc_parser.workspace = true
+oxc_span.workspace = true
+regex.workspace = true

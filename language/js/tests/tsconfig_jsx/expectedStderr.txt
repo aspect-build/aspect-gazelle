@@ -1,0 +1,1 @@
+react/no-jsx/s.ts: syntax error: Expected `>` but found `/`

@@ -1,0 +1,3 @@
+subbuild/subbuild-bad.ts: syntax error: Expected a semicolon or an implicit semicolon after a statement, but found none
+subdir/subdir-bad.ts: syntax error: Expected `,` or `}` but found `Identifier`
+bad.ts: syntax error: Expected a semicolon or an implicit semicolon after a statement, but found none

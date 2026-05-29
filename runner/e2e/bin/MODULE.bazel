@@ -29,3 +29,9 @@ local_path_override(
     module_name = "aspect_gazelle_orion",
     path = "../../../language/orion",
 )
+
+# The LLVM and Rust toolchains needed to build the gazelle binary's Rust js
+# parser (via cgo) are registered by @aspect_gazelle_js and inherited. This dep
+# makes `@llvm` visible by apparent name for the `--@llvm//config:...` flags in
+# tools/rust.bazelrc.
+bazel_dep(name = "llvm", version = "0.7.7")

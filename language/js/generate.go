@@ -21,6 +21,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"iter"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -671,9 +672,16 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	}
 
 	// Parse source files, do not parse generated files that are not source files.
+	// Collect syntax errors and report them after the (parallel, unordered) parse
+	// completes, sorted by file, so the output is deterministic.
+	var syntaxErrors []string
 	for result := range ts.parseFiles(cfg, args, sourceFiles) {
 		if result.Error != nil {
 			return nil, result.Error
+		}
+
+		for _, msg := range result.SyntaxErrors {
+			syntaxErrors = append(syntaxErrors, fmt.Sprintf("%s: syntax error: %s", result.SourcePath, msg))
 		}
 
 		for _, sourceImport := range result.Imports {
@@ -689,6 +697,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 			})
 		}
 	}
+	reportSyntaxErrors(syntaxErrors)
 
 	// tsconfig 'jsx' options implying a dependency on react
 	if tsconfig != nil && tsconfig.Jsx.IsReact() && info.HasTsx() {
@@ -965,6 +974,11 @@ type parseResult struct {
 	Imports    []ImportStatement
 	Modules    []string
 	Error      error
+
+	// SyntaxErrors holds parser diagnostics for the file. These are reported but
+	// not fatal: the file's imports may be incomplete (oxc has no error recovery
+	// and bails on a syntax error), but generation continues.
+	SyntaxErrors []string
 }
 
 func (ts *typeScriptLang) collectProtoImports(cfg *JsGazelleConfig, args language.GenerateArgs, sourceFiles []string) ([]ImportStatement, error) {
@@ -1031,10 +1045,11 @@ func (ts *typeScriptLang) collectImports(cfg *JsGazelleConfig, parserCache cache
 	parseResults, err := parseSourceFile(parserCache, rootDir, sourcePath)
 
 	result := parseResult{
-		SourcePath: sourcePath,
-		Error:      err,
-		Imports:    make([]ImportStatement, 0, len(parseResults.Imports)+len(parseResults.JSXImports)+len(parseResults.URLImports)),
-		Modules:    parseResults.Modules,
+		SourcePath:   sourcePath,
+		Error:        err,
+		Imports:      make([]ImportStatement, 0, len(parseResults.Imports)+len(parseResults.JSXImports)+len(parseResults.URLImports)),
+		Modules:      parseResults.Modules,
+		SyntaxErrors: parseResults.Errors,
 	}
 
 	processImports := func(imports []string, absolutePathBase string, kind ImportKind) {
@@ -1110,6 +1125,22 @@ func parseSourceFile(parserCache cache.Cache, rootDir, filePath string) (parser.
 func init() {
 	// TODO: don't expose 'gob' cache serialization here
 	gob.Register(parser.ParseResult{})
+}
+
+// reportSyntaxErrors prints parser diagnostics to stderr. The JS parser (oxc)
+// has no error recovery, so a file with a syntax error yields no imports and
+// its dependencies would otherwise be silently dropped; surfacing the errors
+// tells the user why a file's deps may be missing. Written to stderr (not
+// stdout) because Gazelle's print/diff modes use stdout for the generated BUILD
+// content. Sorted for deterministic output across the parallel parse.
+func reportSyntaxErrors(syntaxErrors []string) {
+	if len(syntaxErrors) == 0 {
+		return
+	}
+	slices.Sort(syntaxErrors)
+	for _, msg := range syntaxErrors {
+		fmt.Fprintln(os.Stderr, msg)
+	}
 }
 
 func (ts *typeScriptLang) addFileLabel(importPath string, label *label.Label) {

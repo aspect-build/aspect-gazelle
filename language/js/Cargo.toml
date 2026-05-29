@@ -1,0 +1,21 @@
+[workspace]
+members = ["crates/js-parser"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+oxc_allocator = "0.133.0"
+oxc_ast = "0.133.0"
+oxc_ast_visit = "0.133.0"
+oxc_parser = "0.133.0"
+oxc_span = "0.133.0"
+regex = "1"
+
+# Optimize the release profile; the static library is linked into the gazelle
+# binary and parsing throughput matters on cold runs.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

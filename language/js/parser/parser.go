@@ -1,23 +1,31 @@
 package parser
 
+/*
+#include <stdint.h>
+#include <stddef.h>
+
+// Implemented by the Rust crate //crates/js-parser (linked via cdeps).
+// Parses `src` (src_len bytes) as the file located at `path` (path_len bytes),
+// returning a heap-allocated buffer of *out_len bytes holding the encoded
+// ParseResult (see decodeParseResult). The caller owns the buffer and must
+// release it with js_parser_free. Returns NULL on allocation failure.
+extern uint8_t *js_parser_parse(const uint8_t *path, size_t path_len,
+                                const uint8_t *src, size_t src_len,
+                                size_t *out_len);
+extern void js_parser_free(uint8_t *ptr, size_t len);
+*/
+import "C"
+
 import (
-	"path"
-	"regexp"
+	"encoding/binary"
+	"fmt"
+	"runtime"
 	"strings"
-
-	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
-
-	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"unsafe"
 )
 
-// Parse and find imports using TreeSitter (https://tree-sitter.github.io/).
-// ESM imports which are always at the root of the AST can be easily found.
-// CommonJS and dynamic imports can be anywhere within the AST and are found using
-// TreeSitter AST queries.
-
-// TreeSitter playground: https://tree-sitter.github.io/tree-sitter/playground
+// Parse and find imports in JavaScript/TypeScript source files using the oxc
+// (Rust) parser, linked into this package via cgo. See //crates/js-parser.
 
 type ParseResult struct {
 	// Imports interpreted based on the format such as distinguishing relative vs absolute imports
@@ -31,6 +39,11 @@ type ParseResult struct {
 
 	// Defined module names via "declare module 'modname' { ... }"
 	Modules []string
+
+	// Syntax errors reported by the parser. When non-empty the lists above may
+	// be incomplete: oxc has no error recovery and bails with an empty AST on a
+	// syntax error, so a file with errors can yield no imports at all.
+	Errors []string
 }
 
 type ParseErrors struct {
@@ -47,208 +60,118 @@ func (pe *ParseErrors) Error() string {
 	return strings.Join(s, "\n")
 }
 
-// A query finding dependencies and declarations in TypeScript/JavaScript files.
+// ParseSource parses the given file for import statements and module
+// declarations.
 //
-// Query matches may include captures:
-// - from: a string representing an imported resource such as a name or path
-// - triple-slash: a triple-slash directive comment
-// - defined: a string representing a defined module name
-const importsQuery = `
-	(call_expression
-		function: [
-			(identifier) @equals-require
-			(import)
-		]
-		arguments: (arguments . (comment)* . (string (string_fragment) @from))
-
-		(#eq? @equals-require "require")
-	)
-
-	(program
-		(import_statement
-			source: (string (string_fragment) @from)
-		)
-	)
-
-	(import_require_clause
-		source: (string (string_fragment) @from)
-	)
-
-	(program
-		(export_statement
-			source: (string (string_fragment) @from)
-		)
-	)
-
-	(program
-		(comment) @triple-slash
-		(#match? @triple-slash "^///\\s*<reference\\s+(?:path|types)\\s*=")
-	)
-
-	(program
-		(ambient_declaration
-			(module
-				body: (statement_block [
-					(import_statement
-						source: (string (string_fragment) @from)
-					)
-					(export_statement
-						source: (string (string_fragment) @from)
-					)
-				])
-			)
-		)
-	)
-
-	(program
-		(ambient_declaration
-			(module
-				name: (string (string_fragment) @defined)
-			)
-		)
-	)
-
-	(new_expression
-		constructor: (identifier) @equals-url
-		arguments: (arguments
-			. (string (string_fragment) @url-from)
-			. (member_expression
-				object: (meta_property)
-				property: (property_identifier) @meta-url
-			)
-		)
-
-		(#eq? @equals-url "URL")
-		(#eq? @meta-url "url")
-	)
-`
-
-// Additional queries for Jsx/Tsx files to capture assets in jsx elements.
-const importsQueryJsx = importsQuery + `
-	(jsx_opening_element name: (identifier) @jsx-tag
-		(jsx_attribute
-			(property_identifier) @jsx-attr
-			(string (string_fragment) @jsx-from)
-			(#match? @jsx-attr "^(src|poster)$")
-		)
-		(#match? @jsx-tag "^(img|video|source|audio|track)$")
-	)
-
-	(jsx_self_closing_element name: (identifier) @jsx-tag
-		(jsx_attribute
-			(property_identifier) @jsx-attr
-			(string (string_fragment) @jsx-from)
-			(#match? @jsx-attr "^(src|poster)$")
-		)
-		(#match? @jsx-tag "^(img|video|source|audio|track)$")
-	)
-`
-
-// Note that we intentionally omit "lib" here since these directives do not result in a separate dependency
-// See: https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-lib-
-// > This directive allows a file to explicitly include an existing built-in lib file
-var tripleSlashRe = regexp.MustCompile(`^///\s*<reference\s+(?:path|types)\s*=\s*"(?P<lib>[^"]+)"`)
-
+// The result is returned from Rust as a single allocation using a compact,
+// little-endian length-prefixed encoding of five string lists, in order:
+// Imports, JSXImports, URLImports, Modules, Errors. Each list is encoded as:
+//
+//	uint32 count
+//	count times: uint32 byte_len, followed by byte_len UTF-8 bytes
 func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
-	var imports []string
-	var jsxImports []string
-	var urlImports []string
-	var modules []string
-	var errs []error
+	pathBytes := []byte(filePath)
 
-	lang := filenameToLanguage(filePath)
+	var pathPtr *C.uint8_t
+	if len(pathBytes) > 0 {
+		pathPtr = (*C.uint8_t)(unsafe.Pointer(&pathBytes[0]))
+	}
+	var srcPtr *C.uint8_t
+	if len(sourceCode) > 0 {
+		srcPtr = (*C.uint8_t)(unsafe.Pointer(&sourceCode[0]))
+	}
 
-	BazelLog.Debugf("Parsing JS source: %s (%v)", filePath, lang)
+	var outLen C.size_t
+	buf := C.js_parser_parse(pathPtr, C.size_t(len(pathBytes)), srcPtr, C.size_t(len(sourceCode)), &outLen)
 
-	// Parse the source code
-	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
+	// Ensure the Go-owned input buffers outlive the synchronous C call.
+	runtime.KeepAlive(pathBytes)
+	runtime.KeepAlive(sourceCode)
+
+	if buf == nil {
+		return ParseResult{}, &ParseErrors{[]error{fmt.Errorf("js parser returned null for %q", filePath)}}
+	}
+	defer C.js_parser_free(buf, outLen)
+
+	encoded := C.GoBytes(unsafe.Pointer(buf), C.int(outLen))
+
+	result, err := decodeParseResult(encoded)
 	if err != nil {
-		errs = append(errs, err)
+		return ParseResult{}, &ParseErrors{[]error{fmt.Errorf("decoding js parser result for %q: %w", filePath, err)}}
 	}
 
-	if tree != nil {
-		defer tree.Close()
+	return result, nil
+}
 
-		querySource := importsQuery
-		if isTsxFilename(filePath) {
-			querySource = importsQueryJsx
-		}
+func decodeParseResult(b []byte) (ParseResult, error) {
+	r := byteReader{b: b}
 
-		// Query for more complex non-root node imports.
-		q, err := treeutils.GetQuery(lang, querySource)
-		if err != nil {
-			BazelLog.Fatalf("Failed to create js 'importsQuery': %v", err)
-		}
-		for queryResult := range tree.Query(q) {
-			BazelLog.Tracef("AST Query %q: %v", filePath, queryResult)
-
-			caps := queryResult.Captures()
-			if from, isFrom := caps["from"]; isFrom {
-				imports = append(imports, from)
-			} else if from, isFrom := caps["jsx-from"]; isFrom {
-				jsxImports = append(jsxImports, from)
-			} else if from, isFrom := caps["url-from"]; isFrom {
-				urlImports = append(urlImports, from)
-			} else if tripSlash, isTripSlash := caps["triple-slash"]; isTripSlash {
-				// Parse triple-slash directives
-				if lib, ok := getTripleSlashDirectiveModule(tripSlash); ok {
-					imports = append(imports, lib)
-				}
-			} else if defined, isDefined := caps["defined"]; isDefined {
-				modules = append(modules, defined)
-			} else {
-				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
-			}
-		}
-
-		// Parse errors. Only log them due to many false positives potentially caused by issues
-		// such as only parsing a single file at a time so type information from other files is missing.
-		if BazelLog.IsTraceEnabled() {
-			treeErrors := tree.QueryErrors()
-			if treeErrors != nil {
-				BazelLog.Tracef("TreeSitter query errors: %v", treeErrors)
-			}
-		}
+	imports, err := r.stringList()
+	if err != nil {
+		return ParseResult{}, fmt.Errorf("imports: %w", err)
+	}
+	jsxImports, err := r.stringList()
+	if err != nil {
+		return ParseResult{}, fmt.Errorf("jsx imports: %w", err)
+	}
+	urlImports, err := r.stringList()
+	if err != nil {
+		return ParseResult{}, fmt.Errorf("url imports: %w", err)
+	}
+	modules, err := r.stringList()
+	if err != nil {
+		return ParseResult{}, fmt.Errorf("modules: %w", err)
+	}
+	errors, err := r.stringList()
+	if err != nil {
+		return ParseResult{}, fmt.Errorf("errors: %w", err)
+	}
+	if r.off != len(r.b) {
+		return ParseResult{}, fmt.Errorf("trailing bytes: %d of %d consumed", r.off, len(r.b))
 	}
 
-	result := ParseResult{
+	return ParseResult{
 		Imports:    imports,
 		JSXImports: jsxImports,
 		URLImports: urlImports,
 		Modules:    modules,
-	}
-
-	var perr error
-	if len(errs) > 0 {
-		perr = &ParseErrors{errs}
-	}
-
-	return result, perr
+		Errors:     errors,
+	}, nil
 }
 
-// Extract the module name out of a triple-slash directive comment.
-//
-// See: https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html
-func getTripleSlashDirectiveModule(comment string) (string, bool) {
-	submatches := tripleSlashRe.FindAllStringSubmatchIndex(comment, -1)
-	if len(submatches) != 1 {
-		return "", false
-	}
-
-	lib := tripleSlashRe.ExpandString(make([]byte, 0), "$lib", comment, submatches[0])
-	return string(lib), len(lib) > 0
+type byteReader struct {
+	b   []byte
+	off int
 }
 
-func isTsxFilename(filename string) bool {
-	ext := path.Ext(filename)
-	return ext == ".tsx" || ext == ".jsx"
+func (r *byteReader) u32() (uint32, error) {
+	if r.off+4 > len(r.b) {
+		return 0, fmt.Errorf("unexpected end of buffer reading uint32 at offset %d", r.off)
+	}
+	v := binary.LittleEndian.Uint32(r.b[r.off:])
+	r.off += 4
+	return v, nil
 }
 
-// File extension to language
-func filenameToLanguage(filename string) treeutils.Language {
-	if isTsxFilename(filename) {
-		return tsx.NewLanguage()
+func (r *byteReader) stringList() ([]string, error) {
+	count, err := r.u32()
+	if err != nil {
+		return nil, err
 	}
-
-	return typescript.NewLanguage()
+	if count == 0 {
+		return nil, nil
+	}
+	out := make([]string, 0, count)
+	for i := uint32(0); i < count; i++ {
+		n, err := r.u32()
+		if err != nil {
+			return nil, err
+		}
+		if r.off+int(n) > len(r.b) {
+			return nil, fmt.Errorf("unexpected end of buffer reading %d-byte string at offset %d", n, r.off)
+		}
+		out = append(out, string(r.b[r.off:r.off+int(n)]))
+		r.off += int(n)
+	}
+	return out, nil
 }
