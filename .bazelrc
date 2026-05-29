@@ -10,8 +10,6 @@ build:macos --linkopt=-Wl,-no_warn_duplicate_libraries
 common:ci --remote_download_outputs=minimal
 common:ci --nobuild_runfile_links
 
-# Override the preset's `--lockfile_mode=error` on CI. rules_go's go_sdk
-# extension records non-reproducible facts (fetched from the go.dev SDK
-# manifest), so enforcing the lockfile flakes whenever Go ships a new patch
-# release. We also don't commit MODULE.bazel.lock — see .gitignore.
+# Override the preset's `--lockfile_mode=error` on CI: we don't commit
+# MODULE.bazel.lock (see .gitignore), so there's nothing to enforce against.
 common:ci --lockfile_mode=off
