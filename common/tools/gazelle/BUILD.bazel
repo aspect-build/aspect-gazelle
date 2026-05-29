@@ -1,10 +1,10 @@
-load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
 
 package(default_visibility = ["//visibility:public"])
 
 gazelle_binary(
     name = "gazelle_bin",
-    languages = ["@gazelle//language/go:go_default_library"],
+    languages = ["@bazel_gazelle//language/go:go_default_library"],
 )
 
 gazelle(

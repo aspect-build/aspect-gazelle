@@ -4,12 +4,6 @@ module(
 )
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "aspect_gazelle", version = "0.0.0")
-local_path_override(
-    module_name = "aspect_gazelle",
-    path = "..",
-)
-
 bazel_dep(name = "aspect_gazelle_js")
 local_path_override(
     module_name = "aspect_gazelle_js",
@@ -56,13 +50,13 @@ single_version_override(
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
-use_repo(go_deps, "bazel_gazelle_go_repository_config", "com_github_bazelbuild_buildtools", "com_github_fatih_color", "com_github_go_git_go_git_v5", "com_github_pmezard_go_difflib", "in_gopkg_yaml_v3", "io_opentelemetry_go_otel", "io_opentelemetry_go_otel_trace", "org_golang_x_term")
+use_repo(go_deps, "bazel_gazelle_go_repository_config", "com_github_aspect_build_aspect_gazelle_common", "com_github_bazelbuild_buildtools", "com_github_fatih_color", "com_github_go_git_go_git_v5", "com_github_pmezard_go_difflib", "in_gopkg_yaml_v3", "io_opentelemetry_go_otel", "io_opentelemetry_go_otel_trace", "org_golang_x_term")
 
 ####### Dev dependencies ########
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk2.nogo(nogo = "@aspect_gazelle//bazel/go:nogo")
+go_sdk2.nogo(nogo = "@com_github_aspect_build_aspect_gazelle_common//bazel/go:nogo")
 go_sdk2.from_file(
     name = "go_sdk",
     go_mod = "//:go.mod",

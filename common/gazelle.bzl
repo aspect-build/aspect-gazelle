@@ -1,6 +1,6 @@
 """Utils for writing aspect-cli gazelle plugins"""
 
-load("@gazelle//:def.bzl", _gazelle_generation_test = "gazelle_generation_test")
+load("@bazel_gazelle//:def.bzl", _gazelle_generation_test = "gazelle_generation_test")
 
 def gazelle_generation_test(name, gazelle_binary, dir, data = [], **kwargs):
     """Creates a gazelle_generation_test target while supporting files such as ".gitignore" by prefixing with ".test-*"

@@ -21,3 +21,5 @@ require (
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 )
+
+replace github.com/aspect-build/aspect-gazelle/common => ../../common

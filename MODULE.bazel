@@ -7,24 +7,9 @@ bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "gazelle", version = "0.51.0")  # must match go.mod
 bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
 
-# Go modules
-go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
-go_deps.from_file(go_mod = "//common:go.mod")
-
-# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
-go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
-go_deps_dev.module_override(
-    patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
-    path = "github.com/smacker/go-tree-sitter",
-)
-
-go_deps.module(
-    path = "golang.org/x/tools",
-    sum = "h1:18qN3FAooORvApf5XjCXgsuayZOEtXf6JK18I3+ONa8=",
-    version = "0.45.0",
-)
-use_repo(go_deps, "com_github_bazelbuild_buildtools", "com_github_bmatcuk_doublestar_v4", "com_github_emirpasic_gods_v2", "com_github_onsi_gomega", "com_github_smacker_go_tree_sitter", "in_gopkg_op_go_logging_v1", "org_golang_x_tools")
+# The shared nogo config lives in //common (@…_common//bazel/go:nogo), reached
+# via go_deps materialization. Common, language/*, and runner each have their
+# own MODULE.bazel and pull what they need from their own go.mod files.
 
 ####### Dev dependencies ########
 
@@ -35,10 +20,9 @@ local_path_override(
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk.nogo(nogo = "//bazel/go:nogo")
-go_sdk.from_file(
+go_sdk.download(
     name = "go_sdk",
-    go_mod = "//common:go.mod",
+    version = "1.26.3",
 )
 use_repo(go_sdk, "go_sdk")
 
