@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+
+ts_project(
+    name = "jsx_assets",
+    srcs = ["main.tsx"],
+    assets = [
+        "audio.mp3",
+        "img.png",
+        "selfclose.png",
+        "src.webm",
+        "track.vtt",
+        "video-poster.png",
+        "video.mp4",
+    ],
+)
