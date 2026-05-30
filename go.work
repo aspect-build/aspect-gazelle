@@ -6,4 +6,5 @@ use (
 	./language/kotlin
 	./language/orion
 	./runner
+	./treesitter
 )

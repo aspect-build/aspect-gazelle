@@ -1,0 +1,20 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+
+# Ensures every grammar go_library in this module compiles. Keep the target
+# list in sync with the go_library targets under //... (one per grammar).
+build_test(
+    name = "grammars_build_test",
+    targets = [
+        "//golang",
+        "//hcl",
+        "//java",
+        "//json",
+        "//kotlin",
+        "//python",
+        "//ruby",
+        "//rust",
+        "//starlark",
+        "//tsx",
+        "//typescript",
+    ],
+)
