@@ -13,7 +13,7 @@ const f = (x<typeof import('@aspect-test/b')>)(null)
 const g = (null as any) as typeof import('@aspect-test/c')
 
 // typeof-import in another function invocation
-(function() {
+(async function() {
     return [...(await x<typeof import("@aspect-test/d")>())]
 })()
 
