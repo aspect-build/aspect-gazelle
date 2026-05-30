@@ -9,12 +9,15 @@ ts_project(
     name = "npm_simple_deps_cjs",
     srcs = [
         "deep-import.ts",
+        "export-assign.ts",
         "main.ts",
         "subdir/subdir.ts",
     ],
     deps = [
         ":node_modules/@aspect-test/a",
+        ":node_modules/@aspect-test/b",
         ":node_modules/@aspect-test/c",
+        ":node_modules/@aspect-test/d",
         ":node_modules/jquery",
     ],
 )

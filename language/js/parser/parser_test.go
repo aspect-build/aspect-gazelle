@@ -79,6 +79,29 @@ var testCases = []struct {
 		expectedImports: []string{"date-fns"},
 	},
 	{
+		desc:            "import equals require",
+		ts:              `import a = require("date-fns");`,
+		filename:        "import-equals.ts",
+		expectedImports: []string{"date-fns"},
+	},
+	{
+		desc:            "export assignment require",
+		ts:              `export = require("date-fns");`,
+		filename:        "export-assign.ts",
+		expectedImports: []string{"date-fns"},
+	},
+	{
+		desc: "import equals require nested in namespace",
+		ts: `
+			namespace N {
+				import a = require("date-fns");
+				export const x = a;
+			}
+		`,
+		filename:        "import-equals-nested.ts",
+		expectedImports: []string{"date-fns"},
+	},
+	{
 		desc:     "incorrect imports",
 		ts:       `@import "~mapbox.js/dist/mapbox.css";`,
 		filename: "actuallyScss.ts",
@@ -332,11 +355,13 @@ var testCases = []struct {
 
 				import { x /*c*/  } /*c*/  from /*c*/ 'lib-impt'
 				export { x } /*c*/
+
+				import e = require('lib-import-equals');
 			}
 		`,
 		filename:        "declare-module-sub.ts",
 		expectedModules: []string{"lib-imports"},
-		expectedImports: []string{"lib-export-star", "lib-export-star-as", "lib-from-default", "lib-impt"},
+		expectedImports: []string{"lib-export-star", "lib-export-star-as", "lib-from-default", "lib-impt", "lib-import-equals"},
 	},
 	{
 		desc: "declare module protocol",

@@ -70,6 +70,10 @@ const importsQuery = `
 		)
 	)
 
+	(import_require_clause
+		source: (string (string_fragment) @from)
+	)
+
 	(program
 		(export_statement
 			source: (string (string_fragment) @from)
