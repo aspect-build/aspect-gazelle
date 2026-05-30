@@ -249,7 +249,10 @@ var testCases = []struct {
 		expectedImports: []string{"react", "react-i18next"},
 	},
 	{
-		desc: "tsx that once crashed with ts parser",
+		// Syntactically invalid tsx (note the stray `})`). The parser must not
+		// crash; oxc's recursive-descent parser fatally bails on this input and
+		// recovers no imports.
+		desc: "malformed tsx recovers no imports",
 		ts: `
 			import React from "react";
 			export const a: React.FunctionComponent<React.PropsWithChildren<X>> = ({y}) => (
@@ -262,7 +265,7 @@ var testCases = []struct {
 			})
 		`,
 		filename:        "sg-example-once-crashed.tsx",
-		expectedImports: []string{"react"},
+		expectedImports: []string{},
 	},
 	{
 		desc: "ts type import",
@@ -563,7 +566,7 @@ func equal[T comparable](a, b []T) bool {
 	return true
 }
 
-func TestTreesitterParser(t *testing.T) {
+func TestParseSource(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			res, _ := ParseSource(tc.filename, []byte(tc.ts))

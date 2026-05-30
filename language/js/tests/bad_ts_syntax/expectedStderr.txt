@@ -1,0 +1,1 @@
+main.ts: syntax error: Expected a semicolon or an implicit semicolon after a statement, but found none

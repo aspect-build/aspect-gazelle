@@ -15,7 +15,6 @@ require (
 require (
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect

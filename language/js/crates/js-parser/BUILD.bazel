@@ -1,0 +1,26 @@
+load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+
+# Static library exposing the C ABI js_parser_parse / js_parser_free.
+# Provides CcInfo so it can be passed directly as `cdeps` on the go_library
+# in //parser. See parser/parser.go.
+rust_static_library(
+    name = "js-parser",
+    srcs = ["src/lib.rs"],
+    edition = "2021",
+    visibility = ["//parser:__pkg__"],
+    deps = [
+        "@aspect_js_parser_crates//:oxc_allocator",
+        "@aspect_js_parser_crates//:oxc_ast",
+        "@aspect_js_parser_crates//:oxc_ast_visit",
+        "@aspect_js_parser_crates//:oxc_parser",
+        "@aspect_js_parser_crates//:oxc_span",
+        "@aspect_js_parser_crates//:regex",
+    ],
+)
+
+rust_test(
+    name = "js-parser_test",
+    crate = ":js-parser",
+    edition = "2021",
+)

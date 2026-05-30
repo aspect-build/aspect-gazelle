@@ -7,3 +7,7 @@ import %workspace%/../../../tools/preset.bazelrc
 # against. CI runs `aspect gazelle/test` from this workspace, so the root
 # .bazelrc override does not apply here.
 common:ci --lockfile_mode=off
+
+# Toolchain config for the Rust js parser, linked into the gazelle binary via
+# cgo. The LLVM + Rust toolchains are registered by @aspect_gazelle_js.
+import %workspace%/../../../tools/rust.bazelrc

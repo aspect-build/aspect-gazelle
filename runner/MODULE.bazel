@@ -79,11 +79,8 @@ go_deps2.module_override(
     path = "github.com/smacker/go-tree-sitter",
 )
 
-####### LLVM configuration for cgo ########
-
-bazel_dep(name = "llvm", version = "0.7.5", dev_dependency = True)
-
-register_toolchains(
-    "@llvm//toolchain:all",
-    dev_dependency = True,
-)
+# The LLVM and Rust toolchains (used for all cgo here, including the Rust js
+# parser) are registered by @aspect_gazelle_js and inherited transitively. This
+# dep is still needed so `@llvm` is visible by apparent name for the
+# `--@llvm//config:...` flags in tools/rust.bazelrc. The build flags live there.
+bazel_dep(name = "llvm", version = "0.7.7")

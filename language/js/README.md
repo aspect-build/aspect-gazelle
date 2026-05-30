@@ -67,3 +67,46 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 | `# gazelle:js_npm_package_target_name _name_`           | `{dirname}`                 |
 | The format used to generate the name of the `npm_package` target.<br />The package target depends on the default source group, plus anything it explicitly depends on such as via `package.json` fields (`main`, `exports`, `types`, `typings`) pointing to outputs of other targets. |
 <!-- prettier-ignore-end -->
+
+## Build setup
+
+> **The setup below is only required when building the Gazelle binary from source.** Users of [`aspect_gazelle_prebuilt`](../../prebuilt/) can skip it entirely — that module ships a prebuilt Gazelle binary, so you don't compile the Rust parser, or need a Go, Rust, or LLVM toolchain, at all.
+
+The JS/TS import parser is implemented in Rust (using [oxc](https://oxc.rs/)) and linked into the Gazelle binary via cgo. Building this module therefore compiles a Rust static library through [rules_rs](https://github.com/hermeticbuild/rules_rs) and a hermetic LLVM C/C++ toolchain.
+
+`@aspect_gazelle_js` **registers** the Rust and LLVM toolchains itself, so consumers do not register them. But two things cannot propagate through the module graph and must be set by every module that builds this parser — directly, or transitively via a `gazelle_binary` that embeds it.
+
+First, declare `@llvm` so the `@llvm//config:...` flag below resolves (bzlmod only exposes a repo by apparent name to modules that declare it). In `MODULE.bazel`:
+
+```starlark
+bazel_dep(name = "llvm", version = "0.7.7")  # match the version @aspect_gazelle_js pins
+```
+
+Then add the following to your `.bazelrc`:
+
+```
+# Use the hermetic LLVM C/C++ toolchain (provided by @aspect_gazelle_js) to
+# build the Rust parser and link it via cgo.
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
+common --linkopt=-no-pie
+common --experimental_cc_static_library
+common --experimental_platform_in_output_dir
+
+# Stub libgcc_s; rules_rust tool binaries otherwise link against a non-hermetic
+# system libgcc_s that the LLVM sysroot lacks ("unable to find library -lgcc_s").
+common --@llvm//config:experimental_stub_libgcc_s=True
+
+# rules_rs's Linux Rust toolchains pin @llvm//constraints/libc:gnu.2.28 on the
+# target platform, which the default host platform lacks (resolution otherwise
+# fails with "No matching toolchains found"). Select a host platform that
+# carries it. macOS needs no host platform.
+common --enable_platform_specific_config
+common:linux --host_platform=@aspect_gazelle_js//platform:local_gnu
+```
+
+Notes:
+
+- macOS builds need only the C/C++ toolchain flags; the `--host_platform` line is Linux-only.
+- `--linkopt=-no-pie` works around a Go stdlib + lld PIE-link incompatibility for cgo binaries. It can be dropped once Go reliably links cgo binaries as PIE (expected in Go 1.27 — see [golang/go#77601](https://github.com/golang/go/pull/77601) and [golang/go#76858](https://github.com/golang/go/pull/76858)).
+- Within this repository these flags live in [`tools/rust.bazelrc`](../../tools/rust.bazelrc), imported by each workspace that builds the parser (`language/js`, `runner`, `runner/e2e/bin`).
