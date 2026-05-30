@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "nogo")
+load("@io_bazel_rules_go//go:def.bzl", "nogo")
 
 nogo(
     name = "nogo",
