@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "bazel",
@@ -9,7 +9,7 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common/bazel",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/bazel/workspace",
-        "//common/logger",
+        "//bazel/workspace",
+        "//logger",
     ],
 )

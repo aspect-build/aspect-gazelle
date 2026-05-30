@@ -29,3 +29,22 @@ local_path_override(
     module_name = "aspect_gazelle_orion",
     path = "../../../language/orion",
 )
+
+# aspect_treesitter_grammars is a transitive bazel_dep via aspect_gazelle_runner.
+# It isn't published to BCR yet, so wire up the local path.
+bazel_dep(name = "aspect_treesitter_grammars", version = "1.0.0")
+local_path_override(
+    module_name = "aspect_treesitter_grammars",
+    path = "../../../treesitter",
+)
+
+bazel_dep(name = "rules_go", version = "0.60.0", dev_dependency = True)
+
+# Go SDK can only be configured in a root MODULE; this picks up the version from
+# the upstream runner's go.mod so the toolchain matches.
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
+go_sdk.from_file(
+    name = "go_sdk",
+    go_mod = "@aspect_gazelle_runner//:go.mod",
+)
+use_repo(go_sdk, "go_sdk")

@@ -4,10 +4,10 @@ go 1.26.3
 
 require (
 	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260315054354-c9bd89ae01a1
-	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260306195717-555bd7327593
-	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260306195717-555bd7327593
-	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260306195717-555bd7327593
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260529185231-06063c00df50
+	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260529185231-06063c00df50
+	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260529185231-06063c00df50
+	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260529185231-06063c00df50
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260510140936-e29c577dab87
 	github.com/bazelbuild/bazel-gazelle v0.51.0 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
@@ -27,6 +27,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260529185231-06063c00df50 // indirect
 	github.com/bazel-contrib/rules_jvm v0.32.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -74,3 +75,5 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/aspect-build/aspect-gazelle/common => ../common

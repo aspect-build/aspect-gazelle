@@ -3,7 +3,7 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "aspect_gazelle", version = "0.0.0")
+bazel_dep(name = "aspect_treesitter_grammars", version = "1.0.0")
 bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "gazelle", version = "0.51.0")  # must match go.mod
 bazel_dep(name = "contrib_rules_jvm", version = "0.32.0")  # must match go.mod
@@ -11,14 +11,21 @@ bazel_dep(name = "contrib_rules_jvm", version = "0.32.0")  # must match go.mod
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
-use_repo(go_deps, "com_github_emirpasic_gods_v2", "com_github_rs_zerolog")
+use_repo(go_deps, "com_github_aspect_build_aspect_gazelle_common", "com_github_emirpasic_gods_v2", "com_github_rs_zerolog")
 
 ####### Dev dependencies ########
 
-# Always use the local @aspect_gazelle
+# aspect_gazelle is only needed when this module is root (for its nogo config
+# below). Downstream consumers don't see it.
+bazel_dep(name = "aspect_gazelle", version = "0.0.0", dev_dependency = True)
 local_path_override(
     module_name = "aspect_gazelle",
     path = "../../",
+)
+
+local_path_override(
+    module_name = "aspect_treesitter_grammars",
+    path = "../../treesitter",
 )
 
 # Go SDK version which can only be defined in a root MODULE

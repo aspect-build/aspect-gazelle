@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cache",
@@ -13,11 +13,11 @@ go_library(
     importpath = "github.com/aspect-build/aspect-gazelle/common/cache",
     visibility = ["//visibility:public"],
     deps = [
-        "//common/buildinfo",
-        "//common/logger",
-        "@gazelle//config",
-        "@gazelle//language",
-        "@gazelle//rule",
+        "//buildinfo",
+        "//logger",
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//language",
+        "@bazel_gazelle//rule",
     ],
 )
 
@@ -29,5 +29,5 @@ go_test(
         "watch_test.go",
     ],
     embed = [":cache"],
-    deps = ["@gazelle//config"],
+    deps = ["@bazel_gazelle//config"],
 )

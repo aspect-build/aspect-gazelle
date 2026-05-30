@@ -6,10 +6,9 @@ import (
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/tsx"
-	"github.com/aspect-build/aspect-gazelle/common/treesitter/grammars/typescript"
-
 	treeutils "github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"github.com/aspect-build/aspect-gazelle/treesitter/tsx"
+	"github.com/aspect-build/aspect-gazelle/treesitter/typescript"
 )
 
 // Parse and find imports using TreeSitter (https://tree-sitter.github.io/).
@@ -243,8 +242,8 @@ func isTsxFilename(filename string) bool {
 // File extension to language
 func filenameToLanguage(filename string) treeutils.Language {
 	if isTsxFilename(filename) {
-		return tsx.NewLanguage()
+		return treeutils.NewLanguageFromSitter(treeutils.TypescriptX, tsx.NewLanguage())
 	}
 
-	return typescript.NewLanguage()
+	return treeutils.NewLanguageFromSitter(treeutils.Typescript, typescript.NewLanguage())
 }
