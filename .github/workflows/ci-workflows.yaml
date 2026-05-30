@@ -9,7 +9,7 @@ permissions:
   id-token: write
 env:
   ASPECT_API_TOKEN: ${{ secrets.ASPECT_API_TOKEN }}
-  INSTALL_ASPECT_LAUNCHER_VERSION: 2026.22.23
+  ASPECT_LAUNCHER_VERSION: 2026.22.29
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -26,7 +26,7 @@ jobs:
           external-cache: true
       - name: Buildifier
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect buildifier --task-key=buildifier
   gazelle:
     runs-on: ubuntu-latest
@@ -40,7 +40,7 @@ jobs:
           external-cache: true
       - name: Gazelle
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle
   test:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
           external-cache: true
       - name: Test
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test -- //...
   gazelle-language-js:
     runs-on: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
       - name: Gazelle (language/js)
         working-directory: language/js
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle-language-js
   test-language-js:
     runs-on: ubuntu-latest
@@ -84,7 +84,7 @@ jobs:
       - name: Test (language/js)
         working-directory: language/js
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test-language-js -- //...
   gazelle-language-kotlin:
     runs-on: ubuntu-latest
@@ -99,7 +99,7 @@ jobs:
       - name: Gazelle (language/kotlin)
         working-directory: language/kotlin
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle-language-kotlin
   test-language-kotlin:
     runs-on: ubuntu-latest
@@ -114,7 +114,7 @@ jobs:
       - name: Test (language/kotlin)
         working-directory: language/kotlin
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test-language-kotlin -- //...
   gazelle-language-orion:
     runs-on: ubuntu-latest
@@ -129,7 +129,7 @@ jobs:
       - name: Gazelle (language/orion)
         working-directory: language/orion
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle-language-orion
   test-language-orion:
     runs-on: ubuntu-latest
@@ -144,7 +144,7 @@ jobs:
       - name: Test (language/orion)
         working-directory: language/orion
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test-language-orion -- //...
   gazelle-runner:
     runs-on: ubuntu-latest
@@ -159,7 +159,7 @@ jobs:
       - name: Gazelle (runner)
         working-directory: runner
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle-runner
   # Parallel run using //tools/gazelle:aspect_gazelle (the aspect_gazelle()
   # macro this repo ships) instead of the default //tools/gazelle:gazelle.
@@ -178,7 +178,7 @@ jobs:
       - name: Aspect Gazelle (runner)
         working-directory: runner
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=aspect-gazelle-runner --gazelle-target=//tools/gazelle:aspect_gazelle
   test-runner:
     runs-on: ubuntu-latest
@@ -193,7 +193,7 @@ jobs:
       - name: Test (runner)
         working-directory: runner
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test-runner -- //...
   gazelle-runner-e2e-bin:
     runs-on: ubuntu-latest
@@ -208,7 +208,7 @@ jobs:
       - name: Gazelle (runner/e2e/bin)
         working-directory: runner/e2e/bin
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect gazelle --task-key=gazelle-runner-e2e-bin
   test-runner-e2e-bin:
     runs-on: ubuntu-latest
@@ -223,5 +223,5 @@ jobs:
       - name: Test (runner/e2e/bin)
         working-directory: runner/e2e/bin
         run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$INSTALL_ASPECT_LAUNCHER_VERSION"
+          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
           aspect test --task-key=test-runner-e2e-bin -- //...
