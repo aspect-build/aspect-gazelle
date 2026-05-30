@@ -3,17 +3,14 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "treesitter",
     srcs = [
-        "filters.go",
         "parser.go",
         "queries.go",
-        "query.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter",
     visibility = ["//visibility:public"],
     deps = [
-        "//common",
         "//common/logger",
-        "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
+        "@com_github_odvcencio_gotreesitter//:gotreesitter",
     ],
 )
 

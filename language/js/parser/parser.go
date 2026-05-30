@@ -3,6 +3,7 @@ package parser
 import (
 	"path"
 	"regexp"
+	"slices"
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -54,61 +55,80 @@ func (pe *ParseErrors) Error() string {
 // - triple-slash: a triple-slash directive comment
 // - defined: a string representing a defined module name
 const importsQuery = `
+	; require/import("...") with optional leading comments. Each pattern
+	; pins the string via dot anchors. We avoid (comment)+ because
+	; gotreesitter's anchor-after-quantifier is buggy and lets the string
+	; capture jump past intervening non-comment args.
 	(call_expression
-		function: [
-			(identifier) @equals-require
-			(import)
-		]
-		arguments: (arguments . (comment)* . (string (string_fragment) @from))
+		function: (identifier) @equals-require
+		arguments: (arguments . (string (string_fragment) @from))
+
+		(#eq? @equals-require "require")
+	)
+	(call_expression
+		function: (identifier) @equals-require
+		arguments: (arguments . (comment) . (string (string_fragment) @from))
+
+		(#eq? @equals-require "require")
+	)
+	(call_expression
+		function: (identifier) @equals-require
+		arguments: (arguments . (comment) . (comment) . (string (string_fragment) @from))
 
 		(#eq? @equals-require "require")
 	)
 
-	(program
-		(import_statement
-			source: (string (string_fragment) @from)
-		)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (string (string_fragment) @from))
+	)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (comment) . (string (string_fragment) @from))
+	)
+	(call_expression
+		function: (import)
+		arguments: (arguments . (comment) . (comment) . (string (string_fragment) @from))
 	)
 
-	(program
-		(export_statement
-			source: (string (string_fragment) @from)
-		)
+	(import_statement
+		source: (string (string_fragment) @from)
 	)
 
-	(program
-		(comment) @triple-slash
+	(export_statement
+		source: (string (string_fragment) @from)
+	)
+
+	; Triple-slash directives are top-level only by spec. (program (comment) ...)
+	; would be ideal but gotreesitter only yields the first matching child for
+	; that pattern shape (instead of one match per child). Use bare (comment)
+	; with #not-has-parent? to exclude comments inside function/class bodies.
+	((comment) @triple-slash
 		(#match? @triple-slash "^///\\s*<reference\\s+(?:path|types)\\s*=")
-	)
+		(#not-has-parent? @triple-slash
+			function_declaration
+			generator_function_declaration
+			class_declaration
+			class_body
+			method_definition
+			function_expression
+			arrow_function
+			statement_block
+			module
+			internal_module
+			ambient_declaration))
 
-	(program
-		(ambient_declaration
-			(module
-				body: (statement_block [
-					(import_statement
-						source: (string (string_fragment) @from)
-					)
-					(export_statement
-						source: (string (string_fragment) @from)
-					)
-				])
-			)
-		)
-	)
-
-	(program
-		(ambient_declaration
-			(module
-				name: (string (string_fragment) @defined)
-			)
+	(ambient_declaration
+		(module
+			name: (string (string_fragment) @defined)
 		)
 	)
 
 	(new_expression
 		constructor: (identifier) @equals-url
 		arguments: (arguments
-			. (string (string_fragment) @url-from)
-			. (member_expression
+			(string (string_fragment) @url-from)
+			(member_expression
 				object: (meta_property)
 				property: (property_identifier) @meta-url
 			)
@@ -144,6 +164,8 @@ const importsQueryJsx = importsQuery + `
 // See: https://www.typescriptlang.org/docs/handbook/triple-slash-directives.html#-reference-lib-
 // > This directive allows a file to explicitly include an existing built-in lib file
 var tripleSlashRe = regexp.MustCompile(`^///\s*<reference\s+(?:path|types)\s*=\s*"(?P<lib>[^"]+)"`)
+var typeDynamicImportRe = regexp.MustCompile(`\btypeof\s+import\s*\(\s*['"]([^'"]+)['"]\s*\)`)
+var typeFromImportRe = regexp.MustCompile(`(?m)^\s*(?:import\s+type(?:\s+\*\s+as\s+\w+|\s+\{[^}]*\}|\s+\w+)?|export\s+type\s+\*\s+as\s+\w+)\s+from\s+['"]([^'"]+)['"]`)
 
 func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var imports []string
@@ -151,6 +173,11 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	var urlImports []string
 	var modules []string
 	var errs []error
+	addImport := func(from string) {
+		if from != "" && !slices.Contains(imports, from) {
+			imports = append(imports, from)
+		}
+	}
 
 	lang := filenameToLanguage(filePath)
 
@@ -180,7 +207,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 
 			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
-				imports = append(imports, from)
+				addImport(from)
 			} else if from, isFrom := caps["jsx-from"]; isFrom {
 				jsxImports = append(jsxImports, from)
 			} else if from, isFrom := caps["url-from"]; isFrom {
@@ -188,7 +215,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			} else if tripSlash, isTripSlash := caps["triple-slash"]; isTripSlash {
 				// Parse triple-slash directives
 				if lib, ok := getTripleSlashDirectiveModule(tripSlash); ok {
-					imports = append(imports, lib)
+					addImport(lib)
 				}
 			} else if defined, isDefined := caps["defined"]; isDefined {
 				modules = append(modules, defined)
@@ -206,6 +233,7 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 			}
 		}
 	}
+	addTypeImportFallbacks(sourceCode, addImport)
 
 	result := ParseResult{
 		Imports:    imports,
@@ -220,6 +248,20 @@ func ParseSource(filePath string, sourceCode []byte) (ParseResult, error) {
 	}
 
 	return result, perr
+}
+
+func addTypeImportFallbacks(sourceCode []byte, addImport func(string)) {
+	source := string(sourceCode)
+	for _, m := range typeDynamicImportRe.FindAllStringSubmatch(source, -1) {
+		if len(m) == 2 {
+			addImport(m[1])
+		}
+	}
+	for _, m := range typeFromImportRe.FindAllStringSubmatch(source, -1) {
+		if len(m) == 2 {
+			addImport(m[1])
+		}
+	}
 }
 
 // Extract the module name out of a triple-slash directive comment.

@@ -16,17 +16,11 @@
 
 package typescript
 
-//#include "tree_sitter/parser.h"
-//TSLanguage *tree_sitter_typescript();
-import "C"
 import (
-	"unsafe"
-
 	"github.com/aspect-build/aspect-gazelle/common/treesitter"
+	"github.com/odvcencio/gotreesitter/grammars"
 )
 
 func NewLanguage() treesitter.Language {
-	return treesitter.NewLanguage(
-		treesitter.Typescript,
-		unsafe.Pointer(C.tree_sitter_typescript()))
+	return treesitter.NewLanguage(treesitter.Typescript, grammars.TypescriptLanguage())
 }
