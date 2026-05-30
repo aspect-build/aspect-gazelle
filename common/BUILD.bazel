@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "common",
@@ -15,13 +15,13 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//common/logger",
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//label",
+        "@bazel_gazelle//rule",
+        "@bazel_gazelle//walk",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods_v2//sets/treeset",
-        "@gazelle//config",
-        "@gazelle//label",
-        "@gazelle//rule",
-        "@gazelle//walk",
     ],
 )
 
@@ -34,9 +34,9 @@ go_test(
     ],
     embed = [":common"],
     deps = [
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//label",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
-        "@gazelle//config",
-        "@gazelle//label",
     ],
 )

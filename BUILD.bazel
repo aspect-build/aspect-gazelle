@@ -1,9 +1,9 @@
-load("@gazelle//:def.bzl", "gazelle_binary")
+load("@bazel_gazelle//:def.bzl", "gazelle_binary")
 
 gazelle_binary(
     name = "gazelle_bin",
     languages = [
-        "@gazelle//language/go:go_default_library",
+        "@bazel_gazelle//language/go:go_default_library",
     ],
 
     # Public for use in sub-MODULEs

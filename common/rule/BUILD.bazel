@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "rule",
@@ -11,12 +11,12 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//common/logger",
+        "@bazel_gazelle//label",
+        "@bazel_gazelle//language",
+        "@bazel_gazelle//rule",
         "@com_github_bazelbuild_buildtools//build",
         "@com_github_bmatcuk_doublestar_v4//:doublestar",
         "@com_github_emirpasic_gods_v2//sets/treeset",
-        "@gazelle//label",
-        "@gazelle//language",
-        "@gazelle//rule",
     ],
 )
 
