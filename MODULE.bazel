@@ -3,16 +3,20 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "rules_go", version = "0.60.0")
-bazel_dep(name = "gazelle", version = "0.51.0")  # must match go.mod
+# repo_name uses the canonical gazelle/rules_go names so that the BUILD files
+# generated under common/ resolve identically when this module is consumed via
+# go.mod / `go_deps` (where rules_go is "io_bazel_rules_go" and gazelle is
+# "bazel_gazelle"), not just when built in-repo.
+bazel_dep(name = "rules_go", version = "0.60.0", repo_name = "io_bazel_rules_go")
+bazel_dep(name = "gazelle", version = "0.51.0", repo_name = "bazel_gazelle")  # must match go.mod
 bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
 
 # Go modules
-go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//common:go.mod")
 
 # Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
-go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps_dev = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps_dev.module_override(
     patch_strip = 1,
     patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
@@ -34,7 +38,7 @@ local_path_override(
 )
 
 # Go SDK version which can only be defined in a root MODULE
-go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
+go_sdk = use_extension("@io_bazel_rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
 go_sdk.nogo(nogo = "//bazel/go:nogo")
 go_sdk.from_file(
     name = "go_sdk",
@@ -43,7 +47,7 @@ go_sdk.from_file(
 use_repo(go_sdk, "go_sdk")
 
 # Go deps loaded just for bazel/tools
-go_deps2 = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps2 = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps2.module(
     path = "google.golang.org/genproto/googleapis/api",
     sum = "h1:8XJ4pajGwOlasW+L13MnEGA8W4115jJySQtVfS2/IBU=",
