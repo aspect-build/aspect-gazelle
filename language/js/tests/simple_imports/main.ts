@@ -27,7 +27,7 @@ const fooVal: Foo = 123;
 
 console.log(
     lib,
-    lib2
+    lib2,
     subdir_index,
     subdir_lib,
     subdir_parent_ref,
