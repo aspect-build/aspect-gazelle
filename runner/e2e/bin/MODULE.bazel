@@ -1,15 +1,10 @@
 bazel_dep(name = "gazelle", version = "0.51.0")
+bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "bazel_skylib", version = "1.8.2")
 bazel_dep(name = "aspect_gazelle_runner")
 local_path_override(
     module_name = "aspect_gazelle_runner",
     path = "../../",
-)
-
-bazel_dep(name = "aspect_gazelle", version = "0.0.0")
-local_path_override(
-    module_name = "aspect_gazelle",
-    path = "../../../",
 )
 
 bazel_dep(name = "aspect_gazelle_js")
@@ -43,3 +38,14 @@ local_path_override(
     module_name = "aspect_treesitter_grammars",
     path = "../../../treesitter",
 )
+
+# This harness has no first-party Go code; common is pulled in transitively via
+# aspect_gazelle_runner's go_deps. Reuse the runner's go.mod to pin the Go SDK
+# (avoids a stub go.mod here) so the go_deps fetch of the pinned common version
+# runs under a Go toolchain new enough for common's go directive.
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.from_file(
+    name = "go_sdk",
+    go_mod = "@aspect_gazelle_runner//:go.mod",
+)
+use_repo(go_sdk, "go_sdk")

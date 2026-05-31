@@ -1,5 +1,7 @@
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0 h1:/TCPTVmvt6sCrSi59DGfyYxxSdJ8f1icIG99w2lHVDo=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0/go.mod h1:TeXtnkLDqIctw/MCrju2xeCd18MndrDt82usyJ7RfS8=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-1 h1:Aney60tyjQn3ON+KPFQhEZ7saU1EtOhlCrGTKGkxiEI=
 github.com/bazelbuild/bazel-gazelle v0.51.0 h1:YbX6BOge2VzaGH75/KGvxzVzfTvdCKLwRkF84FuH8lo=
 github.com/bazelbuild/bazel-gazelle v0.51.0/go.mod h1:qtev3UlNStnHm6TEBM0pkDgOc1wSMBcbD/3wktJL7i8=

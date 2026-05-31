@@ -6,11 +6,14 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 # gazelle:resolve_regexp go github.com/bazel-contrib/rules_python/gazelle/(.*) @rules_python_gazelle_plugin//$1
 # gazelle:resolve_regexp go github.com/bufbuild/rules_buf/(.*) @rules_buf//$1
 # gazelle:resolve_regexp go github.com/EngFlow/gazelle_cc/(.*) @gazelle_cc//$1
-# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common(/.*)? @aspect_gazelle//common$1
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/js @aspect_gazelle_js
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/orion @aspect_gazelle_orion
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/language/kotlin @aspect_gazelle_kotlin
 # gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/runner/(.*) //$1
+# common is a go_deps module; resolve it explicitly so gazelle's lazy index does
+# not shell out to `go` (which can't resolve common's placeholder treesitter dep).
+# gazelle:resolve go github.com/aspect-build/aspect-gazelle/common @com_github_aspect_build_aspect_gazelle_common//:common
+# gazelle:resolve_regexp go github.com/aspect-build/aspect-gazelle/common/(.*) @com_github_aspect_build_aspect_gazelle_common//$1
 
 # Explicit resolves for go_deps-managed modules whose labels gazelle's go-language
 # resolver computes incorrectly when given the go_deps-generated repo_config
@@ -56,10 +59,10 @@ go_library(
         "//progress",
         "//vendored/bzl",
         "//vendored/gazelle",
-        "@aspect_gazelle//common/cache",
         "@aspect_gazelle_js",
         "@aspect_gazelle_kotlin",
         "@aspect_gazelle_orion",
+        "@com_github_aspect_build_aspect_gazelle_common//cache",
         "@gazelle//config",
         "@gazelle//language",
         "@gazelle//language/bazel/visibility",

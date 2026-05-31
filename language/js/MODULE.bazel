@@ -3,7 +3,6 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "aspect_gazelle", version = "0.0.0")
 bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
 bazel_dep(name = "bazel_lib", version = "3.0.0")
 bazel_dep(name = "rules_go", version = "0.60.0")
@@ -13,7 +12,7 @@ bazel_dep(name = "gazelle", version = "0.51.0")  # must match go.mod
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
-use_repo(go_deps, "com_github_bazelbuild_buildtools", "com_github_emirpasic_gods_v2", "com_github_goexlib_jsonc", "com_github_masterminds_semver_v3", "in_gopkg_yaml_v3")
+use_repo(go_deps, "com_github_aspect_build_aspect_gazelle_common", "com_github_bazelbuild_buildtools", "com_github_emirpasic_gods_v2", "com_github_goexlib_jsonc", "com_github_masterminds_semver_v3", "in_gopkg_yaml_v3")
 
 # Rust toolchain + crates for the oxc-based JS/TS parser (//crates/js-parser),
 # linked into the parser go_library via cgo. Kept non-dev so the toolchain and
@@ -57,12 +56,6 @@ register_toolchains("@llvm//toolchain:all")
 
 ####### Dev dependencies ########
 
-# Always use the local @aspect_gazelle
-local_path_override(
-    module_name = "aspect_gazelle",
-    path = "../../",
-)
-
 local_path_override(
     module_name = "aspect_treesitter_grammars",
     path = "../../treesitter",
@@ -73,7 +66,7 @@ bazel_dep(name = "aspect_rules_js", version = "3.0.3", dev_dependency = True)
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk2.nogo(nogo = "@aspect_gazelle//bazel/go:nogo")
+go_sdk2.nogo(nogo = "@com_github_aspect_build_aspect_gazelle_common//bazel/go:nogo")
 go_sdk2.from_file(
     name = "go_sdk",
     go_mod = "//:go.mod",
