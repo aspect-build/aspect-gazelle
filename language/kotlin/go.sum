@@ -1,5 +1,7 @@
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260315054354-c9bd89ae01a1 h1:nA7KEHtoHm+UhJPoINJ48at84jO8i48PiMU8XnansMQ=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260315054354-c9bd89ae01a1/go.mod h1:bA1OZBcic91y6KmKXlEGziq58q3sgzslPln5UrLQ9Rk=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260531090257-43d3b5b0a7ff h1:y5gfoSSnjF5HSgNsHzq01qxiZKHROrAcZ5VGRdZo/Jk=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260531090257-43d3b5b0a7ff/go.mod h1:5VLi3qT7qB3+Iyd4x0DHxytQcxbdr1KbLOZTdKOePeM=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0 h1:/TCPTVmvt6sCrSi59DGfyYxxSdJ8f1icIG99w2lHVDo=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0/go.mod h1:TeXtnkLDqIctw/MCrju2xeCd18MndrDt82usyJ7RfS8=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-1 h1:Aney60tyjQn3ON+KPFQhEZ7saU1EtOhlCrGTKGkxiEI=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
