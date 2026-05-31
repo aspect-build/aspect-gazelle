@@ -1,0 +1,60 @@
+load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
+load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load(":isolate.bzl", "isolate_ts_symbols")
+load(":opt.bzl", "opt_rust_static_library")
+
+_SRCS = ["src/lib.rs"]
+
+_DEPS = [
+    "@aspect_orion_crates//:streaming-iterator",
+    "@aspect_orion_crates//:tree-sitter",
+    "@aspect_orion_crates//:tree-sitter-go",
+    "@aspect_orion_crates//:tree-sitter-hcl",
+    "@aspect_orion_crates//:tree-sitter-java",
+    "@aspect_orion_crates//:tree-sitter-json",
+    # ast-grep's republication of the fwcd Kotlin grammar (upstream's own crate
+    # pins the ancient tree-sitter 0.20 and cannot be used).
+    "@aspect_orion_crates//:tree-sitter-kotlin-sg",
+    "@aspect_orion_crates//:tree-sitter-python",
+    "@aspect_orion_crates//:tree-sitter-ruby",
+    "@aspect_orion_crates//:tree-sitter-rust",
+    "@aspect_orion_crates//:tree-sitter-starlark",
+    "@aspect_orion_crates//:tree-sitter-typescript",
+]
+
+# Static library exposing the C ABI ts_query_run / ts_query_free. opt.bzl pins
+# it to opt-level 3 for every consumer (the prebuilt release further builds with
+# -c opt, optimizing the Go side and stripping the final binary).
+opt_rust_static_library(
+    name = "ts-query_lib",
+    srcs = _SRCS,
+    edition = "2021",
+    deps = _DEPS,
+)
+
+# The cgo-linkable archive. Renames the bundled tree-sitter C runtime so it can
+# coexist with smacker's go-tree-sitter in the same gazelle binary (kotlin +
+# rules_python pull smacker in). Provides CcInfo for `cdeps` on the go_library in
+# //query. See isolate.bzl and query/query.go.
+isolate_ts_symbols(
+    name = "ts-query",
+    src = ":ts-query_lib",
+    visibility = ["//query:__pkg__"],
+)
+
+# Plain build of the same crate for the unit test. rust_test can't consume the
+# opt :ts-query directly (the with_cfg wrapper doesn't forward the crate-info
+# provider rust_test needs), and an opt+LTO test build would only be slower.
+# srcs/deps are shared via the constants above, so this isn't duplication.
+rust_static_library(
+    name = "ts-query_testlib",
+    srcs = _SRCS,
+    edition = "2021",
+    deps = _DEPS,
+)
+
+rust_test(
+    name = "ts-query_test",
+    crate = ":ts-query_testlib",
+    edition = "2021",
+)

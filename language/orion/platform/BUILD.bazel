@@ -1,0 +1,16 @@
+# Public platform target for consumers of @aspect_gazelle_orion.
+#
+# Building the Rust tree-sitter query bridge (//crates/ts-query, linked via cgo)
+# requires the target platform to carry @llvm//constraints/libc:gnu.2.28,
+# because rules_rs's Linux Rust toolchains pin it via target_compatible_with.
+# The default host platform lacks it, so resolution fails with "No matching
+# toolchains found".
+#
+# Consumers select this on Linux via:
+#   common:linux --host_platform=@aspect_gazelle_orion//platform:local_gnu
+platform(
+    name = "local_gnu",
+    constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
+    parents = ["@platforms//host"],
+    visibility = ["//visibility:public"],
+)

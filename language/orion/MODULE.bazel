@@ -3,29 +3,51 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
 bazel_dep(name = "rules_go", version = "0.60.0")
 bazel_dep(name = "gazelle", version = "0.51.1")  # must match go.mod
+bazel_dep(name = "rules_rs", version = "0.0.83")
+bazel_dep(name = "rules_cc", version = "0.0.17")  # cc_common/CcInfo for crates/ts-query/isolate.bzl
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "llvm", version = "0.8.3")
+bazel_dep(name = "with_cfg.bzl", version = "0.14.6")
 
 # Go modules
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 use_repo(go_deps, "com_github_aspect_build_aspect_gazelle_common", "com_github_bazelbuild_buildtools", "com_github_emirpasic_gods_v2", "com_github_itchyny_gojq", "com_github_mikefarah_yq_v4", "net_starlark_go", "org_golang_x_sync")
 
+# Rust toolchain + crates for the in-tree tree-sitter query bridge
+# (//crates/ts-query), linked into the //query go_library via cgo. Owning the
+# Rust code here (rather than depending on a separate local module) keeps orion
+# self-contained, so it can be published to the BCR without any other local
+# module dependency. Registered non-dev so consumers (e.g. //runner) inherit the
+# toolchains and need only the build flags from //tools/rust.bazelrc.
+rust_toolchains = use_extension("@rules_rs//rs/toolchains:module_extension.bzl", "toolchains")
+rust_toolchains.toolchain(
+    edition = "2021",
+    version = "1.96.0",
+)
+use_repo(rust_toolchains, "default_rust_toolchains")
+
+register_toolchains("@default_rust_toolchains//:all")
+
+rust_crate = use_extension("@rules_rs//rs:extensions.bzl", "crate")
+rust_crate.from_cargo(
+    name = "aspect_orion_crates",
+    cargo_lock = "//:Cargo.lock",
+    cargo_toml = "//:Cargo.toml",
+    platform_triples = [
+        "aarch64-apple-darwin",
+        "aarch64-unknown-linux-gnu",
+        "x86_64-apple-darwin",
+        "x86_64-unknown-linux-gnu",
+    ],
+)
+use_repo(rust_crate, "aspect_orion_crates")
+
+register_toolchains("@llvm//toolchain:all")
+
 ####### Dev dependencies ########
-
-# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
-go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
-go_deps_dev.module_override(
-    patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
-    path = "github.com/smacker/go-tree-sitter",
-)
-
-local_path_override(
-    module_name = "aspect_treesitter_grammars",
-    path = "../../treesitter",
-)
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)

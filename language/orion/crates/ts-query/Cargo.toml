@@ -1,0 +1,25 @@
+[package]
+name = "ts-query"
+version = "0.1.0"
+edition.workspace = true
+publish = false
+
+[lib]
+name = "ts_query"
+# staticlib -> linked into the gazelle Go binary via cgo cdeps.
+# rlib      -> `cargo test` / unit tests.
+crate-type = ["staticlib", "rlib"]
+
+[dependencies]
+tree-sitter.workspace = true
+tree-sitter-go.workspace = true
+tree-sitter-rust.workspace = true
+tree-sitter-java.workspace = true
+tree-sitter-json.workspace = true
+tree-sitter-typescript.workspace = true
+tree-sitter-python.workspace = true
+tree-sitter-ruby.workspace = true
+tree-sitter-hcl.workspace = true
+tree-sitter-starlark.workspace = true
+tree-sitter-kotlin-sg.workspace = true
+streaming-iterator.workspace = true

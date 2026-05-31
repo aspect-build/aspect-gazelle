@@ -1,0 +1,16 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "query",
+    srcs = ["query.go"],
+    cdeps = ["//crates/ts-query"],  # keep
+    cgo = True,
+    importpath = "github.com/aspect-build/aspect-gazelle/language/orion/query",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "query_test",
+    srcs = ["query_test.go"],
+    embed = [":query"],
+)

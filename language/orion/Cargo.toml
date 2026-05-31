@@ -1,0 +1,30 @@
+[workspace]
+members = ["crates/ts-query"]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+[workspace.dependencies]
+tree-sitter = "0.25"
+tree-sitter-go = "0.25"
+tree-sitter-rust = "0.24"
+tree-sitter-java = "0.23"
+tree-sitter-json = "0.24"
+tree-sitter-typescript = "0.23"
+tree-sitter-python = "0.25"
+tree-sitter-ruby = "0.23"
+tree-sitter-hcl = "1"
+tree-sitter-starlark = "1.3"
+# ast-grep's republication of the fwcd Kotlin grammar; binds via the
+# version-agnostic tree-sitter-language layer (upstream fwcd's own crate pins
+# the ancient tree-sitter 0.20 and cannot be used).
+tree-sitter-kotlin-sg = "0.4"
+streaming-iterator = "0.1"
+
+# Optimize the release profile; the static library is linked into the gazelle
+# binary and parsing throughput matters on cold runs.
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1

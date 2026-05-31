@@ -7,3 +7,8 @@ import %workspace%/../../tools/preset.bazelrc
 # against. CI runs `aspect gazelle/test` from this workspace, so the root
 # .bazelrc override does not apply here.
 common:ci --lockfile_mode=off
+
+# Toolchain config for the in-tree cgo-linked tree-sitter query bridge
+# (//query -> //crates/ts-query Rust static library). Shared with language/js
+# and runner via the repo-root copy, which is stripped on BCR publication.
+import %workspace%/../../tools/rust.bazelrc
