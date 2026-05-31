@@ -1,0 +1,31 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
+# A gazelle binary embedding the JS/TS language under test, exactly how a
+# downstream consumer of @aspect_gazelle_js would build one. The ts_project /
+# ts_config / npm_link_all_packages targets are intentionally NOT committed:
+# `bazel run //:gazelle` generates them, and the build_test below asserts they
+# were generated correctly (and build with tsc).
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = [
+        "@gazelle//language/proto:go_default_library",
+        "@aspect_gazelle_js//:js",
+    ],
+)
+
+gazelle(
+    name = "gazelle",
+    gazelle = ":gazelle_bin",
+)
+
+# Asserts `bazel run //:gazelle` produced the expected ts_project targets. If
+# the js extension regresses (wrong name, missing rule, unresolved deps) these
+# targets won't exist or won't build, and this test fails.
+build_test(
+    name = "smoke_build_test",
+    targets = [
+        ":aspect_gazelle_js_e2e_smoke",
+        ":aspect_gazelle_js_e2e_smoke_tests",
+    ],
+)

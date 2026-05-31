@@ -6,6 +6,77 @@ set -o errexit -o nounset -o pipefail
 
 TAG=${1}
 
+# ---- Source-module releases (aspect_gazelle_js, _orion, _runner, ...) ----
+# These ship no prebuilt binaries; the archive is just the module's subtree
+# hoisted to the archive root, with the module version patched in. Add a module
+# by adding a "<tag-prefix>*) <module root>" case below (and its .bcr templates).
+SRC_MODULE_ROOT=""
+case "$TAG" in
+js-v*) SRC_MODULE_ROOT="language/js" ;;
+	# orion-v*) SRC_MODULE_ROOT="language/orion" ;;  # add when its .bcr/ templates exist
+	# runner-v*) SRC_MODULE_ROOT="runner" ;;          # add when its .bcr/ templates exist
+esac
+if [[ -n "$SRC_MODULE_ROOT" ]]; then
+	# Tag carries the module's prefix (e.g. js-v1.2.3), so the archive is
+	# aspect-gazelle-js-v1.2.3.tar.gz, matching strip_prefix "aspect-gazelle-{TAG}"
+	# in the module's .bcr source.template.json.
+	MODULE_VERSION="${TAG#*-v}"
+	PREFIX="aspect-gazelle-${TAG}"
+	ARCHIVE="aspect-gazelle-${TAG}.tar.gz"
+
+	UNPACK_DIR=$(mktemp -d)
+	mkdir -p "${UNPACK_DIR}/${PREFIX}"
+	# git archive yields ${PREFIX}/${SRC_MODULE_ROOT}/...; strip the PREFIX + the
+	# module-root segments so MODULE.bazel lands at the archive root. Strip count
+	# = 1 (PREFIX) + module-root segments = (slashes in root) + 2.
+	ROOT_SLASHES=$(tr -cd '/' <<<"$SRC_MODULE_ROOT" | wc -c)
+	git archive --format=tar --prefix="${PREFIX}/" "${TAG}" -- "$SRC_MODULE_ROOT" |
+		tar --strip-components=$((ROOT_SLASHES + 2)) -xf - -C "${UNPACK_DIR}/${PREFIX}"
+
+	# Patch the module version (0.0.0 -> real).
+	sed -i "s/^    version = \"0\.0\.0\"/    version = \"${MODULE_VERSION}\"/" \
+		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel"
+
+	# Module name + @llvm pin, surfaced in the consumer setup notes below.
+	MODULE_NAME=$(sed -n 's/^    name = "\([^"]*\)",$/\1/p' "${UNPACK_DIR}/${PREFIX}/MODULE.bazel" | head -1)
+	LLVM_VERSION=$(sed -n 's/.*bazel_dep(name = "llvm", version = "\([^"]*\)").*/\1/p' \
+		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel")
+
+	# The in-repo .bazelrc imports %workspace%/../../tools/*.bazelrc, which don't
+	# exist in the standalone archive. Nothing in the BCR flow runs bazel at the
+	# module root (the bcr_test_module under e2e/smoke carries its own
+	# self-contained .bazelrc), so drop it from the published archive.
+	rm -f "${UNPACK_DIR}/${PREFIX}/.bazelrc"
+
+	tar -czf "$ARCHIVE" -C "$UNPACK_DIR" "${PREFIX}"
+	rm -rf "$UNPACK_DIR"
+
+	cat <<EOF
+Add to your \`MODULE.bazel\`:
+
+\`\`\`starlark
+bazel_dep(name = "${MODULE_NAME}", version = "${MODULE_VERSION}")
+
+# The gazelle binary embeds a cgo Rust parser. ${MODULE_NAME} (transitively)
+# registers the LLVM + Rust toolchains, but @llvm must be declared so it's
+# visible by apparent name for the .bazelrc flags below.
+bazel_dep(name = "llvm", version = "${LLVM_VERSION}")
+\`\`\`
+
+The cgo parser links against a hermetic LLVM toolchain. These flags configure it
+and **cannot** propagate from a dependency module (which is why this module ships
+no root \`.bazelrc\`), so add them to your own \`.bazelrc\`:
+
+\`\`\`
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
+common --@llvm//config:experimental_stub_libgcc_s=True
+common --linkopt=-no-pie
+\`\`\`
+EOF
+	exit 0
+fi
+
 if [[ "$TAG" != prebuilt-* ]]; then
 	echo "Unknown tag format: ${TAG}" >&2
 	exit 1

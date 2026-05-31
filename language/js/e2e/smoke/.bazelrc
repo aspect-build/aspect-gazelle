@@ -1,0 +1,17 @@
+# Toolchain config to build @aspect_gazelle_js's cgo Rust JS parser, linked into
+# the gazelle binary. Self-contained copy of aspect-gazelle's tools/rust.bazelrc
+# (a BCR-published module is extracted standalone, so it can't import the repo's
+# tools/ dir). Keep in sync with tools/rust.bazelrc.
+#
+# The LLVM + Rust toolchains are registered by @aspect_gazelle_js; the flag below
+# only needs @llvm visible (declared as a bazel_dep in MODULE.bazel).
+common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
+common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
+common --@llvm//config:experimental_stub_libgcc_s=True
+common --linkopt=-no-pie
+
+# Transpile ts_project targets with tsc (rules_ts requires an explicit choice).
+common --@aspect_rules_ts//ts:default_to_tsc_transpiler
+
+# The lock isn't committed; turn off lockfile enforcement under --config=ci.
+common:ci --lockfile_mode=off

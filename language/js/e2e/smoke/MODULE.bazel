@@ -1,0 +1,53 @@
+module(
+    name = "aspect_gazelle_js_e2e_smoke",
+    version = "0.0.0",
+)
+
+# Module under test. BCR's bcr_test_module presubmit overrides this with the
+# version being published; the local_path_override lets it build in-repo. No
+# version pin (like prebuilt/e2e/bin) so the override can't hit a version
+# mismatch against a "0.0.0" request.
+bazel_dep(name = "aspect_gazelle_js")
+local_path_override(
+    module_name = "aspect_gazelle_js",
+    path = "../..",
+)
+
+bazel_dep(name = "gazelle", version = "0.51.0")
+bazel_dep(name = "rules_go", version = "0.60.0")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
+# The hermetic LLVM + Rust toolchains that build @aspect_gazelle_js's cgo JS
+# parser are registered by @aspect_gazelle_js and inherited here. Declaring
+# @llvm makes it visible by apparent name for the --@llvm//config:... flags in
+# .bazelrc.
+bazel_dep(name = "llvm", version = "0.8.3")
+
+# rules_ts / rules_js build the ts_project + ts_config targets that gazelle
+# generates from the TypeScript sources.
+bazel_dep(name = "aspect_rules_ts", version = "3.8.10")
+bazel_dep(name = "aspect_rules_js", version = "3.0.3")
+
+rules_ts_ext = use_extension("@aspect_rules_ts//ts:extensions.bzl", "ext")
+rules_ts_ext.deps(ts_version = "5.6.2")
+use_repo(rules_ts_ext, "npm_typescript")
+
+# npm dependencies (e.g. tslib), so gazelle can resolve npm imports to
+# //:node_modules/<pkg> and ts_project can link them.
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm")
+npm.npm_translate_lock(
+    name = "npm",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    verify_node_modules_ignored = "//:.bazelignore",
+)
+use_repo(npm, "npm")
+
+# Pin the Go SDK from @aspect_gazelle_js's go.mod: building the gazelle binary
+# from source needs an SDK matching its `go` directive (newer than rules_go's
+# default). Reads the version line only; does not consume js as a Go module.
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.from_file(
+    name = "go_sdk",
+    go_mod = "@aspect_gazelle_js//:go.mod",
+)
+use_repo(go_sdk, "go_sdk")

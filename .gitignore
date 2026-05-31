@@ -2,6 +2,7 @@
 /*/bazel-*
 /*/e2e/*/bazel-*
 /language/*/bazel-*
+/language/*/e2e/*/bazel-*
 **/node_modules
 
 # Not committed — CI uses --lockfile_mode=off (see .bazelrc).
