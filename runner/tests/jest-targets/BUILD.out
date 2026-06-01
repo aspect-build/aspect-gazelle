@@ -1,0 +1,29 @@
+load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+
+ts_project(
+    name = "jest-targets",
+    srcs = ["index.ts"],
+)
+
+ts_project(
+    name = "jest-targets_tests",
+    testonly = True,
+    srcs = ["index.spec.ts"],
+    deps = [":jest-targets"],
+)
+
+js_library(
+    name = "jest_config",
+    srcs = ["jest.config.js"],
+)
+
+jest_test(
+    name = "jest_test",
+    config = ":jest_config",
+    data = [":jest-targets_tests"],
+    node_modules = "//:node_modules",
+)

@@ -1,0 +1,21 @@
+load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "core",
+    srcs = ["core.ts"],
+)
+
+ts_project(
+    name = "core_tests",
+    testonly = True,
+    srcs = ["core.spec.ts"],
+    deps = [":core"],
+)
+
+jest_test(
+    name = "jest_test",
+    config = "//:jest_config",
+    data = [":core_tests"],
+    node_modules = "//:node_modules",
+)
