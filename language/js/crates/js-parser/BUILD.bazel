@@ -1,26 +1,44 @@
 load("@rules_rs//rs:rust_static_library.bzl", "rust_static_library")
 load("@rules_rs//rs:rust_test.bzl", "rust_test")
+load(":opt.bzl", "opt_rust_static_library")
 
-# Static library exposing the C ABI js_parser_parse / js_parser_free.
-# Provides CcInfo so it can be passed directly as `cdeps` on the go_library
-# in //parser. See parser/parser.go.
-rust_static_library(
+_SRCS = ["src/lib.rs"]
+
+_DEPS = [
+    "@aspect_js_parser_crates//:oxc_allocator",
+    "@aspect_js_parser_crates//:oxc_ast",
+    "@aspect_js_parser_crates//:oxc_ast_visit",
+    "@aspect_js_parser_crates//:oxc_parser",
+    "@aspect_js_parser_crates//:oxc_span",
+    "@aspect_js_parser_crates//:regex",
+]
+
+# Static library exposing the C ABI js_parser_parse / js_parser_free. opt.bzl
+# pins it to opt-level 3 for every consumer (the prebuilt release further builds
+# with -c opt, optimizing the Go side and stripping the final binary). Provides
+# CcInfo so it can be passed as `cdeps` on the go_library in //parser. See
+# parser/parser.go.
+opt_rust_static_library(
     name = "js-parser",
-    srcs = ["src/lib.rs"],
+    srcs = _SRCS,
     edition = "2021",
     visibility = ["//parser:__pkg__"],
-    deps = [
-        "@aspect_js_parser_crates//:oxc_allocator",
-        "@aspect_js_parser_crates//:oxc_ast",
-        "@aspect_js_parser_crates//:oxc_ast_visit",
-        "@aspect_js_parser_crates//:oxc_parser",
-        "@aspect_js_parser_crates//:oxc_span",
-        "@aspect_js_parser_crates//:regex",
-    ],
+    deps = _DEPS,
+)
+
+# Plain build of the same crate for the unit test. rust_test can't consume the
+# opt :js-parser directly (the with_cfg wrapper doesn't forward the crate-info
+# provider rust_test needs), and an opt+LTO test build would only be slower.
+# srcs/deps are shared via the constants above, so this isn't duplication.
+rust_static_library(
+    name = "js-parser_testlib",
+    srcs = _SRCS,
+    edition = "2021",
+    deps = _DEPS,
 )
 
 rust_test(
     name = "js-parser_test",
-    crate = ":js-parser",
+    crate = ":js-parser_testlib",
     edition = "2021",
 )

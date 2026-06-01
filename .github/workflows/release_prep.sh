@@ -29,6 +29,7 @@ mkdir -p artifacts
 for platform in "${PLATFORMS[@]}"; do
 	(cd runner && bazel run \
 		--run_under cp \
+		-c opt \
 		"//:gazelle_prebuilt_bin.${platform}" \
 		"$PWD/../artifacts/aspect_gazelle-${platform}")
 done
