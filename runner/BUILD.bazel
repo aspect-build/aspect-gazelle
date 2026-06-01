@@ -65,15 +65,18 @@ alias(
     ]
 ]
 
-# Build every release platform in regular CI so a broken cross-compile fails here
+# Build every release platform in CI so a broken cross-compile fails here
 # instead of only at release time. Gated to Linux, which cross-compiles all four
 # at release time so its coverage matches publish time. It is also the only
 # conflict-free host: the linux_* cross platforms carry libc:musl + pie:off
 # constraints distinct from the glibc/PIE Linux host, so their @llvm compiler-rt
 # output paths differ from the native build's and don't collide. macOS has no
 # such distinguishing constraint, so its host-arch darwin cross would conflict.
+#
+# Tagged "manual" to avoid cross-compiling except when explicitly run on CI.
 build_test(
     name = "prebuilt_platforms_build_test",
+    tags = ["manual"],
     target_compatible_with = ["@platforms//os:linux"],
     targets = [
         ":gazelle_prebuilt_bin.linux_amd64",
