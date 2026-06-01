@@ -100,7 +100,7 @@ jobs:
               --method POST \
               -f "title=${MODULE}@${VERSION}" \
               -f "body=${BODY}" \
-              -f "head=aspect-build:${BRANCH}" \
+              -f "head=aspect-forks:${BRANCH}" \
               -f "base=main" \
               -F "maintainer_can_modify=true" \
               -F "draft=false" \
