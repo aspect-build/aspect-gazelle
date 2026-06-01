@@ -142,10 +142,20 @@ jobs:
           aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (runner)
         working-directory: runner
-        run: |
-          aspect test --task-key=test-runner -- //...
-          # Simulate the release_prep.sh build so opt-only failures surface in CI.
-          aspect test --task-key=test-runner-opt --bazel-flag=--config=release -- //:prebuilt_platforms_build_test
+        run: aspect test --task-key=test-runner -- //...
+  # Simulate the release_prep.sh build so opt-only cross-compile failures surface
+  # in CI. Runs concurrently with test-runner against prebuilt_platforms_build_test,
+  # which is tagged "manual" and so excluded from test-runner's //... pattern.
+  test-runner-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
+        with:
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
+      - name: Test (runner, --config=release)
+        working-directory: runner
+        run: aspect test --task-key=test-runner-opt --bazel-flag=--config=release -- //:prebuilt_platforms_build_test
   gazelle-runner-e2e-bin:
     runs-on: ubuntu-latest
     steps:
