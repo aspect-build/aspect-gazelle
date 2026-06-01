@@ -1,32 +1,24 @@
-# Platforms for compiling the gazelle binary (and its cgo-linked Rust JS parser,
-# //crates/js-parser) from source.
-#
-# local_gnu is the glibc host/build platform (selected on Linux via
-# --host_platform in tools/rust.bazelrc). It's also the exec platform when
-# cross-building the distribution binaries, so the build tools that run there
-# (rustc, proc-macro cdylibs) stay on glibc/PIE -- the musl Rust toolchain forces
-# pie:off, and proc-macro cdylibs need PIE, so exec can't be musl.
+# Target platforms for cross-compiling the gazelle binary (and its cgo-linked
+# Rust JS parser, //crates/js-parser) into the release distribution binaries.
 #
 # The linux_* distribution platforms target musl (static, portable across any
-# Linux incl. Alpine, no glibc version floor); darwin_* stay native.
-
-# Carries gnu.2.28 so the LLVM C/C++ and rules_rs Rust toolchains resolve.
-platform(
-    name = "local_gnu",
-    constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
-    parents = ["@platforms//host"],
-    visibility = ["//visibility:public"],
-)
+# Linux incl. Alpine, no glibc version floor); darwin_* stay native. The exec
+# platform stays the native glibc/PIE host: the musl Rust toolchain forces
+# pie:off but proc-macro cdylibs need PIE, so exec can't be musl.
 
 # Linux distribution targets, one per CPU: static musl. They extend rules_go's
-# linux_<cpu>_cgo platforms (inheriting os/cpu/cgo_on) and add the libc:musl +
-# pie:off constraints the rules_rs musl Rust toolchain requires via target_compatible_with.
+# linux_<cpu>_cgo platforms (inheriting os/cpu/cgo_on) and add three musl
+# constraints: @llvm//constraints/libc:musl + pie:off select the musl LLVM C/C++
+# toolchain, and @rules_rs//rs/platforms/constraints:musl selects the musl Rust
+# toolchain (rules_rs's linux_libc setting defaults to glibc, so musl must be
+# opted into explicitly or rustc builds the parser against the glibc std).
 [
     platform(
         name = "linux_%s" % cpu,
         constraint_values = [
             "@llvm//constraints/libc:musl",
             "@llvm//constraints/pie:off",
+            "@rules_rs//rs/platforms/constraints:musl",
         ],
         parents = ["@rules_go//go/toolchain:linux_%s_cgo" % cpu],
         visibility = ["//visibility:public"],

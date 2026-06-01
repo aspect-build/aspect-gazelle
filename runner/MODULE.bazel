@@ -84,4 +84,4 @@ go_deps2.module_override(
 # parser) are registered by @aspect_gazelle_js and inherited transitively. This
 # dep is still needed so `@llvm` is visible by apparent name for the
 # `--@llvm//config:...` flags in tools/rust.bazelrc. The build flags live there.
-bazel_dep(name = "llvm", version = "0.7.7")
+bazel_dep(name = "llvm", version = "0.8.3")

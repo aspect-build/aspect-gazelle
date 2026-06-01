@@ -79,7 +79,7 @@ The JS/TS import parser is implemented in Rust (using [oxc](https://oxc.rs/)) an
 First, declare `@llvm` so the `@llvm//config:...` flag below resolves (bzlmod only exposes a repo by apparent name to modules that declare it). In `MODULE.bazel`:
 
 ```starlark
-bazel_dep(name = "llvm", version = "0.7.7")  # match the version @aspect_gazelle_js pins
+bazel_dep(name = "llvm", version = "0.8.3")  # match the version @aspect_gazelle_js pins
 ```
 
 Then add the following to your `.bazelrc`:
@@ -90,23 +90,13 @@ Then add the following to your `.bazelrc`:
 common --repo_env=BAZEL_DO_NOT_DETECT_CPP_TOOLCHAIN=1
 common --repo_env=BAZEL_NO_APPLE_CPP_TOOLCHAIN=1
 common --linkopt=-no-pie
-common --experimental_cc_static_library
-common --experimental_platform_in_output_dir
 
 # Stub libgcc_s; rules_rust tool binaries otherwise link against a non-hermetic
 # system libgcc_s that the LLVM sysroot lacks ("unable to find library -lgcc_s").
 common --@llvm//config:experimental_stub_libgcc_s=True
-
-# rules_rs's Linux Rust toolchains pin @llvm//constraints/libc:gnu.2.28 on the
-# target platform, which the default host platform lacks (resolution otherwise
-# fails with "No matching toolchains found"). Select a host platform that
-# carries it. macOS needs no host platform.
-common --enable_platform_specific_config
-common:linux --host_platform=@aspect_gazelle_js//platform:local_gnu
 ```
 
 Notes:
 
-- macOS builds need only the C/C++ toolchain flags; the `--host_platform` line is Linux-only.
 - `--linkopt=-no-pie` works around a Go stdlib + lld PIE-link incompatibility for cgo binaries. It can be dropped once Go reliably links cgo binaries as PIE (expected in Go 1.27 — see [golang/go#77601](https://github.com/golang/go/pull/77601) and [golang/go#76858](https://github.com/golang/go/pull/76858)).
 - Within this repository these flags live in [`tools/rust.bazelrc`](../../tools/rust.bazelrc), imported by each workspace that builds the parser (`language/js`, `runner`, `runner/e2e/bin`).
