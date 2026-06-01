@@ -1,15 +1,43 @@
-# Public platform targets for consumers of @aspect_gazelle_js.
-#
-# Building the Rust JS parser (//crates/js-parser, linked via cgo) requires the
-# target platform to carry @llvm//constraints/libc:gnu.2.28, because rules_rs's
-# Linux Rust toolchains pin it via target_compatible_with. The default host
-# platform lacks it, so resolution fails with "No matching toolchains found".
-#
-# Consumers select this on Linux via:
-#   common:linux --host_platform=@aspect_gazelle_js//platform:local_gnu
+# Platforms for compiling the gazelle binary (and its cgo-linked Rust JS parser,
+# //crates/js-parser) from source. Building the Rust parser requires the target
+# platform to carry @llvm//constraints/libc:gnu.2.28: rules_rs's Linux Rust
+# toolchains pin it via target_compatible_with, and without it resolution fails
+# with "No matching toolchains found".
+
+# Glibc host platform for local builds and tests, selected on Linux via
+# --host_platform (tools/rust.bazelrc).
 platform(
     name = "local_gnu",
     constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
     parents = ["@platforms//host"],
     visibility = ["//visibility:public"],
 )
+
+# Cross-compilation targets, one per OS/CPU, for producing the pre-compiled
+# distribution binaries. They extend rules_go's <os>_<cpu>_cgo platforms; the
+# Linux ones add the libc:gnu.2.28 constraint :local_gnu needs, while macOS Rust
+# toolchains need none and just inherit the rules_go platform.
+[
+    platform(
+        name = "linux_%s" % cpu,
+        constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
+        parents = ["@rules_go//go/toolchain:linux_%s_cgo" % cpu],
+        visibility = ["//visibility:public"],
+    )
+    for cpu in [
+        "amd64",
+        "arm64",
+    ]
+]
+
+[
+    platform(
+        name = "darwin_%s" % cpu,
+        parents = ["@rules_go//go/toolchain:darwin_%s_cgo" % cpu],
+        visibility = ["//visibility:public"],
+    )
+    for cpu in [
+        "amd64",
+        "arm64",
+    ]
+]
