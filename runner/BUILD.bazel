@@ -73,7 +73,7 @@ alias(
 # output paths differ from the native build's and don't collide. macOS has no
 # such distinguishing constraint, so its host-arch darwin cross would conflict.
 #
-# Tagged "manual" so to avoid cross-compiling except when explicitly run on CI.
+# Tagged "manual" to avoid cross-compiling except when explicitly run on CI.
 build_test(
     name = "prebuilt_platforms_build_test",
     tags = ["manual"],
