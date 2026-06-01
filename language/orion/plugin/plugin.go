@@ -2,6 +2,7 @@ package plugin
 
 import (
 	"encoding/gob"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -125,15 +126,29 @@ type SourceFilter interface {
 	Match(p string) bool
 }
 
-func NewSourceGlobFilter(in []string) (SourceFilter, error) {
-	expr, err := common.ParseGlobExpressions(in)
+func NewSourceGlobFilter(include, exclude []string) (SourceFilter, error) {
+	if len(include) == 0 {
+		return nil, fmt.Errorf("at least one include glob pattern is required")
+	}
+
+	// Validate the exclude patterns on their own so the error identifies which
+	// list the bad pattern came from. Parsed expressions are cached, so the
+	// combined parse below does not redo the work.
+	if len(exclude) > 0 {
+		if _, err := common.ParseGlobExpressions(exclude); err != nil {
+			return nil, fmt.Errorf("exclude: %w", err)
+		}
+	}
+
+	expr, err := common.ParseGlobExpressionsWithExcludes(include, exclude)
 	if err != nil {
 		return nil, err
 	}
 
 	return &SourceGlobFilter{
-		Globs: in,
-		expr:  expr,
+		Globs:   include,
+		Exclude: exclude,
+		expr:    expr,
 	}, nil
 }
 func NewSourceExtensionsFilter(exts []string) SourceFilter {
@@ -146,8 +161,9 @@ func NewSourceFileFilter(files []string) SourceFilter {
 var _ SourceFilter = (*SourceGlobFilter)(nil)
 
 type SourceGlobFilter struct {
-	Globs []string
-	expr  common.GlobExpr
+	Globs   []string
+	Exclude []string
+	expr    common.GlobExpr
 }
 
 func (f SourceGlobFilter) Match(p string) bool {

@@ -281,11 +281,41 @@ func newSourceExtensions(_ *starlark.Thread, b *starlark.Builtin, args starlark.
 }
 
 func newSourceGlobs(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	globs, err := starUtils.ReadTuple(args, starUtils.ReadString)
+	// Include patterns are passed positionally, either variadic or as a single
+	// list aligning with bazel glob(); the optional "exclude" keyword argument
+	// takes a list of patterns to subtract from the matched set.
+	var globs []string
+	var err error
+	if len(args) == 1 {
+		if _, isList := args[0].(*starlark.List); isList {
+			globs, err = starUtils.ReadStringList(args[0])
+		}
+	}
+	if globs == nil && err == nil {
+		globs, err = starUtils.ReadStringTuple(args)
+	}
 	if err != nil {
 		return nil, err
 	}
-	f, err := plugin.NewSourceGlobFilter(globs)
+
+	var excludes []string
+	for _, kwarg := range kwargs {
+		name, err := starUtils.ReadString(kwarg[0])
+		if err != nil {
+			return nil, err
+		}
+		switch name {
+		case "exclude":
+			excludes, err = starUtils.ReadStringList(kwarg[1])
+			if err != nil {
+				return nil, fmt.Errorf("exclude: %w", err)
+			}
+		default:
+			return nil, fmt.Errorf("unexpected keyword argument %q", name)
+		}
+	}
+
+	f, err := plugin.NewSourceGlobFilter(globs, excludes)
 	if err != nil {
 		return nil, err
 	}

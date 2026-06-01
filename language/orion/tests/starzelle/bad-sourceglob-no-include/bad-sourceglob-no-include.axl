@@ -1,0 +1,6 @@
+aspect.orion_extension(
+    id = "bad-sourceglob-no-include-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = aspect.SourceGlobs(exclude = ["**/*.spec.js"]),
+    ),
+)
