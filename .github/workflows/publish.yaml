@@ -25,7 +25,7 @@ jobs:
     with:
       tag_name: ${{ inputs.tag_name }}
       tag_prefix: ${{ inputs.tag_prefix }}
-      registry_fork: "aspect-build/bazel-central-registry"
+      registry_fork: "aspect-forks/bazel-central-registry"
       draft: false
       # Open the BCR PR from the caller workflow after the release is finalized,
       # so BCR's unauthenticated presubmit doesn't 404 on the still-draft archive.
