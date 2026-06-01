@@ -24,6 +24,13 @@ go_library(
 go_binary(
     name = "gazelle",
     embed = [":gazelle_lib"],
+    # Static-link only when built for a musl platform (the Linux release
+    # binaries). gc_linkopts is per-target, so -static can't leak to the glibc
+    # exec build tools the way rules_go's go/config:static would; default empty.
+    gc_linkopts = select({
+        "@llvm//constraints/libc:musl": ["-extldflags=-static"],
+        "//conditions:default": [],
+    }),
     tags = ["supports_incremental_build_protocol"],
     visibility = ["//visibility:public"],
 )

@@ -36,4 +36,8 @@ common --experimental_platform_in_output_dir
 # On Linux, select a host platform carrying @llvm//constraints/libc:gnu.2.28 so
 # rules_rs's Linux Rust toolchains resolve; the default host platform lacks the
 # libc constraint and resolution fails with "No matching toolchains found".
+#
+# This glibc host is also the exec platform for the musl release cross-builds;
+# the musl distribution targets live in @aspect_gazelle_js//platform (which
+# explains why exec must stay glibc).
 common:linux --host_platform=@aspect_gazelle_js//platform:local_gnu

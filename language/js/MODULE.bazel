@@ -35,8 +35,10 @@ rust_crate.from_cargo(
     platform_triples = [
         "aarch64-apple-darwin",
         "aarch64-unknown-linux-gnu",
+        "aarch64-unknown-linux-musl",
         "x86_64-apple-darwin",
         "x86_64-unknown-linux-gnu",
+        "x86_64-unknown-linux-musl",
     ],
 )
 use_repo(rust_crate, "aspect_js_parser_crates")
@@ -48,8 +50,7 @@ use_repo(rust_crate, "aspect_js_parser_crates")
 bazel_dep(name = "llvm", version = "0.7.7")
 
 # Direct dep so `@platforms` and `@llvm//constraints/...` are visible by their
-# apparent names in //platform:local_gnu (referenced by consumers as the host
-# platform on Linux).
+# apparent names in the //platform definitions.
 bazel_dep(name = "platforms", version = "1.0.0")
 
 register_toolchains("@llvm//toolchain:all")

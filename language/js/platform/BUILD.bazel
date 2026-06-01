@@ -1,11 +1,16 @@
 # Platforms for compiling the gazelle binary (and its cgo-linked Rust JS parser,
-# //crates/js-parser) from source. Building the Rust parser requires the target
-# platform to carry @llvm//constraints/libc:gnu.2.28: rules_rs's Linux Rust
-# toolchains pin it via target_compatible_with, and without it resolution fails
-# with "No matching toolchains found".
+# //crates/js-parser) from source.
+#
+# local_gnu is the glibc host/build platform (selected on Linux via
+# --host_platform in tools/rust.bazelrc). It's also the exec platform when
+# cross-building the distribution binaries, so the build tools that run there
+# (rustc, proc-macro cdylibs) stay on glibc/PIE -- the musl Rust toolchain forces
+# pie:off, and proc-macro cdylibs need PIE, so exec can't be musl.
+#
+# The linux_* distribution platforms target musl (static, portable across any
+# Linux incl. Alpine, no glibc version floor); darwin_* stay native.
 
-# Glibc host platform for local builds and tests, selected on Linux via
-# --host_platform (tools/rust.bazelrc).
+# Carries gnu.2.28 so the LLVM C/C++ and rules_rs Rust toolchains resolve.
 platform(
     name = "local_gnu",
     constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
@@ -13,14 +18,16 @@ platform(
     visibility = ["//visibility:public"],
 )
 
-# Cross-compilation targets, one per OS/CPU, for producing the pre-compiled
-# distribution binaries. They extend rules_go's <os>_<cpu>_cgo platforms; the
-# Linux ones add the libc:gnu.2.28 constraint :local_gnu needs, while macOS Rust
-# toolchains need none and just inherit the rules_go platform.
+# Linux distribution targets, one per CPU: static musl. They extend rules_go's
+# linux_<cpu>_cgo platforms (inheriting os/cpu/cgo_on) and add the libc:musl +
+# pie:off constraints the rules_rs musl Rust toolchain requires via target_compatible_with.
 [
     platform(
         name = "linux_%s" % cpu,
-        constraint_values = ["@llvm//constraints/libc:gnu.2.28"],
+        constraint_values = [
+            "@llvm//constraints/libc:musl",
+            "@llvm//constraints/pie:off",
+        ],
         parents = ["@rules_go//go/toolchain:linux_%s_cgo" % cpu],
         visibility = ["//visibility:public"],
     )
@@ -30,6 +37,7 @@ platform(
     ]
 ]
 
+# macOS distribution targets: native cgo, no libc constraint needed.
 [
     platform(
         name = "darwin_%s" % cpu,
