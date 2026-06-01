@@ -1,0 +1,102 @@
+JEST_CONFIG = "jest.config.js"
+
+# Name of the js_library wrapping a local jest.config.js, and the extensionless
+# import path the js provider keys it under (e.g. "jest.config", or
+# "apps/web/jest.config" for a nested package).
+CONFIG_TARGET = "jest_config"
+CONFIG_IMPORT = JEST_CONFIG[:JEST_CONFIG.rindex(".")]
+
+# Test file suffixes jest picks up. These are also compiled by the js gazelle
+# plugin into (testonly) ts_project targets; the jest_test references them by
+# import so that `data` resolves to those compiled targets.
+SPEC_EXTENSIONS = [
+    ".test.ts",
+    ".test.tsx",
+    ".spec.ts",
+    ".spec.tsx",
+]
+
+aspect.gazelle_rule_kind("jest_test", {
+    "From": "@aspect_rules_jest//jest:defs.bzl",
+    "NonEmptyAttrs": ["data"],
+    "ResolveAttrs": ["config", "data"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        # Suffix-match the spec files plus any jest.config.js in the package
+        # subtree. Directories without their own BUILD file are collected into
+        # the nearest ancestor package, which matters under the update_only
+        # generation mode.
+        sources = [
+            aspect.SourceExtensions(*SPEC_EXTENSIONS),
+            aspect.SourceExtensions(JEST_CONFIG),
+        ],
+    )
+
+def declare(ctx):
+    config = None
+    specs = []
+    for file in ctx.sources:
+        if file.path.endswith(JEST_CONFIG):
+            # Only a jest.config.js in this package's own directory is "local".
+            # A nested one belongs to a (future) subpackage, not here.
+            if "/" not in file.path:
+                config = file.path
+        else:
+            specs.append(file)
+
+    # Wrap a local jest.config.js in a js_library. The js gazelle plugin indexes
+    # its srcs as importable js symbols, so this package — and any descendant
+    # lacking its own config — can resolve it via the ancestor import below.
+    if config:
+        ctx.targets.add(
+            name = CONFIG_TARGET,
+            kind = "js_library",
+            attrs = {"srcs": [config]},
+        )
+    else:
+        ctx.targets.remove(CONFIG_TARGET)
+
+    # Create the jest_test whenever spec files exist — a jest.config.js is
+    # optional and may live in this package or any ancestor.
+    if len(specs) == 0:
+        ctx.targets.remove("jest_test")
+        return
+
+    ctx.targets.add(
+        name = "jest_test",
+        kind = "jest_test",
+        attrs = {
+            "node_modules": "//:node_modules",
+            # Resolve the config from this package or the nearest ancestor that
+            # declares one: the ancestor walk tries "<pkg>/jest.config" at each
+            # level up to the bare "jest.config" at the root. optional=True keeps
+            # the jest_test even when no config exists anywhere up the tree.
+            "config": aspect.Import(
+                id = CONFIG_IMPORT,
+                provider = "js",
+                ancestor = True,
+                optional = True,
+            ),
+            # data references every spec in the package. Each is an import
+            # resolved against the js provider, landing on the ts_project the js
+            # gazelle plugin generated to compile that spec.
+            "data": [
+                aspect.Import(
+                    # The js provider keys imports by extensionless,
+                    # repo-root-relative path (e.g. "libs/core/core.spec").
+                    id = "/".join([ctx.rel, spec.path[:spec.path.rindex(".")]]) if ctx.rel else spec.path[:spec.path.rindex(".")],
+                    provider = "js",
+                    src = spec.path,
+                )
+                for spec in specs
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "jest",
+    prepare = prepare,
+    declare = declare,
+)

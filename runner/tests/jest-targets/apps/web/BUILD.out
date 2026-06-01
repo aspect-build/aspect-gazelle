@@ -1,0 +1,27 @@
+load("@aspect_rules_jest//jest:defs.bzl", "jest_test")
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "web",
+    srcs = ["app.ts"],
+)
+
+ts_project(
+    name = "web_tests",
+    testonly = True,
+    srcs = ["app.spec.ts"],
+    deps = [":web"],
+)
+
+js_library(
+    name = "jest_config",
+    srcs = ["jest.config.js"],
+)
+
+jest_test(
+    name = "jest_test",
+    config = ":jest_config",
+    data = [":web_tests"],
+    node_modules = "//:node_modules",
+)
