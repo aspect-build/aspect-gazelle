@@ -7,9 +7,6 @@ on:
   workflow_dispatch:
 permissions:
   id-token: write
-env:
-  ASPECT_API_TOKEN: ${{ secrets.ASPECT_API_TOKEN }}
-  ASPECT_LAUNCHER_VERSION: 2026.22.39
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
@@ -18,165 +15,110 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-buildifier-root
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Buildifier
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect buildifier --task-key=buildifier
+        run: aspect buildifier --task-key=buildifier
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-root
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test -- //...
+        run: aspect test --task-key=test -- //...
   gazelle-common:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-common
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (common)
         working-directory: common
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-common
+        run: aspect gazelle --task-key=gazelle-common
   test-common:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-common
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (common)
         working-directory: common
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-common -- //...
+        run: aspect test --task-key=test-common -- //...
   gazelle-language-js:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-language-js
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (language/js)
         working-directory: language/js
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-language-js
+        run: aspect gazelle --task-key=gazelle-language-js
   test-language-js:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-language-js
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (language/js)
         working-directory: language/js
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-language-js -- //...
+        run: aspect test --task-key=test-language-js -- //...
   gazelle-language-kotlin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-language-kotlin
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (language/kotlin)
         working-directory: language/kotlin
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-language-kotlin
+        run: aspect gazelle --task-key=gazelle-language-kotlin
   test-language-kotlin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-language-kotlin
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (language/kotlin)
         working-directory: language/kotlin
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-language-kotlin -- //...
+        run: aspect test --task-key=test-language-kotlin -- //...
   gazelle-language-orion:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-language-orion
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (language/orion)
         working-directory: language/orion
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-language-orion
+        run: aspect gazelle --task-key=gazelle-language-orion
   test-language-orion:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-language-orion
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (language/orion)
         working-directory: language/orion
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-language-orion -- //...
+        run: aspect test --task-key=test-language-orion -- //...
   gazelle-runner:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-runner
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (runner)
         working-directory: runner
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-runner
+        run: aspect gazelle --task-key=gazelle-runner
   # Parallel run using //tools/gazelle:aspect_gazelle (the aspect_gazelle()
   # macro this repo ships) instead of the default //tools/gazelle:gazelle.
   # Both should produce the same BUILD generation result; any divergence is
@@ -185,74 +127,49 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-aspect-gazelle-runner
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Aspect Gazelle (runner)
         working-directory: runner
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=aspect-gazelle-runner --gazelle-target=//tools/gazelle:aspect_gazelle
+        run: aspect gazelle --task-key=aspect-gazelle-runner --gazelle-target=//tools/gazelle:aspect_gazelle
   test-runner:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-runner
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (runner)
         working-directory: runner
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-runner -- //...
+        run: aspect test --task-key=test-runner -- //...
   gazelle-runner-e2e-bin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-gazelle-runner-e2e-bin
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Gazelle (runner/e2e/bin)
         working-directory: runner/e2e/bin
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect gazelle --task-key=gazelle-runner-e2e-bin
+        run: aspect gazelle --task-key=gazelle-runner-e2e-bin
   test-runner-e2e-bin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-runner-e2e-bin
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (runner/e2e/bin)
         working-directory: runner/e2e/bin
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-runner-e2e-bin -- //...
+        run: aspect test --task-key=test-runner-e2e-bin -- //...
   test-treesitter:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-test-treesitter
-          repository-cache: true
-          external-cache: true
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
       - name: Test (treesitter)
         working-directory: treesitter
-        run: |
-          curl -fsSL https://install.aspect.build | bash -s -- "$ASPECT_LAUNCHER_VERSION"
-          aspect test --task-key=test-treesitter -- //...
+        run: aspect test --task-key=test-treesitter -- //...
