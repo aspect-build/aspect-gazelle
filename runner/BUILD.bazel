@@ -1,5 +1,6 @@
 load("@bazel_skylib//:bzl_library.bzl", "bzl_library")
-load("@rules_go//go:def.bzl", "go_library", "go_test")
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@rules_go//go:def.bzl", "go_cross_binary", "go_library", "go_test")
 
 # Use the gazelle bazel modules instead of go.mod modules
 # gazelle:resolve_regexp go github.com/bazelbuild/bazel-gazelle/(.*) @gazelle//$1
@@ -39,6 +40,47 @@ alias(
     name = "gazelle_prebuilt_bin",
     actual = "//bin/gazelle:gazelle",
     visibility = ["//visibility:public"],
+)
+
+# Cross-compiled prebuilt binaries, one per release platform. The release
+# publishes these exact targets (see .github/workflows/release_prep.sh).
+#
+# Tagged "manual" so `bazel build //...` doesn't build them: a cross binary whose
+# platform matches the host's arch shares @llvm's compiler-rt output path with
+# the native cgo build, producing a "conflicting actions" error. The build_test
+# reaches them as explicit deps, which "manual" does not block.
+[
+    go_cross_binary(
+        name = "gazelle_prebuilt_bin.%s" % platform,
+        platform = "@aspect_gazelle_js//platform:%s" % platform,
+        tags = ["manual"],
+        target = ":gazelle_prebuilt_bin",
+        visibility = ["//visibility:public"],
+    )
+    for platform in [
+        "linux_amd64",
+        "linux_arm64",
+        "darwin_amd64",
+        "darwin_arm64",
+    ]
+]
+
+# Build every release platform in regular CI so a broken cross-compile fails here
+# instead of only at release time. Gated to Linux, which cross-compiles all four
+# at release time so its coverage matches publish time. It is also the only
+# conflict-free host: tools/rust.bazelrc sets --host_platform=local_gnu on Linux,
+# giving the host a distinct output-dir name from the cross platforms so their
+# @llvm compiler-rt actions don't collide with the native build. macOS has no
+# such distinct host name, so its host-arch darwin cross would conflict.
+build_test(
+    name = "prebuilt_platforms_build_test",
+    target_compatible_with = ["@platforms//os:linux"],
+    targets = [
+        ":gazelle_prebuilt_bin.linux_amd64",
+        ":gazelle_prebuilt_bin.linux_arm64",
+        ":gazelle_prebuilt_bin.darwin_amd64",
+        ":gazelle_prebuilt_bin.darwin_arm64",
+    ],
 )
 
 # Target name matching MODULE name
