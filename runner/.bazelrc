@@ -11,3 +11,14 @@ common:ci --lockfile_mode=off
 # Toolchain config for the Rust js parser, linked into the gazelle binary via
 # cgo. The LLVM + Rust toolchains are registered by @aspect_gazelle_js.
 import %workspace%/../tools/rust.bazelrc
+
+# Optimized compilation_mode for release builds.
+common:release --compilation_mode=opt
+
+# --strip=always: in opt, rules_go's default (--strip=sometimes) does NOT strip (it
+# only strips for `always`, or `sometimes`+fastbuild), so it never passes `-w` to the
+# Go linker. Without `-w`, the linker combines DWARF into the darwin binary via an
+# external `strip` (cmd/link combineDwarf), which fails when cross-compiling on a
+# Linux host because GNU strip can't read Mach-O. Forcing `always` makes rules_go pass
+# `-s -w`, and `-w` skips the DWARF-combine/strip step entirely.
+common:release --strip=always
