@@ -1,0 +1,10 @@
+{
+  "name": "aspect-gazelle-js-e2e-smoke",
+  "private": true,
+  "dependencies": {
+    "tslib": "^2.6.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": []
+  }
+}

@@ -8,6 +8,18 @@ on:
       tag_prefix:
         required: true
         type: string
+      templates_ref:
+        description: |
+          Git ref to read the .bcr templates (incl. config.yml moduleRoots) from,
+          instead of the release tag. Used to publish a single module from a repo
+          that hosts several: point at a ref whose .bcr/config.yml lists only that
+          module. Empty falls back to tag_name.
+
+          Interim mechanism for per-module publishing. Replace with a native
+          module+version input once bazel-contrib/publish-to-bcr#368 lands.
+        required: false
+        default: ""
+        type: string
     secrets:
       BCR_PUBLISH_TOKEN:
         required: true
@@ -19,6 +31,10 @@ on:
       tag_prefix:
         required: true
         type: string
+      templates_ref:
+        required: false
+        default: ""
+        type: string
 jobs:
   publish:
     # SLSA trusted-builder reusable workflows MUST be referenced by a semantic
@@ -29,6 +45,8 @@ jobs:
     with:
       tag_name: ${{ inputs.tag_name }}
       tag_prefix: ${{ inputs.tag_prefix }}
+      # Empty string falls back to tag_name inside the reusable workflow.
+      templates_ref: ${{ inputs.templates_ref }}
       registry_fork: "aspect-forks/bazel-central-registry"
       draft: false
       # Open the BCR PR from the caller workflow after the release is finalized,

@@ -69,6 +69,30 @@ jobs:
       - name: Test (language/js)
         working-directory: language/js
         run: aspect test --task-key=test-language-js -- //...
+  # The js BCR smoke module (also driven by the bcr_test_module presubmit).
+  # Mirrors that flow with raw bazel (no Aspect Workflows tasks): generate BUILD
+  # files with @aspect_gazelle_js, then build and test the generated ts_project
+  # targets. The generated output is not committed, so this is one job
+  # (generate + test) rather than the usual gazelle-diff-check + test pair.
+  test-language-js-e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-test-language-js-e2e-smoke
+          repository-cache: true
+          external-cache: true
+      - name: JS BCR smoke test
+        working-directory: language/js/e2e/smoke
+        # smoke's .bazelversion symlink pins bazel for bazelisk (BCR's presubmit
+        # overrides it via USE_BAZEL_VERSION, so it doesn't fight the version
+        # matrix). --config=ci sets lockfile_mode=off (MODULE.bazel.lock isn't
+        # committed; pnpm-lock.yaml is a separate, committed file).
+        run: |
+          bazel run --config=ci //:gazelle
+          bazel test --config=ci //...
   gazelle-language-kotlin:
     runs-on: ubuntu-latest
     steps:
