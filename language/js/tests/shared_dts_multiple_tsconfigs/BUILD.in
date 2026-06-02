@@ -1,0 +1,3 @@
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
+# gazelle:js_files src/**/*.ts
+# gazelle:js_test_files {dirname}_tests src/**/*.test.ts

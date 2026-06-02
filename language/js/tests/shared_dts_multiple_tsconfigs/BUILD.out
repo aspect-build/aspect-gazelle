@@ -1,0 +1,22 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config")
+
+# gazelle:js_tsconfig_file {dirname}_tests tsconfig.test.json
+# gazelle:js_files src/**/*.ts
+# gazelle:js_test_files {dirname}_tests src/**/*.test.ts
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [":index.d.ts"],
+)
+
+ts_config(
+    name = "tsconfig_test",
+    src = "tsconfig.test.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        ":index.d.ts",
+        ":tsconfig",
+    ],
+)
