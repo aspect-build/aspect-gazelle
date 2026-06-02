@@ -34,10 +34,6 @@ type QueryDefinition struct {
 }
 
 func (q QueryDefinition) Match(f string) bool {
-	if len(q.Filter) == 0 {
-		return true
-	}
-
 	return q.FilterExpr(f)
 }
 

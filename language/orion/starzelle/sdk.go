@@ -76,9 +76,13 @@ func registerGazelleRuleKind(t *starlark.Thread, b *starlark.Builtin, args starl
 	return starlark.None, err
 }
 
+func alwaysMatchExpr(string) bool {
+	return true
+}
+
 func readQueryFilters(v starlark.Value) ([]string, common.GlobExpr, error) {
 	if v == nil {
-		return nil, nil, nil
+		return nil, alwaysMatchExpr, nil
 	}
 
 	if filterString, ok := v.(starlark.String); ok {
