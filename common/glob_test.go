@@ -34,6 +34,32 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 		// Body with doublestars
 		"**/foo/**": {"foo/bar", "a/foo/baz", "a/b/c/foo/d/e", "foo", "a/b/c/foo", "foo/a/b/c"},
 
+		// Trailing doublestar: matches the prefix directory itself as well as everything beneath it
+		"/**":       {"", "a", "a/b/c"},
+		"src/**":    {"src", "src/a", "src/a/b", "srcfoo", "src2", "asrc", "asrc/b", "s", ""},
+		"assets/**": {"assets", "assets/x.png", "assets/a/b", "assetsfoo", "asset"},
+		"a/b/**":    {"a/b", "a/b/c", "a/b/c/d", "a/bc", "a", "x/a/b"},
+
+		// Trailing-slash globstar: `dir/**/` behaves like `dir/**`
+		"foo/**/": {"foo", "foo/a", "foo/a/b", "foobar", "x/foo"},
+		"src/**/": {"src", "src/a", "src/a/b", "srcfoo", "asrc"},
+
+		// Glued globstar (no surrounding separator): doublestar treats `**` as a single `*`
+		"**bar":    {"bar", "xbar", "a/xbar", "a/bar", "barx", "a/b/bar"},
+		"a/**bar":  {"a/bar", "a/xbar", "a/b/bar", "bar", "a/barx", "a/b/xbar"},
+		"foo**bar": {"foobar", "fooXbar", "foo/bar", "fooba", "xfoobar", "foo/Xbar"},
+		"**.go":    {"foo.go", "a/foo.go", ".go", "main.go", "foogo", "a/.go"},
+		"pre**":    {"pre", "prexyz", "pre/x", "prefix", "apre"},
+
+		// Leading single star
+		"*foo":  {"foo", "xfoo", "a/foo", "foox", "a/xfoo"},
+		"*/foo": {"a/foo", "foo", "a/b/foo", "x/foo", "a/foox"},
+
+		// Double / degenerate globstars
+		"**/**":   {"", "a", "a/b", "a/b/c"},
+		"a/**/**": {"a", "a/b", "a/b/c", "a/b/c/d/e", "x/a", "ab"},
+		"**/a/**": {"a", "a/b", "x/a", "x/a/b", "ba", "a/b/c", "a/b/c/d", "x/y/a/b/c"},
+
 		// Starting doublestars
 		"**/WORKSPACE":       {"WORKSPACE", "notWORKSPACE", "notWORKSPACE.bazel", "WORKSPACE.bazel", "a/WORKSPACE", "a/notWORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel", "a/notWORKSPACE.bazel"},
 		"**/WORKSPACE.bazel": {"WORKSPACE", "notWORKSPACE", "notWORKSPACE.bazel", "WORKSPACE.bazel", "a/WORKSPACE", "a/notWORKSPACE", "WORKSPACE.txt", "a/WORKSPACE.bazel", "a/notWORKSPACE.bazel"},
