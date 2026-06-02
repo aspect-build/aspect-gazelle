@@ -210,3 +210,47 @@ jobs:
       - name: Test (treesitter)
         working-directory: treesitter
         run: aspect test --task-key=test-treesitter -- //...
+  # macOS platform coverage via the Aspect CLI (mirrors the Linux `test` job).
+  test-macos:
+    # Only run on main branch (not PRs) to minimize minutes (billed at 10X).
+    # https://docs.github.com/en/billing/managing-billing-for-github-actions/about-billing-for-github-actions#included-storage-and-minutes
+    if: github.ref_name == 'main' || github.event_name == 'workflow_dispatch' || contains(github.head_ref, 'macos')
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
+        with:
+          aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
+      - name: Test (macOS)
+        run: aspect test --task-key=test-macos -- //...
+  # Single aggregator check for branch protection: this is the one context
+  # required in the `main` ruleset, so any failed (or cancelled) job above blocks
+  # the PR. Listing the jobs here instead of pinning each one as a required status
+  # check means a renamed/added job is gated automatically via `needs` rather than
+  # silently slipping past a stale ruleset.
+  ci-conclusion:
+    needs:
+      - buildifier
+      - test
+      - gazelle-common
+      - test-common
+      - gazelle-language-js
+      - test-language-js
+      - gazelle-language-kotlin
+      - test-language-kotlin
+      - gazelle-language-orion
+      - test-language-orion
+      - gazelle-runner
+      - aspect-gazelle-runner
+      - test-runner
+      - test-runner-release
+      - gazelle-runner-e2e-bin
+      - test-runner-e2e-bin
+      - test-treesitter
+      - test-macos
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Fail if any job did not succeed
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: exit 1
