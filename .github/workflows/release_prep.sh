@@ -54,6 +54,10 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	# bazel version for the bcr_test_module under e2e/smoke.
 	find "${UNPACK_DIR}/${PREFIX}" -name .bazelversion -delete
 
+	# Drop the testonly golden-file fixtures; consumers don't need them and the
+	# BCR flow doesn't use them (presubmit runs the e2e/smoke test module).
+	rm -rf "${UNPACK_DIR}/${PREFIX}/tests"
+
 	tar -czf "$ARCHIVE" -C "$UNPACK_DIR" "${PREFIX}"
 	rm -rf "$UNPACK_DIR"
 
