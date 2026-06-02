@@ -14,11 +14,20 @@ type GlobExpr func(string) bool
 // Expressions that are not even globs
 var nonGlobRe = regexp.MustCompile(`^[\w./@-]+$`)
 
-// Doublestar globs that can be simplified to only a prefix and suffix
-var prePostGlobRe = regexp.MustCompile(`^([\w./@-]*)\*\*(/\*?)?([\w./@-]+)$`)
+// Expressions that are only a prefix and trailing `/**`
+var prefixDirRe = regexp.MustCompile(`^([\w./@-]*)/\*\*$`)
 
-// Globs with a prefix or postfix that can be checked before invoking the regex
-var preGlobRe = regexp.MustCompile(`^([\w./@-]+).*$`)
+// Doublestar globs that can be simplified to only a prefix and suffix.
+// The `**` must be separator-bounded (preceded by `/` or the start, followed by `/`)
+// to behave as a real globstar; a glued `**` (e.g. `**.go`) is just a single `*` to doublestar, so it is
+// intentionally excluded here and left to the doublestar-backed pre/post paths.
+var prePostGlobRe = regexp.MustCompile(`^([\w./@-]*/|)\*\*/(\*?)([\w./@-]+)$`)
+
+// Globs with a prefix or postfix that can be checked before invoking the regex.
+// The prefix capture intentionally never ends in `/`: doublestar's zero-length rule
+// lets `dir/**` and `dir/**/` match `dir` itself (no trailing slash), so a prefix of
+// `dir/` would wrongly reject that case. Trimming the slash keeps the fast-reject sound.
+var preGlobRe = regexp.MustCompile(`^([\w./@-]*[\w.@-]).*$`)
 var postGlobRe = regexp.MustCompile(`^.*?([\w./@-]+)$`)
 
 var parsedExpCache sync.Map
@@ -45,11 +54,19 @@ func parseGlobExpression(exp string) GlobExpr {
 		}
 	}
 
+	if tg := prefixDirRe.FindStringSubmatch(exp); len(tg) > 0 {
+		// `dir/**` matches the directory itself plus anything beneath it
+		dir := tg[1]
+		return func(p string) bool {
+			return p == dir || (len(p) > len(dir) && p[len(dir)] == '/' && strings.HasPrefix(p, dir))
+		}
+	}
+
 	if extGlob := prePostGlobRe.FindStringSubmatch(exp); len(extGlob) > 0 {
-		// Globs that can be expressed as pre + ** + ext
-		pre, slashStar, ext := extGlob[1], extGlob[2], extGlob[3]
+		// Globs that can be expressed as pre + **/ + ext
+		pre, star, ext := extGlob[1], extGlob[2], extGlob[3]
 		minLen := len(pre) + len(ext)
-		hasStar := slashStar == "/*"
+		hasStar := star == "*"
 		return func(p string) bool {
 			if len(p) < minLen || !strings.HasPrefix(p, pre) {
 				return false
@@ -106,6 +123,7 @@ func ParseGlobExpressions(exps []string) (GlobExpr, error) {
 func parseGlobExpressions(exps []string) (GlobExpr, error) {
 	exacts := make(map[string]struct{})
 	prePosts := make(map[string][][]string)
+	prefixDirs := make([]string, 0)
 	preGlobs := make(map[string][]string)
 	postGlobs := make(map[string][]string)
 	globs := make([]string, 0)
@@ -118,9 +136,11 @@ func parseGlobExpressions(exps []string) (GlobExpr, error) {
 		if nonGlobRe.MatchString(exp) {
 			exacts[exp] = struct{}{}
 		} else if extGlob := prePostGlobRe.FindStringSubmatch(exp); len(extGlob) > 0 {
-			// Globs that can be expressed as pre + ** + ext
-			pre, slashStar, ext := extGlob[1], extGlob[2], extGlob[3]
-			prePosts[pre] = append(prePosts[pre], []string{slashStar, ext})
+			// Globs that can be expressed as pre + **/ + ext
+			pre, star, ext := extGlob[1], extGlob[2], extGlob[3]
+			prePosts[pre] = append(prePosts[pre], []string{star, ext})
+		} else if tg := prefixDirRe.FindStringSubmatch(exp); len(tg) > 0 {
+			prefixDirs = append(prefixDirs, tg[1])
 		} else if preGlob := preGlobRe.FindStringSubmatch(exp); len(preGlob) > 0 {
 			pre := preGlob[1]
 			preGlobs[pre] = append(preGlobs[pre], exp)
@@ -147,13 +167,24 @@ func parseGlobExpressions(exps []string) (GlobExpr, error) {
 			for pre, exts := range prePosts {
 				if strings.HasPrefix(p, pre) {
 					for _, extData := range exts {
-						hasStar := extData[0] == "/*"
+						hasStar := extData[0] == "*"
 						ext := extData[1]
 
 						if lenP >= len(pre)+len(ext) && strings.HasSuffix(p, ext) && (hasStar || p == ext || p[lenP-len(ext)-1] == '/') {
 							return true
 						}
 					}
+				}
+			}
+			return false
+		})
+	}
+
+	if len(prefixDirs) > 0 {
+		exprFuncs = append(exprFuncs, func(p string) bool {
+			for _, dir := range prefixDirs {
+				if p == dir || (len(p) > len(dir) && p[len(dir)] == '/' && strings.HasPrefix(p, dir)) {
+					return true
 				}
 			}
 			return false
