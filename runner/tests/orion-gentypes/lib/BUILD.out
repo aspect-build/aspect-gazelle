@@ -1,0 +1,35 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_files")
+load("//tools:css.bzl", "css_module_types")
+
+ts_project(
+    name = "lib",
+    srcs = [
+        "gentypes/styles.module.css.d.ts",
+        "gentypes/ui/styles.module.css.d.ts",
+        "index.ts",
+    ],
+    assets = ["styles.module.css"],
+    tsconfig = ":tsconfig",
+    deps = ["//lib/ui:styles.module.css"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+)
+
+css_module_types(
+    name = "css-modules",
+    srcs = ["styles.module.css"],
+)
+
+write_source_files(
+    name = "gentypes",
+    srcs = [
+        ":css-modules",
+        "//lib/ui:css-modules",
+    ],
+    out = "gentypes",
+)

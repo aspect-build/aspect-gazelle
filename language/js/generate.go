@@ -506,11 +506,17 @@ func (ts *typeScriptLang) addPackageJsonFiles(cfg *JsGazelleConfig, args languag
 			excludes = append(excludes, pattern, pattern+"/**")
 			continue
 		}
-		includes = append(includes, pattern+"/**")
+
+		// A known local data file is a file, not a directory, so skip the
+		// directory-contents expansion that would otherwise never match.
+		isDataFile := slices.Contains(dataFiles, pattern)
+		if !isDataFile {
+			includes = append(includes, pattern+"/**")
+		}
 
 		// An exact path that is not a local data file may still exist elsewhere
 		// such as a generated file or a file owned by a subdirectory target.
-		if !strings.ContainsAny(pattern, "*?[{") && !slices.Contains(dataFiles, pattern) {
+		if !strings.ContainsAny(pattern, "*?[{") && !isDataFile {
 			addFileImport(pattern)
 		} else {
 			includes = append(includes, pattern)

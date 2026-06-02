@@ -1,0 +1,8 @@
+load("@data-analyze-read-test//:rules.bzl", "probe_consumer", "probe_lib")
+
+probe_lib(name = "lib")
+
+probe_consumer(
+    name = "consumer",
+    dep = "//:lib",
+)

@@ -1,0 +1,6 @@
+load("@has-file-test//:rules.bzl", "collected")
+
+collected(
+    name = "collected",
+    srcs = ["a.widget"],
+)

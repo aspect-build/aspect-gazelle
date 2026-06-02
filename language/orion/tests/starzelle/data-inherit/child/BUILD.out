@@ -1,0 +1,11 @@
+load("@data-inherit-test//:rules.bzl", "data_probe")
+
+data_probe(
+    name = "probe",
+    count = 1,
+    extra = [
+        "root",
+        "child",
+    ],
+    tags = ["root"],
+)

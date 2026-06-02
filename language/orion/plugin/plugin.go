@@ -120,11 +120,57 @@ func (pv *PropertyValues) IsLocal(name string) bool {
 	return pv.localKeys[name]
 }
 
+// PluginData is a plugin-private, inherited key/value store exposed as ctx.data.
+// Values may only be written during the prepare stage (writes are top-down, so
+// descendants can read ancestors' values); writes in other stages are an error
+// because generation is bottom-up and would not reach descendants. Reads return
+// this directory's value or, failing that, the nearest ancestor's (via inherit).
+type PluginData struct {
+	local    map[string]any
+	inherit  func(key string) (any, bool)
+	writable bool
+}
+
+func NewPluginData(inherit func(key string) (any, bool)) *PluginData {
+	return &PluginData{inherit: inherit, writable: true}
+}
+
+// Local returns this directory's own written values, for storage/inheritance.
+// May be nil when nothing was written; reads of a nil map miss harmlessly.
+func (d *PluginData) Local() map[string]any {
+	return d.local
+}
+
+// Seal makes the store read-only, rejecting further writes. Called after the
+// prepare stage so analyze/declare can read but not write.
+func (d *PluginData) Seal() {
+	d.writable = false
+}
+
+func (d *PluginData) lookup(key string) (any, bool) {
+	if v, ok := d.local[key]; ok {
+		return v, true
+	}
+	if d.inherit != nil {
+		return d.inherit(key)
+	}
+	return nil, false
+}
+
 // The context for an extension to prepare for generating targets.
 type PrepareContext struct {
 	RepoName   string
 	Rel        string
 	Properties PropertyValues
+
+	// Data is a plugin-private, inherited key/value store (ctx.data). Writable
+	// only during prepare; readable in all stages.
+	Data *PluginData
+
+	// HasFile reports whether this directory contains the named file, where name
+	// may be a plain filename or a `sub/dir/file` relative path resolved against
+	// this directory (ctx.has_file). Set by the host; nil if unavailable.
+	HasFile func(name string) bool
 }
 
 // The result of an extension preparing for generating targets.

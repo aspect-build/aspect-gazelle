@@ -155,6 +155,68 @@ Args:
 * `type`: the property type, one of `string`, `[]string`, `number`, `bool`
 * `default`: the default value for the property (optional)
 
+## Inherited Plugin Data
+
+`ctx.data` is a plugin-private, inherited key/value store, accessed like a dict:
+
+```python
+ctx.data[key] = value      # write (prepare stage only)
+ctx.data.get(key, default) # read with a fallback
+ctx.data[key]              # read (errors if unset)
+key in ctx.data            # membership
+```
+
+Reads return the value set in the current directory or, failing that, the nearest ancestor that set it
+(nearest-ancestor-wins). The data is private to the extension that wrote it.
+
+Values are copied on write and on every read: mutating a value returned by a read does not write it back,
+and `ctx.data[key] = None` stores a real `None` value (there is no way to unset an inherited key).
+
+Unlike a dict, `ctx.data` is always truthy — inherited keys cannot be enumerated, so emptiness is not
+defined. Test for specific keys with `key in ctx.data` or `ctx.data.get(key)`.
+
+**Writes are only allowed during the `prepare` stage.** This is because directory configuration is applied
+top-down (parents before children) while target generation runs bottom-up (children before parents). Writing
+`ctx.data` from `analyze` or `declare` is a hard error, since the value could never reach descendants.
+
+This enables scoped "collect all" patterns together with `aspect.Import(multiple = True)`. A directory that
+sets a marker directive (detected with `ctx.properties.is_local(name)`) records itself as a scope anchor in
+`prepare`:
+
+```python
+def prepare(ctx):
+    if ctx.properties.is_local("collect_root"):
+        ctx.data["collect_root"] = ctx.rel
+    ...
+
+def declare(ctx):
+    rootdir = ctx.data.get("collect_root")
+    # producers scope their Symbol id to the nearest anchor ...
+    #   aspect.Symbol(id = path.join(rootdir, "widget"), provider = "demo")
+    # ... and a collector at the anchor (rootdir == ctx.rel) imports the scoped id
+    #   aspect.Import(id = path.join(ctx.rel, "widget"), provider = "demo", multiple = True)
+```
+
+Each producer is scoped to exactly one anchor, so each is owned by exactly one collector and nested anchors
+partition cleanly.
+
+## Directory Files
+
+`ctx.has_file(name)` reports whether the current directory contains a file with the given name.
+`name` may also be a relative path (`"sub/dir/file"`) resolved from the current directory.
+
+```python
+def prepare(ctx):
+    if ctx.has_file("tsconfig.json"):
+        ctx.data["ts_root"] = ctx.rel
+    ...
+```
+
+Note: `has_file` answers for the *directory*, not the Bazel *package*. With
+`# gazelle:generation_mode update_only`, subdirectories without a `BUILD` file are folded into the
+parent package — their files become the package's sources, but `prepare` never runs for them and the
+parent's `ctx.has_file` does not see them (use a relative path to probe a specific subdirectory).
+
 ## Stages
 
 Starzelle has multiple stages for generating `BUILD` files which extensions can hook into:

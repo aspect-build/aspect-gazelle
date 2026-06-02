@@ -1,0 +1,11 @@
+load("@multiple-test//:rules.bzl", "collect_all")
+
+# gazelle:collect_root
+
+collect_all(
+    name = "all-widgets",
+    srcs = [
+        "//app:widget",
+        "//app/other:widget",
+    ],
+)

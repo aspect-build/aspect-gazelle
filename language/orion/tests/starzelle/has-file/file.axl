@@ -1,0 +1,30 @@
+aspect.gazelle_rule_kind("collected", {
+    "From": "@has-file-test//:rules.bzl",
+})
+
+# Only directories that contain `anchor.marker` collect their `.widget` sources.
+# ctx.has_file is queried during the prepare stage; the file list comes from the
+# gazelle walk cache (a cache hit, not an extra directory read).
+def prepare(ctx):
+    if not ctx.has_file("anchor.marker"):
+        return aspect.PrepareResult(sources = [])
+
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+def declare(ctx):
+    if ctx.sources:
+        ctx.targets.add(
+            name = "collected",
+            kind = "collected",
+            attrs = {
+                "srcs": [s.path for s in ctx.sources],
+            },
+        )
+
+aspect.orion_extension(
+    id = "has-file",
+    prepare = prepare,
+    declare = declare,
+)

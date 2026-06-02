@@ -1,0 +1,79 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@multiple-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("collect_all", {
+    "From": "@multiple-test//:rules.bzl",
+    "ResolveAttrs": ["srcs", "extras"],
+})
+
+PROVIDER = "demo"
+
+# A directory sets this directive (the "scope anchor") to become a collection
+# root. When set locally, prepare records this directory in the plugin-private
+# inherited ctx.data; descendants read the nearest anchor from ctx.data and scope
+# their symbols to it. (Writes happen in prepare because it is the only top-down
+# stage - generation is bottom-up, so a write there would not reach descendants.)
+ANCHOR = "collect_root"
+
+def prepare(ctx):
+    # Anchor the subtree here when THIS directory's BUILD sets the directive.
+    if ctx.properties.is_local(ANCHOR):
+        ctx.data[ANCHOR] = ctx.rel
+
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+def declare(ctx):
+    # The nearest ancestor (or self) directory that anchored a scope.
+    rootdir = ctx.data.get(ANCHOR)
+    if rootdir == None:
+        return
+
+    # Each package with .widget sources provides a "widget" Symbol whose id is
+    # scoped to its nearest anchor, so it is owned by exactly one collector.
+    if ctx.sources:
+        ctx.targets.add(
+            name = "widget",
+            kind = "widget_library",
+            symbols = [aspect.Symbol(
+                id = path.join(rootdir, "widget"),
+                provider = PROVIDER,
+            )],
+        )
+
+    # The collector is generated only at the anchor directory itself, gathering
+    # every scoped symbol in its subtree (a nested anchor claims its own subtree).
+    if rootdir == ctx.rel:
+        ctx.targets.add(
+            name = "all-widgets",
+            kind = "collect_all",
+            attrs = {
+                "srcs": [
+                    aspect.Import(
+                        id = path.join(ctx.rel, "widget"),
+                        provider = PROVIDER,
+                        multiple = True,
+                    ),
+                ],
+                # A multiple import resolving to nothing is dropped (not an error) when optional.
+                "extras": [
+                    aspect.Import(
+                        id = "no-such-symbol",
+                        provider = PROVIDER,
+                        multiple = True,
+                        optional = True,
+                    ),
+                ],
+            },
+        )
+
+aspect.orion_extension(
+    id = "multiple-import",
+    properties = {
+        ANCHOR: aspect.Property(type = "bool", default = False),
+    },
+    prepare = prepare,
+    declare = declare,
+)

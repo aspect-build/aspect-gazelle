@@ -1,0 +1,9 @@
+# ctx.data keys must be strings. A non-string key on read is a hard error.
+def prepare(ctx):
+    _ = ctx.data[1]
+    return aspect.PrepareResult(sources = [])
+
+aspect.orion_extension(
+    id = "data-key-get",
+    prepare = prepare,
+)
