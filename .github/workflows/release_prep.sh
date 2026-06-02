@@ -48,6 +48,12 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	# self-contained .bazelrc), so drop it from the published archive.
 	rm -f "${UNPACK_DIR}/${PREFIX}/.bazelrc"
 
+	# .bazelversion is often a symlink to the repo-root file (e.g., ../../.bazelversion)
+	# outside of the hoisted subtree, so those symlinks dangle in the archive. Drop them:
+	# a consumed module's .bazelversion is ignored, and BCR presubmit controls the
+	# bazel version for the bcr_test_module under e2e/smoke.
+	find "${UNPACK_DIR}/${PREFIX}" -name .bazelversion -delete
+
 	tar -czf "$ARCHIVE" -C "$UNPACK_DIR" "${PREFIX}"
 	rm -rf "$UNPACK_DIR"
 
