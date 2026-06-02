@@ -1,0 +1,13 @@
+aspect.orion_extension(
+    id = "bad-regex-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".r"),
+        ],
+        queries = {
+            "x": aspect.RegexQuery(
+                expression = "(",
+            ),
+        },
+    ),
+)
