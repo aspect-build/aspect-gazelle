@@ -105,6 +105,84 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 	}
 }
 
+// TestParseGlobExpressionsMulti covers multi-pattern lists spanning the
+// different pattern buckets (exact, prefix-dir, pre+post, prefix, postfix,
+// generic), cross-checking the combined matcher against doublestar.
+func TestParseGlobExpressionsMulti(t *testing.T) {
+	tests := []struct {
+		name     string
+		patterns []string
+		paths    []string
+	}{
+		{
+			name:     "exact and prefix-dir",
+			patterns: []string{"BUILD", "src/**"},
+			paths:    []string{"BUILD", "BUILD.bazel", "src", "src/a.ts", "src/a/b.ts", "other/BUILD"},
+		},
+		{
+			name:     "all buckets",
+			patterns: []string{"BUILD", "gen/**", "**/*.ts", "lib/**/*.go", "src/*/main.go", "{src,lib}/file.txt", "**/{a,b}/**"},
+			paths: []string{
+				"BUILD", "gen", "gen/x", "gen/x/y.go",
+				"a.ts", "src/a.ts", "lib/a.go", "lib/x/a.go",
+				"src/x/main.go", "src/main.go", "src/x/y/main.go",
+				"src/file.txt", "lib/file.txt", "other/file.txt",
+				"a/x", "x/b/y", "x/c/y",
+			},
+		},
+		{
+			name:     "overlapping patterns",
+			patterns: []string{"**/*.spec.ts", "**/*.ts", "src/**"},
+			paths:    []string{"a.ts", "a.spec.ts", "src/a.js", "other/a.js"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			expr, err := ParseGlobExpressions(tc.patterns)
+			if err != nil {
+				t.Fatalf("ParseGlobExpressions(%q) returned error %v", tc.patterns, err)
+			}
+			for _, p := range tc.paths {
+				want := false
+				for _, pattern := range tc.patterns {
+					if doublestar.MatchUnvalidated(pattern, p) {
+						want = true
+						break
+					}
+				}
+				if got := expr(p); got != want {
+					t.Errorf("patterns %q: match(%q) = %v, doublestar says %v", tc.patterns, p, got, want)
+				}
+			}
+		})
+	}
+}
+
+// "," is a literal in glob patterns, so pattern lists differing only in where
+// a "," falls must not share a cache entry.
+func TestParseGlobExpressionsCacheKeyCollision(t *testing.T) {
+	m1, err := ParseGlobExpressions([]string{"a,b", "c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	m2, err := ParseGlobExpressions([]string{"a", "b,c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for path, want := range map[string]bool{"a,b": true, "c": true, "a": false, "b,c": false} {
+		if got := m1(path); got != want {
+			t.Errorf("m1(%q) = %v, want %v", path, got, want)
+		}
+	}
+	for path, want := range map[string]bool{"a": true, "b,c": true, "a,b": false, "c": false} {
+		if got := m2(path); got != want {
+			t.Errorf("m2(%q) = %v, want %v", path, got, want)
+		}
+	}
+}
+
 func TestParseGlobExpressionsEmpty(t *testing.T) {
 	if _, err := ParseGlobExpressions(nil); err == nil {
 		t.Error("ParseGlobExpressions(nil) should return an error")

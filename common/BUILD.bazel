@@ -37,6 +37,7 @@ go_test(
         "glob_test.go",
         "regex_test.go",
         "set_test.go",
+        "worker_test.go",
     ],
     embed = [":common"],
     deps = [
