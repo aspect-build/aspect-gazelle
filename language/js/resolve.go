@@ -514,12 +514,8 @@ func (ts *typeScriptLang) resolveImport(
 		return resolution, match, err
 	}
 
-	// References to a label such as a file or file-generating rule
-	if importLabel := ts.getImportLabel(imp.Imp); importLabel != nil {
-		return Resolution_Label, importLabel, nil
-	}
-
-	// References via tsconfig mappings (paths, baseUrl, rootDirs etc.)
+	// References via tsconfig mappings (paths, baseUrl, rootDirs etc.) which tsc
+	// applies during module resolution, before raw file references are considered.
 	if tsconfigPaths := ts.tsconfig.ExpandPaths(impStm.SourcePath, impStm.ImportPath, groupName); len(tsconfigPaths) > 0 {
 		for _, p := range tsconfigPaths {
 			pImp := ImportStatement{
@@ -535,6 +531,11 @@ func (ts *typeScriptLang) resolveImport(
 				return resolution, match, err
 			}
 		}
+	}
+
+	// References to a label such as a file or file-generating rule
+	if importLabel := ts.getImportLabel(imp.Imp); importLabel != nil {
+		return Resolution_Label, importLabel, nil
 	}
 
 	// Native node imports
