@@ -28,8 +28,8 @@ github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 h1:lSINS7DK4xjm0Z4CBd7onO63uI
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2/go.mod h1:B76PjnaM2KyUG8ypV/ePHHDmGbyUNZ2PCEdEQIJISQM=
 github.com/bazel-contrib/rules_jvm v0.32.0 h1:yfH2tzfs0YggYS7HLSXqXec3GC7LAvxKRbMl2GtbZpQ=
 github.com/bazel-contrib/rules_jvm v0.32.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
-github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260510140936-e29c577dab87 h1:0fsSSN30i7Hx0a1XjkdFRvg7mp1Wngejrj6Fi5xSpeo=
-github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260510140936-e29c577dab87/go.mod h1:84dcq5fZ/hiQGnpjzH57+Xm7T6uwpPty1KPB7qzHDO0=
+github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260520000513-6aad8828e826 h1:TbBiToSVItW5W0Jv1uKklxbFrWlpp/cocXk3t7j0X34=
+github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260520000513-6aad8828e826/go.mod h1:84dcq5fZ/hiQGnpjzH57+Xm7T6uwpPty1KPB7qzHDO0=
 github.com/bazelbuild/bazel-gazelle v0.51.1 h1:poG8ATOReLVPKOiiA3fRhmEijXc4+FCzzCGlPkeRyW0=
 github.com/bazelbuild/bazel-gazelle v0.51.1/go.mod h1:AeYjUGaxXcMZ51CYHBT1YK3Qxb2yrJl77A8g7GF6d+g=
 github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f h1:khsR2MoXO+WButt3L5nnkAOGO17BAr0G/pGHZczF5/E=
