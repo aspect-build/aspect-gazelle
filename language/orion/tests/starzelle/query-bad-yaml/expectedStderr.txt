@@ -1,0 +1,1 @@
+Plugin source query error: Querying source file "a.yaml": bad expression - probably missing close bracket on (

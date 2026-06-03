@@ -1,0 +1,13 @@
+aspect.orion_extension(
+    id = "bad-yaml-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".yaml"),
+        ],
+        queries = {
+            "x": aspect.YamlQuery(
+                query = "(.a",
+            ),
+        },
+    ),
+)

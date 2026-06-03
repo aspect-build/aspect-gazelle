@@ -1,0 +1,12 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+x_lib(
+    name = "a_lib",
+    srcs = ["a.ts"],
+    deps = [":b_lib"],
+)
+
+x_lib(
+    name = "b_lib",
+    srcs = ["b.ts"],
+)
