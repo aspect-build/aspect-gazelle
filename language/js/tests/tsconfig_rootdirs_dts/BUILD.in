@@ -1,0 +1,11 @@
+# gazelle:generation_mode update_only
+
+# The css-module imports in index.ts are satisfied by the generated .d.ts
+# typings under gentypes/ via the tsconfig rootDirs mapping, matching tsc
+# module resolution: no `deps` are generated for the raw .css files. The
+# same-package css is still collected as an asset (the bundler loads the raw
+# file at runtime; only its types come from gentypes/).
+#
+# A real source at the literal import location (sub/util.ts) still wins over
+# virtual typings (gentypes/sub/util.d.ts): tsc probes the importing file's
+# own rootDir first, so the //sub dep is generated.
