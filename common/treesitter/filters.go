@@ -81,7 +81,7 @@ func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.Query
 			isPositive := operator == "match?"
 
 			expectedCaptureName := q.CaptureNameForId(steps[1].ValueId)
-			regex := common.ParseRegex(q.StringValueForId(steps[2].ValueId))
+			matcher := common.ParseMatcher(q.StringValueForId(steps[2].ValueId))
 
 			for _, c := range m.Captures {
 				captureName := q.CaptureNameForId(c.Index)
@@ -89,7 +89,7 @@ func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.Query
 					continue
 				}
 
-				if regex.MatchString(c.Node.Content(input)) != isPositive {
+				if matcher(input[c.Node.StartByte():c.Node.EndByte()]) != isPositive {
 					return false
 				}
 			}
