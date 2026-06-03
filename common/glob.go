@@ -138,7 +138,9 @@ func ParseGlobExpressions(exps []string) (GlobExpr, error) {
 		return ParseGlobExpression(exps[0])
 	}
 
-	key := strings.Join(exps, ",")
+	// Join with NUL which cannot appear in glob patterns,
+	// so joining on it cannot collide two different pattern lists.
+	key := strings.Join(exps, "\x00")
 	loaded, ok := parsedExpCache.Load(key)
 	if ok {
 		return loaded.(GlobExpr), nil

@@ -65,8 +65,10 @@ func GetSourceRegularFiles(rel string) ([]string, error) {
 		close(resultChan)
 	}()
 
-	// Collect results from all goroutines
-	files := d.RegularFiles[:]
+	// Collect results from all goroutines.
+	// Clone the cached RegularFiles: GetDirInfo results must not be modified,
+	// and appending+sorting an alias would mutate the shared walk cache.
+	files := slices.Clone(d.RegularFiles)
 	for res := range resultChan {
 		files = append(files, res)
 	}
