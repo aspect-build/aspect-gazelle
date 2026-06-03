@@ -1,5 +1,9 @@
 load("@io_bazel_rules_go//go:def.bzl", "nogo")
 
+# tools.go only exists to keep bazel-only deps in go.mod (see its package doc);
+# don't generate a go_library for it.
+# gazelle:exclude tools.go
+
 nogo(
     name = "nogo",
     config = "nogo.config.json",

@@ -24,8 +24,5 @@ go_library(
 go_test(
     name = "buildinfo_test",
     srcs = ["build_info_test.go"],
-    deps = [
-        ":buildinfo",
-        "@com_github_onsi_gomega//:gomega",
-    ],
+    deps = [":buildinfo"],
 )
