@@ -1,0 +1,66 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".js"),
+        ],
+        queries = {
+            # Substring gate: only a.js contains "import".
+            "imports": aspect.AstQuery(
+                query = "(import_statement (string (string_fragment) @imp))",
+                content_filter = "import",
+                grammar = "typescript",
+                filter = "**/*.js",
+            ),
+            # Regex gate: the `|` metacharacter forces the regex branch of the
+            # content matcher (vs the plain substring fast path). Gates a.js out
+            # and b.js in - the b.js matches surface as a `tags` attr below.
+            "idents": aspect.AstQuery(
+                query = "(identifier) @id",
+                content_filter = "console|require",
+                grammar = "typescript",
+                filter = "**/*.js",
+            ),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        attrs = {
+            "srcs": [file.path],
+            "deps": [
+                aspect.Import(
+                    id = i.captures["imp"],
+                    provider = "x",
+                    src = file.path,
+                )
+                for i in file.query_results["imports"]
+            ],
+        }
+
+        # Identifiers from the regex-gated query; only present for files whose
+        # content matched the `console|require` pattern (b.js).
+        idents = [m.captures["id"] for m in file.query_results["idents"]]
+        if idents:
+            attrs["tags"] = idents
+
+        ctx.targets.add(
+            name = path.base(file.path[:file.path.rindex(".")]) + "_lib",
+            kind = "x_lib",
+            attrs = attrs,
+            symbols = [aspect.Symbol(
+                id = file.path[:file.path.rindex(".")],
+                provider = "x",
+            )],
+        )
+
+aspect.orion_extension(
+    id = "content-filter-test",
+    prepare = prepare,
+    declare = declare,
+)

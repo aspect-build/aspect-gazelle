@@ -1,0 +1,13 @@
+aspect.orion_extension(
+    id = "bad-content-filter-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".r"),
+        ],
+        queries = {
+            "x": aspect.RawQuery(
+                content_filter = "(",
+            ),
+        },
+    ),
+)

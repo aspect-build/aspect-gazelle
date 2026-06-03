@@ -76,6 +76,29 @@ func TestComputeQueriesCacheKey(t *testing.T) {
 		}
 	})
 
+	t.Run("sensitive to content_filter", func(t *testing.T) {
+		queries := allQueryTypes()
+		base := queryBase("*.svg")
+		base.ContentFilter = "import"
+		queries["raw"] = &plugin.RawQuery{QueryBase: base}
+		if k2 := computeQueriesCacheKey(queries); k2 == key {
+			t.Error("cache key did not change with content_filter")
+		}
+	})
+
+	t.Run("ignores ContentFilterExpr identity", func(t *testing.T) {
+		queries := allQueryTypes()
+		for _, q := range queries {
+			switch q := q.(type) {
+			case *plugin.RawQuery:
+				q.ContentFilterExpr = func([]byte) bool { return false }
+			}
+		}
+		if k2 := computeQueriesCacheKey(queries); k2 != key {
+			t.Errorf("cache key changed with ContentFilterExpr: %q != %q", k2, key)
+		}
+	})
+
 	t.Run("sensitive to query type", func(t *testing.T) {
 		a := computeQueriesCacheKey(plugin.NamedQueries{
 			"q": &plugin.JsonQuery{QueryBase: queryBase("*"), Query: ".x"},

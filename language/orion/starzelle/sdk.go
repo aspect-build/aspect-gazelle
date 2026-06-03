@@ -108,8 +108,21 @@ func readQueryBase(v starlark.Value) (plugin.QueryBase, error) {
 	return plugin.QueryBase{Filter: s, FilterExpr: e}, nil
 }
 
+// readContentFilter parses the optional `content_filter` arg, returning the
+// raw pattern and its compiled content matcher. Parsed here so authors get a
+// regex error at plugin load.
+func readContentFilter(v starlark.String) (string, common.BytesMatcher, error) {
+	s := v.GoString()
+	exp, err := common.ParseMatcher(s)
+	if err != nil {
+		return "", nil, fmt.Errorf("`content_filter` is not a valid regex %q: %w", s, err)
+	}
+	return s, exp, nil
+}
+
 func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var query starlark.String
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 	var grammarValue starlark.String
 
@@ -120,12 +133,18 @@ func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		"query", &query,
 		"grammar?", &grammarValue,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +158,7 @@ func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 
 func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var expression starlark.String
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 
 	err := starlark.UnpackArgs(
@@ -147,12 +167,18 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		kwargs,
 		"expression", &expression,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -161,6 +187,7 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 }
 
 func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 
 	err := starlark.UnpackArgs(
@@ -168,12 +195,18 @@ func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		args,
 		kwargs,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -185,6 +218,7 @@ func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 
 func newJsonQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var queryValue starlark.String
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 
 	err := starlark.UnpackArgs(
@@ -193,12 +227,18 @@ func newJsonQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		kwargs,
 		"query?", &queryValue,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -211,6 +251,7 @@ func newJsonQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 
 func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var queryValue starlark.String
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 
 	err := starlark.UnpackArgs(
@@ -219,12 +260,18 @@ func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		kwargs,
 		"query?", &queryValue,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -237,6 +284,7 @@ func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 
 func newTomlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var queryValue starlark.String
+	var contentFilterValue starlark.String
 	var filterValue starlark.Value
 
 	err := starlark.UnpackArgs(
@@ -245,12 +293,18 @@ func newTomlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		kwargs,
 		"query?", &queryValue,
 		"filter??", &filterValue,
+		"content_filter??", &contentFilterValue,
 	)
 	if err != nil {
 		return nil, err
 	}
 
 	base, err := readQueryBase(filterValue)
+	if err != nil {
+		return nil, err
+	}
+
+	base.ContentFilter, base.ContentFilterExpr, err = readContentFilter(contentFilterValue)
 	if err != nil {
 		return nil, err
 	}

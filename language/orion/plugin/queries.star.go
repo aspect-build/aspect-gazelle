@@ -142,7 +142,7 @@ var _ starlark.Value = (*RawQuery)(nil)
 var _ starlark.HasAttrs = (*RawQuery)(nil)
 
 func (qd QueryBase) String() string {
-	return fmt.Sprintf("QueryBase{filter: %v}", qd.Filter)
+	return fmt.Sprintf("QueryBase{filter: %v, content_filter: %q}", qd.Filter, qd.ContentFilter)
 }
 func (qd QueryBase) Type() string         { return "QueryBase" }
 func (qd QueryBase) Freeze()              {}
@@ -160,12 +160,14 @@ func (qd QueryBase) Attr(name string) (starlark.Value, error) {
 	switch name {
 	case "filter":
 		return starUtils.Write(qd.Filter), nil
+	case "content_filter":
+		return starUtils.Write(qd.ContentFilter), nil
 	default:
 		return nil, starlark.NoSuchAttrError(name)
 	}
 }
 func (qd QueryBase) AttrNames() []string {
-	return []string{"filter"}
+	return []string{"content_filter", "filter"}
 }
 
 func (qd AstQuery) Type() string          { return "AstQuery" }
@@ -181,7 +183,7 @@ func (qd AstQuery) Attr(name string) (starlark.Value, error) {
 	}
 }
 func (qd AstQuery) AttrNames() []string {
-	return []string{"filter", "grammar", "query"}
+	return []string{"content_filter", "filter", "grammar", "query"}
 }
 
 func (qd RegexQuery) Type() string          { return "RegexQuery" }
@@ -195,7 +197,7 @@ func (qd RegexQuery) Attr(name string) (starlark.Value, error) {
 	}
 }
 func (qd RegexQuery) AttrNames() []string {
-	return []string{"expression", "filter"}
+	return []string{"content_filter", "expression", "filter"}
 }
 
 func (qd JsonQuery) Type() string          { return "JsonQuery" }
@@ -209,7 +211,7 @@ func (qd JsonQuery) Attr(name string) (starlark.Value, error) {
 	}
 }
 func (qd JsonQuery) AttrNames() []string {
-	return []string{"filter", "query"}
+	return []string{"content_filter", "filter", "query"}
 }
 
 func (qd YamlQuery) Type() string          { return "YamlQuery" }
@@ -223,7 +225,7 @@ func (qd YamlQuery) Attr(name string) (starlark.Value, error) {
 	}
 }
 func (qd YamlQuery) AttrNames() []string {
-	return []string{"filter", "query"}
+	return []string{"content_filter", "filter", "query"}
 }
 
 func (qd TomlQuery) Type() string          { return "TomlQuery" }
@@ -237,7 +239,7 @@ func (qd TomlQuery) Attr(name string) (starlark.Value, error) {
 	}
 }
 func (qd TomlQuery) AttrNames() []string {
-	return []string{"filter", "query"}
+	return []string{"content_filter", "filter", "query"}
 }
 
 func (qd RawQuery) Type() string          { return "RawQuery" }

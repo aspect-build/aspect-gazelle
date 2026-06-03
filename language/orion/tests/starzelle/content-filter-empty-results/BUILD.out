@@ -1,0 +1,23 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+# gazelle:generation_mode update_only
+
+x_lib(
+    name = "a_js",
+    srcs = ["a.js"],
+)
+
+x_lib(
+    name = "a_json",
+    srcs = ["a.json"],
+)
+
+x_lib(
+    name = "a_toml",
+    srcs = ["a.toml"],
+)
+
+x_lib(
+    name = "a_yaml",
+    srcs = ["a.yaml"],
+)
