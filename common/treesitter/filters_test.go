@@ -250,6 +250,19 @@ func TestMatchPredicate_noMatch(t *testing.T) {
 	}
 }
 
+func TestMatchPredicate_literalSubstring(t *testing.T) {
+	ast := mustParseGo(t, goFunctions)
+	// A pattern with no regex meta characters takes the substring-matcher fast
+	// path; "a" appears anywhere in "Bar" and "baz" but not "Foo".
+	q := mustQuery(t, `(function_declaration name: (identifier) @name (#match? @name "a"))`)
+
+	got := collectCaptures(ast, q, "name")
+	want := []string{"Bar", "baz"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestNotMatchPredicate(t *testing.T) {
 	ast := mustParseGo(t, goFunctions)
 	// Unexported (lowercase) function names only
