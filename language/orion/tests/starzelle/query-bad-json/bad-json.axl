@@ -1,0 +1,13 @@
+aspect.orion_extension(
+    id = "bad-json-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".json"),
+        ],
+        queries = {
+            "x": aspect.JsonQuery(
+                query = "{",
+            ),
+        },
+    ),
+)

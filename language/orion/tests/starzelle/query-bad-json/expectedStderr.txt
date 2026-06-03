@@ -1,0 +1,1 @@
+Plugin source query error: Querying source file "a.json": unexpected EOF

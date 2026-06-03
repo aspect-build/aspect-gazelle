@@ -1,0 +1,47 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".ts"),
+        ],
+        queries = {
+            # No grammar: the language is resolved from the .ts file extension at
+            # execution time, so validation of this query is deferred until then.
+            "imports": aspect.AstQuery(
+                query = "(import_statement (string (string_fragment) @imp))",
+            ),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        ctx.targets.add(
+            name = path.base(file.path[:file.path.rindex(".")]) + "_lib",
+            kind = "x_lib",
+            attrs = {
+                "srcs": [file.path],
+                "deps": [
+                    aspect.Import(
+                        id = i.captures["imp"],
+                        provider = "x",
+                        src = file.path,
+                    )
+                    for i in file.query_results["imports"]
+                ],
+            },
+            symbols = [aspect.Symbol(
+                id = file.path[:file.path.rindex(".")],
+                provider = "x",
+            )],
+        )
+
+aspect.orion_extension(
+    id = "ast-no-grammar-test",
+    prepare = prepare,
+    declare = declare,
+)
