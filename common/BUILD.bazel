@@ -35,6 +35,7 @@ go_test(
     srcs = [
         "error_test.go",
         "glob_test.go",
+        "regex_test.go",
         "set_test.go",
     ],
     embed = [":common"],
