@@ -104,3 +104,98 @@ func TestParseGlobExpressionVsDoublestar(t *testing.T) {
 		}
 	}
 }
+
+func TestParseGlobExpressionsEmpty(t *testing.T) {
+	if _, err := ParseGlobExpressions(nil); err == nil {
+		t.Error("ParseGlobExpressions(nil) should return an error")
+	}
+	if _, err := ParseGlobExpressions([]string{}); err == nil {
+		t.Error("ParseGlobExpressions([]) should return an error")
+	}
+	if _, err := ParseGlobExpressionsWithExcludes(nil, nil); err == nil {
+		t.Error("ParseGlobExpressionsWithExcludes(nil, nil) should return an error")
+	}
+}
+
+// TestParseGlobExpressionsWithExcludes covers include/exclude combination.
+// doublestar cannot express negation, so these use an explicit expectation
+// table rather than cross-checking against doublestar.
+func TestParseGlobExpressionsWithExcludes(t *testing.T) {
+	tests := []struct {
+		name     string
+		includes []string
+		excludes []string
+		matches  map[string]bool
+	}{
+		{
+			name:     "no excludes behaves like includes only",
+			includes: []string{"src/**/*.ts"},
+			excludes: nil,
+			matches: map[string]bool{
+				"src/foo.ts":      true,
+				"src/foo.spec.ts": true,
+				"other/foo.ts":    false,
+			},
+		},
+		{
+			name:     "single exclude",
+			includes: []string{"src/**/*.ts"},
+			excludes: []string{"src/**/*.spec.ts"},
+			matches: map[string]bool{
+				"src/foo.ts":           true,
+				"src/deep/bar.ts":      true,
+				"src/foo.spec.ts":      false,
+				"src/deep/bar.spec.ts": false,
+				"other/foo.ts":         false, // not in includes
+			},
+		},
+		{
+			name:     "multiple excludes",
+			includes: []string{"src/**/*.ts"},
+			excludes: []string{"**/*.spec.ts", "**/*.d.ts", "src/gen/**"},
+			matches: map[string]bool{
+				"src/foo.ts":        true,
+				"src/foo.spec.ts":   false,
+				"src/types.d.ts":    false,
+				"src/gen/x.ts":      false,
+				"src/gen/deep/y.ts": false,
+				"src/keep/z.ts":     true,
+			},
+		},
+		{
+			name:     "multiple includes with exclude",
+			includes: []string{"src/**/*.ts", "src/**/*.tsx"},
+			excludes: []string{"**/*.spec.ts"},
+			matches: map[string]bool{
+				"src/foo.ts":      true,
+				"src/foo.tsx":     true,
+				"src/foo.spec.ts": false,
+			},
+		},
+		{
+			name:     "excludes only matches everything else",
+			includes: nil,
+			excludes: []string{"**/*.spec.ts"},
+			matches: map[string]bool{
+				"foo.ts":          true,
+				"a/b/c.go":        true,
+				"foo.spec.ts":     false,
+				"a/b/foo.spec.ts": false,
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			expr, err := ParseGlobExpressionsWithExcludes(tc.includes, tc.excludes)
+			if err != nil {
+				t.Fatalf("ParseGlobExpressionsWithExcludes(%q, %q) returned error %v", tc.includes, tc.excludes, err)
+			}
+			for path, want := range tc.matches {
+				if got := expr(path); got != want {
+					t.Errorf("includes=%q excludes=%q: match(%q) = %v, want %v", tc.includes, tc.excludes, path, got, want)
+				}
+			}
+		})
+	}
+}

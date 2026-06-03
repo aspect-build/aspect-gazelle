@@ -100,7 +100,40 @@ func parseGlobExpression(exp string) GlobExpr {
 	}
 }
 
+// ParseGlobExpressionsWithExcludes matches paths matching any include pattern (or all paths if only excludes are given) and no exclude pattern.
+func ParseGlobExpressionsWithExcludes(includes, excludes []string) (GlobExpr, error) {
+	if len(excludes) == 0 {
+		return ParseGlobExpressions(includes)
+	}
+
+	excludeMatch, err := ParseGlobExpressions(excludes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Excludes-only: match everything that is not excluded.
+	if len(includes) == 0 {
+		return func(p string) bool {
+			return !excludeMatch(p)
+		}, nil
+	}
+
+	includeMatch, err := ParseGlobExpressions(includes)
+	if err != nil {
+		return nil, err
+	}
+
+	return func(p string) bool {
+		return includeMatch(p) && !excludeMatch(p)
+	}, nil
+}
+
+// ParseGlobExpressions matches paths matched by any of the given glob patterns.
 func ParseGlobExpressions(exps []string) (GlobExpr, error) {
+	if len(exps) == 0 {
+		return nil, fmt.Errorf("no glob patterns provided")
+	}
+
 	if len(exps) == 1 {
 		return ParseGlobExpression(exps[0])
 	}
