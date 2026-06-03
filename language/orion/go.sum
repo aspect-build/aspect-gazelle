@@ -10,8 +10,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260531090257-43d3b5b0a7ff h1:y5gfoSSnjF5HSgNsHzq01qxiZKHROrAcZ5VGRdZo/Jk=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260531090257-43d3b5b0a7ff/go.mod h1:5VLi3qT7qB3+Iyd4x0DHxytQcxbdr1KbLOZTdKOePeM=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603031412-023e0271bd43 h1:ddJOnc5izMyVAVyCLKCAHFb49NaPGQ9Vw3Dj6ZRk9+I=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603031412-023e0271bd43/go.mod h1:6OuJUISldqwXmCjo2gn0d+gShLijV5+pAPHRKDt+6H8=
 github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0 h1:/TCPTVmvt6sCrSi59DGfyYxxSdJ8f1icIG99w2lHVDo=
 github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0/go.mod h1:TeXtnkLDqIctw/MCrju2xeCd18MndrDt82usyJ7RfS8=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 h1:lSINS7DK4xjm0Z4CBd7onO63uIe6WUsEZ/0voExa+JY=
@@ -65,8 +65,6 @@ github.com/mikefarah/yq/v4 v4.53.2 h1:ZPIUjpgh4ACOKW98PXvr4o4dlaRjSOLLa6gS1t7FrA
 github.com/mikefarah/yq/v4 v4.53.2/go.mod h1:dKgedwimDBsgJO6zq8tQkiGoGmkRH9JWrl3G3na2z7M=
 github.com/mitchellh/go-wordwrap v1.0.1 h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=
 github.com/mitchellh/go-wordwrap v1.0.1/go.mod h1:R62XHJLzvMFRBbcrT7m7WgmE1eOyTSsCt+hzestvNj0=
-github.com/onsi/gomega v1.39.1 h1:1IJLAad4zjPn2PsnhH70V4DKRFlrCzGBNrNaru+Vf28=
-github.com/onsi/gomega v1.39.1/go.mod h1:hL6yVALoTOxeWudERyfppUcZXjMwIMLnuSfruD2lcfg=
 github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=
 github.com/pelletier/go-toml/v2 v2.3.1/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=
@@ -88,8 +86,6 @@ github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940 h1:4r45xpDWB6
 github.com/zclconf/go-cty-debug v0.0.0-20240509010212-0d6042c53940/go.mod h1:CmBdvvj3nqzfzJ6nTCIwDTPZ56aVGvDrmztiO5g3qrM=
 go.starlark.net v0.0.0-20260521175807-f5d928020cb8 h1:udlT1G78c8aKZNe7F6J/+0fS/vngPbhFuNJU4WE9YFg=
 go.starlark.net v0.0.0-20260521175807-f5d928020cb8/go.mod h1:Iue6g6iirlfLoVi/DYCi5/x0h/bAOuWF3dULTKpt2Vo=
-go.yaml.in/yaml/v3 v3.0.4 h1:tfq32ie2Jv2UxXFdLJdh3jXuOzWiL1fo0bu/FbuKpbc=
-go.yaml.in/yaml/v3 v3.0.4/go.mod h1:DhzuOOF2ATzADvBadXxruRBLzYTpT36CKvDb3+aBEFg=
 go.yaml.in/yaml/v4 v4.0.0-rc.4 h1:UP4+v6fFrBIb1l934bDl//mmnoIZEDK0idg1+AIvX5U=
 go.yaml.in/yaml/v4 v4.0.0-rc.4/go.mod h1:aZqd9kCMsGL7AuUv/m/PvWLdg5sjJsZ4oHDEnfPPfY0=
 golang.org/x/mod v0.36.0 h1:JJjpVx6myfUsUdAzZuOSTTmRE0PfZeNWzzvKrP7amb4=
