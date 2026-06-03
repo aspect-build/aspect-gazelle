@@ -25,7 +25,7 @@ func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 		key := key
 		q := q
 		eg.Go(func() error {
-			r, err := runJsonQuery(doc, q.Params.(plugin.JsonQueryParams))
+			r, err := runJsonQuery(doc, q.(*plugin.JsonQuery).Query)
 			if err != nil {
 				return err
 			}

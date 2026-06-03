@@ -372,14 +372,6 @@ func convertPluginAttribute(pkg string, val interface{}) ([]interface{}, []plugi
 	return []interface{}{val}, nil, false
 }
 
-func init() {
-	// Ensure types used in cache key computation are known to the gob encoder
-	gob.Register(plugin.QueryType(""))
-	gob.Register(plugin.AstQueryParams{})
-	gob.Register(plugin.RegexQueryParams(""))
-	gob.Register(plugin.JsonQueryParams(""))
-}
-
 func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 	cacheDigest := crypto.MD5.New()
 
@@ -395,20 +387,17 @@ func computeQueriesCacheKey(queries plugin.NamedQueries) string {
 			BazelLog.Fatalf("Failed to encode query key %q: %v", key, err)
 		}
 		q := queries[key]
-		if err := e.Encode(q.QueryType); err != nil {
+		if err := e.Encode(q.QueryType()); err != nil {
 			BazelLog.Fatalf("Failed to encode query type value %q: %v", q, err)
 		}
-		if err := e.Encode(q.Filter); err != nil {
-			BazelLog.Fatalf("Failed to encode query filter value %q: %v", q, err)
+		// Note: gob flattens the pointer and encodes q as its concrete *Query
+		// struct (no gob.Register needed: the stream is never decoded and the
+		// concrete type is seen at the top level). Func-typed fields such as
+		// QueryBase.FilterExpr are ignored by gob like unexported fields; the
+		// Filter string patterns are sufficient for cache key purposes.
+		if err := e.Encode(q); err != nil {
+			BazelLog.Fatalf("Failed to encode query value %q: %v", q, err)
 		}
-		if q.Params != nil {
-			if err := e.Encode(q.Params); err != nil {
-				BazelLog.Fatalf("Failed to encode query params value %q: %v", q, err)
-			}
-		}
-		// Note: q.FilterExpr is intentionally excluded from the cache key computation
-		// as it is a function (GlobExpr) and cannot be serialized with gob encoding.
-		// The Filter field (string patterns) is sufficient for cache key purposes.
 	}
 
 	return hex.EncodeToString(cacheDigest.Sum(nil))
@@ -432,10 +421,11 @@ func (host *GazelleHost) runSourceCodeQueries(queries plugin.NamedQueries, sourc
 	// Split queries by type to invoke in batches
 	queriesByType := make(map[plugin.QueryType]plugin.NamedQueries)
 	for key, query := range queries {
-		if queriesByType[query.QueryType] == nil {
-			queriesByType[query.QueryType] = make(plugin.NamedQueries)
+		queryType := query.QueryType()
+		if queriesByType[queryType] == nil {
+			queriesByType[queryType] = make(plugin.NamedQueries)
 		}
-		queriesByType[query.QueryType][key] = query
+		queriesByType[queryType][key] = query
 	}
 
 	queryResultsChan := make(chan *plugin.QueryProcessorResult)

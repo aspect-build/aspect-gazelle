@@ -24,18 +24,76 @@ const (
 	QueryTypeRaw             = "raw"
 )
 
-// A query to run on source files
-type QueryDefinition struct {
-	Filter    []string
-	QueryType QueryType
-	Params    any
+// A query to run on source files.
+//
+// Implementations are pointers to the *Query structs below, one per QueryType.
+type QueryDefinition interface {
+	QueryType() QueryType
+	Match(f string) bool
 
+	// Seal the interface to pointers to the *Query structs embedding
+	// QueryBase. The pointer receiver ensures only the pointer forms satisfy
+	// the interface, so query processors can type-assert on them safely.
+	isQueryDefinition()
+}
+
+// Common properties of all QueryDefinition implementations.
+type QueryBase struct {
+	Filter     []string
 	FilterExpr common.GlobExpr
 }
 
-func (q QueryDefinition) Match(f string) bool {
-	return q.FilterExpr(f)
+func (q QueryBase) Match(f string) bool { return q.FilterExpr(f) }
+
+func (*QueryBase) isQueryDefinition() {}
+
+// A tree-sitter query on the source AST.
+type AstQuery struct {
+	QueryBase
+	Grammar string
+	Query   string
 }
+
+func (AstQuery) QueryType() QueryType { return QueryTypeAst }
+
+// A regular expression query on the source text.
+type RegexQuery struct {
+	QueryBase
+	Expression string
+}
+
+func (RegexQuery) QueryType() QueryType { return QueryTypeRegex }
+
+// A jq query on a JSON document.
+type JsonQuery struct {
+	QueryBase
+	Query string
+}
+
+func (JsonQuery) QueryType() QueryType { return QueryTypeJson }
+
+// A yq query on a YAML document.
+type YamlQuery struct {
+	QueryBase
+	Query string
+}
+
+func (YamlQuery) QueryType() QueryType { return QueryTypeYaml }
+
+// A yq query on a TOML document.
+type TomlQuery struct {
+	QueryBase
+	Query string
+}
+
+func (TomlQuery) QueryType() QueryType { return QueryTypeToml }
+
+// A query returning the raw source text.
+type RawQuery struct {
+	QueryBase
+}
+
+func (RawQuery) QueryType() QueryType { return QueryTypeRaw }
 
 // TODO: better naming?  QueryMapping?
 type QueryResults map[string]any
@@ -55,16 +113,3 @@ type QueryMatch struct {
 func NewQueryMatch(captures QueryCapture, result any) QueryMatch {
 	return QueryMatch{Captures: captures, Result: result}
 }
-
-type AstQueryParams struct {
-	Grammar string
-	Query   string
-}
-
-type RegexQueryParams = string
-
-type JsonQueryParams = string
-
-type YamlQueryParams = string
-
-type TomlQueryParams = string

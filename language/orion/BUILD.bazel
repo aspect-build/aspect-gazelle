@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 # common is a go_deps module; resolve it explicitly so gazelle's lazy index does
 # not shell out to `go` (which can't resolve common's placeholder treesitter dep).
@@ -47,4 +47,11 @@ go_library(
         "@gazelle//rule",
         "@org_golang_x_sync//errgroup",
     ],
+)
+
+go_test(
+    name = "orion_test",
+    srcs = ["generate_test.go"],
+    embed = [":orion"],
+    deps = ["//plugin"],
 )

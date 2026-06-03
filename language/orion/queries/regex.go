@@ -19,7 +19,7 @@ func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries, queryResult
 		eg.Go(func() error {
 			queryResults <- &plugin.QueryProcessorResult{
 				Key:    key,
-				Result: runRegexQuery(sourceCode, common.ParseRegex(q.Params.(plugin.RegexQueryParams))),
+				Result: runRegexQuery(sourceCode, common.ParseRegex(q.(*plugin.RegexQuery).Expression)),
 			}
 			return nil
 		})
