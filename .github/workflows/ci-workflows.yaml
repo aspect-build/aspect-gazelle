@@ -158,7 +158,8 @@ jobs:
         working-directory: runner
         run: aspect gazelle --task-key=aspect-gazelle-runner --gazelle-target=//tools/gazelle:aspect_gazelle
   test-runner:
-    runs-on: ubuntu-latest
+    # runner is the large workspace; give it a beefier runner.
+    runs-on: ubuntu-22.04-32core
     steps:
       - uses: actions/checkout@v6
       - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
@@ -171,7 +172,7 @@ jobs:
   # in CI. Runs concurrently with test-runner against prebuilt_platforms_build_test,
   # which is tagged "manual" and so excluded from test-runner's //... pattern.
   test-runner-release:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04-32core
     steps:
       - uses: actions/checkout@v6
       - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
