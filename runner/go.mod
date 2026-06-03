@@ -11,7 +11,7 @@ require (
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260520000513-6aad8828e826
 	github.com/bazelbuild/bazel-gazelle v0.51.1 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
-	github.com/bufbuild/rules_buf v0.5.2 // NOTE: keep in sync with MODULE.bazel
+	github.com/bufbuild/rules_buf v0.5.4 // NOTE: keep in sync with MODULE.bazel
 	github.com/fatih/color v1.19.0
 	github.com/go-git/go-git/v5 v5.19.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
