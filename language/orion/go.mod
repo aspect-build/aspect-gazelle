@@ -3,7 +3,7 @@ module github.com/aspect-build/aspect-gazelle/language/orion
 go 1.26.3
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260531090257-43d3b5b0a7ff
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603031412-023e0271bd43
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0
 	github.com/bazelbuild/bazel-gazelle v0.51.1 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
