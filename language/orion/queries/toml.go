@@ -27,7 +27,7 @@ func runTomlQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 		key := key
 		q := q
 		eg.Go(func() error {
-			r, err := runYamlQuery(node, q.Params.(plugin.TomlQueryParams))
+			r, err := runYamlQuery(node, q.(*plugin.TomlQuery).Query)
 			if err != nil {
 				return err
 			}

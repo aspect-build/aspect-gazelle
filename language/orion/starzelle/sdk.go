@@ -81,32 +81,32 @@ func alwaysMatchExpr(string) bool {
 	return true
 }
 
-func readQueryFilters(v starlark.Value) ([]string, common.GlobExpr, error) {
+func readQueryBase(v starlark.Value) (plugin.QueryBase, error) {
 	if v == nil {
-		return nil, alwaysMatchExpr, nil
+		return plugin.QueryBase{FilterExpr: alwaysMatchExpr}, nil
 	}
 
 	if filterString, ok := v.(starlark.String); ok {
 		s, err := starUtils.ReadString(filterString)
 		if err != nil {
-			return nil, nil, err
+			return plugin.QueryBase{}, err
 		}
 		e, err := common.ParseGlobExpression(s)
 		if err != nil {
-			return nil, nil, err
+			return plugin.QueryBase{}, err
 		}
-		return []string{s}, e, nil
+		return plugin.QueryBase{Filter: []string{s}, FilterExpr: e}, nil
 	}
 
 	s, err := starUtils.ReadStringList(v)
 	if err != nil {
-		return nil, nil, err
+		return plugin.QueryBase{}, err
 	}
 	e, err := common.ParseGlobExpressions(s)
 	if err != nil {
-		return nil, nil, err
+		return plugin.QueryBase{}, err
 	}
-	return s, e, nil
+	return plugin.QueryBase{Filter: s, FilterExpr: e}, nil
 }
 
 func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
@@ -126,19 +126,15 @@ func newAstQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeAst,
-		Params: plugin.AstQueryParams{
-			Grammar: grammarValue.GoString(),
-			Query:   query.GoString(),
-		},
+	return &plugin.AstQuery{
+		QueryBase: base,
+		Grammar:   grammarValue.GoString(),
+		Query:     query.GoString(),
 	}, nil
 }
 
@@ -157,7 +153,7 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +165,9 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeRegex,
-		Params:     expression.GoString(),
+	return &plugin.RegexQuery{
+		QueryBase:  base,
+		Expression: expression.GoString(),
 	}, nil
 }
 
@@ -190,15 +184,13 @@ func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, k
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeRaw,
+	return &plugin.RawQuery{
+		QueryBase: base,
 	}, nil
 }
 
@@ -217,16 +209,14 @@ func newJsonQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeJson,
-		Params:     queryValue.GoString(),
+	return &plugin.JsonQuery{
+		QueryBase: base,
+		Query:     queryValue.GoString(),
 	}, nil
 }
 
@@ -245,16 +235,14 @@ func newYamlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeYaml,
-		Params:     queryValue.GoString(),
+	return &plugin.YamlQuery{
+		QueryBase: base,
+		Query:     queryValue.GoString(),
 	}, nil
 }
 
@@ -273,16 +261,14 @@ func newTomlQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, 
 		return nil, err
 	}
 
-	filters, exp, err := readQueryFilters(filterValue)
+	base, err := readQueryBase(filterValue)
 	if err != nil {
 		return nil, err
 	}
 
-	return plugin.QueryDefinition{
-		Filter:     filters,
-		FilterExpr: exp,
-		QueryType:  plugin.QueryTypeToml,
-		Params:     queryValue.GoString(),
+	return &plugin.TomlQuery{
+		QueryBase: base,
+		Query:     queryValue.GoString(),
 	}, nil
 }
 

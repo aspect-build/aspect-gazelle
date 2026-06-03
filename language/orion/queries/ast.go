@@ -40,8 +40,7 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 	// when collecting AST nodes for captures.
 	// NOTE: could potentially split initial query execution vs capture collection?
 	for key, query := range queries {
-		params := query.Params.(plugin.AstQueryParams)
-		treeQuery, err := treeutils.GetQuery(lang, params.Query)
+		treeQuery, err := treeutils.GetQuery(lang, query.(*plugin.AstQuery).Query)
 		if err != nil {
 			return err
 		}
@@ -96,7 +95,7 @@ func toTreeGrammar(fileName string, queries plugin.NamedQueries) treeutils.Langu
 	// TODO: fail if queries on the same file use different languages?
 
 	for _, q := range queries {
-		grammar := q.Params.(plugin.AstQueryParams).Grammar
+		grammar := q.(*plugin.AstQuery).Grammar
 		if grammar != "" {
 			return treeutils.LanguageGrammar(grammar)
 		}

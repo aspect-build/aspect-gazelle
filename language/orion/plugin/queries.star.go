@@ -128,31 +128,120 @@ func (q QueryMatches) Type() string {
 
 // ---------------- QueryDefinition
 
-var _ starlark.Value = (*QueryDefinition)(nil)
-var _ starlark.HasAttrs = (*QueryDefinition)(nil)
+var _ starlark.Value = (*AstQuery)(nil)
+var _ starlark.HasAttrs = (*AstQuery)(nil)
+var _ starlark.Value = (*RegexQuery)(nil)
+var _ starlark.HasAttrs = (*RegexQuery)(nil)
+var _ starlark.Value = (*JsonQuery)(nil)
+var _ starlark.HasAttrs = (*JsonQuery)(nil)
+var _ starlark.Value = (*YamlQuery)(nil)
+var _ starlark.HasAttrs = (*YamlQuery)(nil)
+var _ starlark.Value = (*TomlQuery)(nil)
+var _ starlark.HasAttrs = (*TomlQuery)(nil)
+var _ starlark.Value = (*RawQuery)(nil)
+var _ starlark.HasAttrs = (*RawQuery)(nil)
 
-func (qd QueryDefinition) String() string {
-	return fmt.Sprintf("QueryDefinition{filter: %v}", qd.Filter)
+func (qd QueryBase) String() string {
+	return fmt.Sprintf("QueryBase{filter: %v}", qd.Filter)
 }
-func (qd QueryDefinition) Type() string         { return "QueryDefinition" }
-func (qd QueryDefinition) Freeze()              {}
-func (qd QueryDefinition) Truth() starlark.Bool { return starlark.True }
-func (qd QueryDefinition) Hash() (uint32, error) {
-	return 0, fmt.Errorf("unhashable: %s", qd.Type())
+func (qd QueryBase) Type() string         { return "QueryBase" }
+func (qd QueryBase) Freeze()              {}
+func (qd QueryBase) Truth() starlark.Bool { return starlark.True }
+func (qd QueryBase) Hash() (uint32, error) {
+	return unhashable(qd)
 }
-func (qd QueryDefinition) Attr(name string) (starlark.Value, error) {
+
+// Hash error reporting the concrete type. Embedded method receivers have no
+// dynamic dispatch, so QueryBase.Hash alone would always report "QueryBase".
+func unhashable(v starlark.Value) (uint32, error) {
+	return 0, fmt.Errorf("unhashable: %s", v.Type())
+}
+func (qd QueryBase) Attr(name string) (starlark.Value, error) {
 	switch name {
 	case "filter":
 		return starUtils.Write(qd.Filter), nil
-	case "params":
-		return starUtils.Write(qd.Params), nil
 	default:
 		return nil, starlark.NoSuchAttrError(name)
 	}
 }
-func (qd QueryDefinition) AttrNames() []string {
-	return []string{"filter", "params"}
+func (qd QueryBase) AttrNames() []string {
+	return []string{"filter"}
 }
+
+func (qd AstQuery) Type() string          { return "AstQuery" }
+func (qd AstQuery) Hash() (uint32, error) { return unhashable(qd) }
+func (qd AstQuery) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "grammar":
+		return starlark.String(qd.Grammar), nil
+	case "query":
+		return starlark.String(qd.Query), nil
+	default:
+		return qd.QueryBase.Attr(name)
+	}
+}
+func (qd AstQuery) AttrNames() []string {
+	return []string{"filter", "grammar", "query"}
+}
+
+func (qd RegexQuery) Type() string          { return "RegexQuery" }
+func (qd RegexQuery) Hash() (uint32, error) { return unhashable(qd) }
+func (qd RegexQuery) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "expression":
+		return starlark.String(qd.Expression), nil
+	default:
+		return qd.QueryBase.Attr(name)
+	}
+}
+func (qd RegexQuery) AttrNames() []string {
+	return []string{"expression", "filter"}
+}
+
+func (qd JsonQuery) Type() string          { return "JsonQuery" }
+func (qd JsonQuery) Hash() (uint32, error) { return unhashable(qd) }
+func (qd JsonQuery) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "query":
+		return starlark.String(qd.Query), nil
+	default:
+		return qd.QueryBase.Attr(name)
+	}
+}
+func (qd JsonQuery) AttrNames() []string {
+	return []string{"filter", "query"}
+}
+
+func (qd YamlQuery) Type() string          { return "YamlQuery" }
+func (qd YamlQuery) Hash() (uint32, error) { return unhashable(qd) }
+func (qd YamlQuery) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "query":
+		return starlark.String(qd.Query), nil
+	default:
+		return qd.QueryBase.Attr(name)
+	}
+}
+func (qd YamlQuery) AttrNames() []string {
+	return []string{"filter", "query"}
+}
+
+func (qd TomlQuery) Type() string          { return "TomlQuery" }
+func (qd TomlQuery) Hash() (uint32, error) { return unhashable(qd) }
+func (qd TomlQuery) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "query":
+		return starlark.String(qd.Query), nil
+	default:
+		return qd.QueryBase.Attr(name)
+	}
+}
+func (qd TomlQuery) AttrNames() []string {
+	return []string{"filter", "query"}
+}
+
+func (qd RawQuery) Type() string          { return "RawQuery" }
+func (qd RawQuery) Hash() (uint32, error) { return unhashable(qd) }
 
 // ---------------- NamedQueries
 

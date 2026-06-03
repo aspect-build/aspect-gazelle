@@ -28,7 +28,7 @@ func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 		key := key
 		q := q
 		eg.Go(func() error {
-			r, err := runYamlQuery(node, q.Params.(plugin.JsonQueryParams))
+			r, err := runYamlQuery(node, q.(*plugin.YamlQuery).Query)
 			if err != nil {
 				return err
 			}
