@@ -1,7 +1,7 @@
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a h1:qQEQdHUkGcow/nLUoNPQChNsXwn1vriHeg1PoyLtXPk=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a/go.mod h1:6OuJUISldqwXmCjo2gn0d+gShLijV5+pAPHRKDt+6H8=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d h1:5F7bdG/Qut5fgShgftmMjys48pSWvom32n01iOeyknw=
+github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d/go.mod h1:nvx06Do6pkAAdHTG4EgtxyaiUlEROqAsktHv1/90MAc=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 h1:lSINS7DK4xjm0Z4CBd7onO63uIe6WUsEZ/0voExa+JY=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2/go.mod h1:B76PjnaM2KyUG8ypV/ePHHDmGbyUNZ2PCEdEQIJISQM=
 github.com/bazelbuild/bazel-gazelle v0.51.1 h1:poG8ATOReLVPKOiiA3fRhmEijXc4+FCzzCGlPkeRyW0=

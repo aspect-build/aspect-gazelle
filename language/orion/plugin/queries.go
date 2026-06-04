@@ -1,6 +1,8 @@
 package plugin
 
 import (
+	"regexp"
+
 	common "github.com/aspect-build/aspect-gazelle/common"
 )
 
@@ -57,10 +59,31 @@ type AstQuery struct {
 func (AstQuery) QueryType() QueryType { return QueryTypeAst }
 
 // A regular expression query on the source text.
+//
+// Create via NewRegexQuery so the expression is parsed (and validated) once.
 type RegexQuery struct {
 	QueryBase
 	Expression string
+
+	// The parsed Expression.
+	expressionRe *regexp.Regexp
 }
+
+func NewRegexQuery(base QueryBase, expression string) (*RegexQuery, error) {
+	re, err := common.ParseRegex(expression)
+	if err != nil {
+		return nil, err
+	}
+
+	return &RegexQuery{
+		QueryBase:    base,
+		Expression:   expression,
+		expressionRe: re,
+	}, nil
+}
+
+// The parsed Expression, only available when created via NewRegexQuery.
+func (q *RegexQuery) ExpressionRe() *regexp.Regexp { return q.expressionRe }
 
 func (RegexQuery) QueryType() QueryType { return QueryTypeRegex }
 

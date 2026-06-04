@@ -3,7 +3,7 @@ module github.com/aspect-build/aspect-gazelle/language/kotlin
 go 1.26.4
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0
 	github.com/bazel-contrib/rules_jvm v0.33.0
 	github.com/bazelbuild/bazel-gazelle v0.51.1
