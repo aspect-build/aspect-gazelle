@@ -29,7 +29,7 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0 // indirect
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
-	github.com/bazel-contrib/rules_jvm v0.32.0 // indirect
+	github.com/bazel-contrib/rules_jvm v0.33.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
