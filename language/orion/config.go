@@ -95,7 +95,7 @@ type pluginConfig struct {
 func (c *pluginConfig) getQueriesForFile(f string) iter.Seq2[string, plugin.QueryDefinition] {
 	return func(yield func(string, plugin.QueryDefinition) bool) {
 		for n, query := range c.PrepareResult.Queries {
-			if query.Match(f) {
+			if query.MatchPath(f) {
 				if !yield(n, query) {
 					return
 				}

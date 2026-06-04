@@ -300,14 +300,21 @@ Source files can be queried using various methods to extract information for ana
 directly from the source code, such JSON and other structured data, while others return `QueryMatch` objects describing
 the matched content.
 
-**aspect.AstQuery(grammar, filter, query)**:
+Every query factory accepts two optional filters: `filter`, a glob matching file **paths** to query, and `content_filter`,
+an [RE2](https://github.com/google/re2/wiki/Syntax) pattern the file **content** must match for the query to run. When
+`content_filter` does not match, the query is skipped (and, for parse-based queries, the parse with it) — a cheap content
+gate ahead of the parse. A pattern with no regex metacharacters is checked as a plain substring; use a keyword every
+match contains, e.g. `"import"` for an `(import_statement ...)` query.
+
+**aspect.AstQuery(query, grammar, filter, content_filter)**:
 
 The factory method for an `AstQuery`.
 
 Args:
-* `filter`: a glob pattern to match file names to query
-* `grammar`: the tree-sitter grammar to parse source code as (optional, default based on file extension)
 * `query`: a tree-sitter query to run on the source code AST
+* `grammar`: the tree-sitter grammar to parse source code as (optional, default based on file extension)
+* `filter`: a glob pattern to match file names to query
+* `content_filter`: a content pattern gating whether to parse+query (see [Query Types](#query-types))
 
 A [tree-sitter](https://tree-sitter.github.io/tree-sitter/) query to run on the parsed AST of the file.
 
@@ -319,13 +326,14 @@ including details such as [query syntax](https://tree-sitter.github.io/tree-sitt
 The query result is a list of `QueryMatch` objects for each matching AST node. Tree-sitter capture nodes
 are returned in the `QueryMatch.captures`, the `QueryMatch.result` is undefined.
 
-**aspect.RegexQuery(filter, expression)**:
+**aspect.RegexQuery(expression, filter, content_filter)**:
 
 The factory method for a `RegexQuery`.
 
 Args:
-* `filter`: a glob pattern to match file names to query
 * `expression`: a regular expression to run on the file
+* `filter`: a glob pattern to match file names to query
+* `content_filter`: a content pattern gating whether the query runs (see [Query Types](#query-types))
 
 The query result is a list of `QueryMatch` objects for each match in the file.
 
@@ -336,22 +344,24 @@ The full match is returned in the `QueryMatch.result`.
 
 See the [golang regex](https://pkg.go.dev/regexp) documentation for more information.
 
-**aspect.RawQuery(filter)**:
+**aspect.RawQuery(filter, content_filter)**:
 
 The factory method for a `RawQuery`.
 
 Args:
 * `filter`: a glob pattern to match file names to return
+* `content_filter`: a content pattern gating whether the query runs (see [Query Types](#query-types))
 
 The query result is the file content as-is with no parsing or filtering.
 
-**aspect.JsonQuery(filter, query)**:
+**aspect.JsonQuery(query, filter, content_filter)**:
 
 The factory method for a `JsonQuery`.
 
 Args:
-* `filter`: a glob pattern to match file names to query
 * `query`: a JQ filter expression to run on the JSON document
+* `filter`: a glob pattern to match file names to query
+* `content_filter`: a content pattern gating whether the query runs (see [Query Types](#query-types))
 
 The query result is a list of each matching JSON node in the document.
 
@@ -362,13 +372,14 @@ JSON data types are represented as golang primitives and basic arrays and maps, 
 See the [jq manual](https://jqlang.github.io/jq/manual/#basic-filters) for query expressions.
 See [golang jq](https://github.com/itchyny/gojq) for information on the golang jq implementation used by starzelle.
 
-**aspect.YamlQuery(filter, query)**:
+**aspect.YamlQuery(query, filter, content_filter)**:
 
 The factory method for a `YamlQuery`.
 
 Args:
-* `filter`: a glob pattern to match file names to query
 * `query`: a YQ filter expression to run on the YAML document
+* `filter`: a glob pattern to match file names to query
+* `content_filter`: a content pattern gating whether the query runs (see [Query Types](#query-types))
 
 The query result is a list of each matching YAML node in the document.
 
@@ -378,13 +389,14 @@ YAML queries are implemented using the [yq](https://mikefarah.gitbook.io/yq) too
 
 See the [jq manual](https://jqlang.github.io/jq/manual/#basic-filters) for query expressions.
 
-**aspect.TomlFilter(filter, query)**:
+**aspect.TomlQuery(query, filter, content_filter)**:
 
 The factory method for a `TomlQuery`.
 
 Args:
-* `filter`: a glob pattern to match file names to query
 * `query`: a filter expression to run on the TOML document
+* `filter`: a glob pattern to match file names to query
+* `content_filter`: a content pattern gating whether the query runs (see [Query Types](#query-types))
 
 The query result is a list of each matching node in the document.
 

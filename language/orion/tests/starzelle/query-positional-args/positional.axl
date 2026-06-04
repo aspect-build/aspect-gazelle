@@ -1,0 +1,82 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".js", ".json", ".yaml", ".toml"),
+        ],
+        # Every factory is invoked with positional args only, pinning the
+        # documented argument order. In particular `content_filter` must stay
+        # last: inserting it earlier rebinds the positional `filter` (e.g.
+        # aspect.RawQuery("**/*.js") would gate on file *content* "**/*.js").
+        queries = {
+            # AstQuery(query, grammar, filter, content_filter)
+            "ast": aspect.AstQuery(
+                "(import_statement (string (string_fragment) @imp))",
+                "typescript",
+                "**/*.js",
+                "import",
+            ),
+            # RegexQuery(expression, filter, content_filter)
+            "regex": aspect.RegexQuery("import '(?P<name>[^']*)'", "**/*.js", "import"),
+            # RawQuery(filter, content_filter)
+            "raw": aspect.RawQuery("**/*.js", "import"),
+            # JsonQuery/YamlQuery/TomlQuery(query, filter, content_filter)
+            "json": aspect.JsonQuery(".foo", "**/*.json", "foo"),
+            "yaml": aspect.YamlQuery(".foo", "**/*.yaml", "foo"),
+            "toml": aspect.TomlQuery(".foo", "**/*.toml", "foo"),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        deps = []
+
+        if file.path.endswith(".js"):
+            raw = file.query_results["raw"]
+            regex = [m.captures["name"] for m in file.query_results["regex"]]
+            if "import" in raw:
+                # a.js passes the content gate; all three queries ran.
+                if len(regex) != 1:
+                    fail("regex query on %s: expected 1 match, got %r" % (file.path, regex))
+            elif raw != "" or regex:
+                # b.js is gated out of all three queries.
+                fail("content gate mismatch on %s: raw %r, regex %r" % (file.path, raw, regex))
+
+            deps = [
+                aspect.Import(
+                    id = i.captures["imp"],
+                    provider = "x",
+                    src = file.path,
+                )
+                for i in file.query_results["ast"]
+            ]
+        else:
+            # The structured queries match `.foo` in each document.
+            name = file.path[file.path.rindex(".") + 1:]
+            data = file.query_results[name]
+            if len(data) != 1:
+                fail("%s query on %s: expected 1 result, got %r" % (name, file.path, data))
+
+        ctx.targets.add(
+            name = path.base(file.path).replace(".", "_"),
+            kind = "x_lib",
+            attrs = {
+                "srcs": [file.path],
+                "deps": deps,
+            },
+            symbols = [aspect.Symbol(
+                id = file.path[:file.path.rindex(".")],
+                provider = "x",
+            )],
+        )
+
+aspect.orion_extension(
+    id = "query-positional-args-test",
+    prepare = prepare,
+    declare = declare,
+)

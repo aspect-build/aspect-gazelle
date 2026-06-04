@@ -31,7 +31,8 @@ const (
 // Implementations are pointers to the *Query structs below, one per QueryType.
 type QueryDefinition interface {
 	QueryType() QueryType
-	Match(f string) bool
+	MatchPath(f string) bool
+	MatchContent(src []byte) bool
 
 	// Seal the interface to pointers to the *Query structs embedding
 	// QueryBase. The pointer receiver ensures only the pointer forms satisfy
@@ -41,11 +42,24 @@ type QueryDefinition interface {
 
 // Common properties of all QueryDefinition implementations.
 type QueryBase struct {
+	// Filter gates the query by file path glob(s); empty means all files.
+	// FilterExpr is its compiled matcher.
 	Filter     []string
 	FilterExpr common.GlobExpr
+
+	// ContentFilter gates the query by file content (substring or regex); empty
+	// means always run. ContentFilterExpr is its compiled matcher.
+	ContentFilter     string
+	ContentFilterExpr common.BytesMatcher
 }
 
-func (q QueryBase) Match(f string) bool { return q.FilterExpr(f) }
+func (q QueryBase) MatchPath(f string) bool { return q.FilterExpr(f) }
+
+// MatchContent reports whether the content gate (ContentFilter) matches the
+// source. Always true when no ContentFilter was set.
+func (q QueryBase) MatchContent(src []byte) bool {
+	return q.ContentFilterExpr == nil || q.ContentFilterExpr(src)
+}
 
 func (*QueryBase) isQueryDefinition() {}
 

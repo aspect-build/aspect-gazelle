@@ -1,0 +1,63 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+})
+
+# A content_filter no file matches: every query below is gated out everywhere,
+# but must still deliver an empty result of its type-specific shape.
+NEVER = "never-matches-any-file"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".js", ".json", ".yaml", ".toml"),
+        ],
+        queries = {
+            "ast": aspect.AstQuery(query = "(identifier) @id", grammar = "typescript", filter = "**/*.js", content_filter = NEVER),
+            "regex": aspect.RegexQuery(expression = "(?P<id>.*)", filter = "**/*.js", content_filter = NEVER),
+            "raw": aspect.RawQuery(filter = "**/*.js", content_filter = NEVER),
+            "json": aspect.JsonQuery(query = ".foo", filter = "**/*.json", content_filter = NEVER),
+            "yaml": aspect.YamlQuery(query = ".foo", filter = "**/*.yaml", content_filter = NEVER),
+            "toml": aspect.TomlQuery(query = ".foo", filter = "**/*.toml", content_filter = NEVER),
+        },
+    )
+
+# The empty-result shape each gated-out query type must produce.
+EXPECTED_SHAPES = {
+    "ast": "QueryMatches",
+    "regex": "QueryMatches",
+    "raw": "string",
+    "json": "list",
+    "yaml": "list",
+    "toml": "list",
+}
+
+# The queries whose path filter matches each source extension.
+QUERIES_BY_EXT = {
+    ".js": ["ast", "regex", "raw"],
+    ".json": ["json"],
+    ".yaml": ["yaml"],
+    ".toml": ["toml"],
+}
+
+def declare(ctx):
+    for file in ctx.sources:
+        ext = file.path[file.path.rindex("."):]
+        for name in QUERIES_BY_EXT[ext]:
+            res = file.query_results[name]
+            if type(res) != EXPECTED_SHAPES[name]:
+                fail("gated-out %s query on %s: expected an empty %s result, got %s" % (name, file.path, EXPECTED_SHAPES[name], type(res)))
+            if len(res) != 0:
+                fail("content_filter gate failed: %s query ran on %s and returned %r" % (name, file.path, res))
+
+        ctx.targets.add(
+            name = path.base(file.path).replace(".", "_"),
+            kind = "x_lib",
+            attrs = {"srcs": [file.path]},
+        )
+
+aspect.orion_extension(
+    id = "content-filter-empty-results-test",
+    prepare = prepare,
+    declare = declare,
+)
