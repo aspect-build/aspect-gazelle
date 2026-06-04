@@ -1,3 +1,3 @@
 module github.com/aspect-build/aspect-gazelle/runner/tests/golang
 
-go 1.26.3
+go 1.26.4

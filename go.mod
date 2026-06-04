@@ -3,4 +3,4 @@
 // can pin the Go SDK (@go_sdk), used by the gofmt formatter in //tools/format.
 module github.com/aspect-build/aspect-gazelle
 
-go 1.26.3
+go 1.26.4

@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/language/kotlin
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a
