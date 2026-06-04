@@ -1,0 +1,6 @@
+aspect.orion_extension(
+    id = "bad-sourceglob-kwarg-test",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = aspect.SourceGlobs("**/*.js", foobar = ["**/*.spec.js"]),
+    ),
+)

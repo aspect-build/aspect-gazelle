@@ -193,10 +193,19 @@ Match specific file paths.
 
 Match files with the trailing extensions. Extensions should include the leading `.`.
 
-**aspect.SourceGlobs(patterns...)**:
+**aspect.SourceGlobs(patterns..., exclude=[])**:
 
-Match files matching glob patterns. Note that globs are significantly slower than exact
-paths or extension based matchers.
+Match files matching the given include glob patterns, passed either variadically or as
+a single list mirroring the Bazel `glob()` signature. The optional `exclude` keyword
+argument takes a list of glob patterns to subtract: a file matches when it matches at
+least one include pattern and matches none of the excludes. At least one include
+pattern is required; to match everything except the excludes use an explicit `"**"`.
+Note that globs are significantly slower than exact paths or extension based matchers.
+
+```python
+# Every .ts source except specs, declaration files, and generated code.
+aspect.SourceGlobs(["src/**/*.ts"], exclude = ["**/*.spec.ts", "**/*.d.ts", "src/gen/**"])
+```
 
 ### Analyze
 

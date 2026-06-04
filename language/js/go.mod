@@ -4,7 +4,7 @@ go 1.26.3
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603031412-023e0271bd43
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a
 	github.com/bazelbuild/bazel-gazelle v0.51.1 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb

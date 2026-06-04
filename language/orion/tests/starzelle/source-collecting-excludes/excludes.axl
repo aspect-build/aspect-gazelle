@@ -1,0 +1,35 @@
+def prepare_excludes(_):
+    f = aspect.SourceGlobs(["**/*.js"], exclude = ["**/*.spec.js", "**/*.min.js"])
+
+    # The filter exposes its patterns as attributes.
+    if f.globs != ["**/*.js"]:
+        fail("unexpected globs: %s" % f.globs)
+    if f.exclude != ["**/*.spec.js", "**/*.min.js"]:
+        fail("unexpected exclude: %s" % f.exclude)
+
+    # Patterns may also be passed variadically.
+    f2 = aspect.SourceGlobs("**/*.js", exclude = ["**/*.spec.js", "**/*.min.js"])
+    if f2.globs != f.globs or f2.exclude != f.exclude:
+        fail("list and varargs forms differ: %s vs %s" % (f2, f))
+
+    return aspect.PrepareResult(
+        sources = [f],
+    )
+
+def declare_excludes(ctx):
+    if not ctx.sources:
+        return
+
+    ctx.targets.add(
+        name = "the-list",
+        kind = "filegroup",
+        attrs = {
+            "srcs": [s.path for s in ctx.sources],
+        },
+    )
+
+aspect.orion_extension(
+    id = "fg-excludes",
+    prepare = prepare_excludes,
+    declare = declare_excludes,
+)

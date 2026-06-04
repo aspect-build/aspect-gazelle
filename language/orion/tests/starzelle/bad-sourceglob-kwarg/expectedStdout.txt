@@ -1,0 +1,3 @@
+Error in aspect.SourceGlobs: unexpected keyword argument "foobar"
+Traceback (most recent call last):
+  bad-sourceglob-kwarg/bad-sourceglob-kwarg.axl:4:37: in lambda

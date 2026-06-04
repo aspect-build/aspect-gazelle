@@ -412,7 +412,7 @@ var _ starlark.Value = (*SourceGlobFilter)(nil)
 var _ starlark.HasAttrs = (*SourceGlobFilter)(nil)
 
 func (r SourceGlobFilter) String() string {
-	return fmt.Sprintf("SourceGlobFilter{Globs: %v}", r.Globs)
+	return fmt.Sprintf("SourceGlobFilter{Globs: %v, Exclude: %v}", r.Globs, r.Exclude)
 }
 func (r SourceGlobFilter) Type() string         { return "SourceGlobFilter" }
 func (r SourceGlobFilter) Freeze()              {}
@@ -424,12 +424,14 @@ func (r SourceGlobFilter) Attr(name string) (starlark.Value, error) {
 	switch name {
 	case "globs":
 		return starUtils.Write(r.Globs), nil
+	case "exclude":
+		return starUtils.Write(r.Exclude), nil
 	default:
 		return nil, starlark.NoSuchAttrError(name)
 	}
 }
 func (r SourceGlobFilter) AttrNames() []string {
-	return []string{"globs"}
+	return []string{"globs", "exclude"}
 }
 
 // ---------------- SourceFileFilter
