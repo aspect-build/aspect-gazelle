@@ -8,7 +8,6 @@ package starzelle
 
 import (
 	"fmt"
-	"regexp"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
@@ -158,17 +157,7 @@ func newRegexQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple,
 		return nil, err
 	}
 
-	// Validate the regular expression eagerly so an invalid pattern fails at
-	// plugin-definition time with a clear error, rather than panicking later
-	// when the query is compiled+run via common.ParseRegex (regexp.MustCompile).
-	if _, err := regexp.Compile(expression.GoString()); err != nil {
-		return nil, err
-	}
-
-	return &plugin.RegexQuery{
-		QueryBase:  base,
-		Expression: expression.GoString(),
-	}, nil
+	return plugin.NewRegexQuery(base, expression.GoString())
 }
 
 func newRawQuery(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {

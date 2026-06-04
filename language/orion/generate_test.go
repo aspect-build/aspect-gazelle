@@ -99,4 +99,44 @@ func TestComputeQueriesCacheKey(t *testing.T) {
 			t.Error("cache key did not distinguish query names")
 		}
 	})
+
+	t.Run("ignores the parsed regex expression", func(t *testing.T) {
+		// A NewRegexQuery-built query (parsed expression populated) must hash
+		// the same as a struct literal (parsed expression nil).
+		q, err := plugin.NewRegexQuery(queryBase("*.txt"), "import (?P<name>.*)")
+		if err != nil {
+			t.Fatal(err)
+		}
+		queries := allQueryTypes()
+		queries["regex"] = q
+		if k2 := computeQueriesCacheKey(queries); k2 != key {
+			t.Errorf("cache key changed with the parsed regex expression: %q != %q", k2, key)
+		}
+	})
+}
+
+func TestNewRegexQuery(t *testing.T) {
+	q, err := plugin.NewRegexQuery(queryBase("*.txt"), "import (?P<name>.*)")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q.Expression != "import (?P<name>.*)" {
+		t.Errorf("Expression: got %q", q.Expression)
+	}
+	if q.ExpressionRe() == nil {
+		t.Fatal("expected a parsed expression")
+	}
+	if !q.ExpressionRe().MatchString("import x") {
+		t.Error("parsed expression did not match")
+	}
+
+	t.Run("invalid expression", func(t *testing.T) {
+		q, err := plugin.NewRegexQuery(queryBase("*.txt"), "[unclosed")
+		if err == nil {
+			t.Fatal("expected an error for an invalid expression")
+		}
+		if q != nil {
+			t.Error("expected a nil query for an invalid expression")
+		}
+	})
 }

@@ -365,6 +365,41 @@ func Foo() {}
 	}
 }
 
+// An invalid match? predicate expression fails at query-compile time, not
+// when the query is run against a match.
+func TestGetQuery_invalidMatchPredicateRegex(t *testing.T) {
+	for _, operator := range []string{"match?", "not-match?"} {
+		q := `(function_declaration name: (identifier) @name (#` + operator + ` @name "[unclosed"))`
+		_, err := treesitter.GetQuery(goLang, q)
+		if err == nil {
+			t.Fatalf("expected an error for an invalid %s predicate expression", operator)
+		}
+		if !strings.Contains(err.Error(), "[unclosed") {
+			t.Errorf("%s error should name the invalid expression, got: %v", operator, err)
+		}
+	}
+}
+
+// Predicates only apply to the pattern they are declared in.
+func TestMatchPredicate_perPattern(t *testing.T) {
+	ast := mustParseGo(t, goFunctions)
+	// Two top-level patterns over the same nodes: the first filtered to
+	// exported names, the second unfiltered.
+	q := mustQuery(t, `
+		(function_declaration name: (identifier) @exported (#match? @exported "^[A-Z]"))
+		(function_declaration name: (identifier) @any)`)
+
+	exported := collectCaptures(ast, q, "exported")
+	if want := []string{"Foo", "Bar"}; !slices.Equal(exported, want) {
+		t.Errorf("exported: got %v, want %v", exported, want)
+	}
+
+	any := collectCaptures(ast, q, "any")
+	if want := []string{"Foo", "Bar", "baz"}; !slices.Equal(any, want) {
+		t.Errorf("any: got %v, want %v", any, want)
+	}
+}
+
 func TestGetQuery_unknownNodeErrorCompatibility(t *testing.T) {
 	_, err := treesitter.GetQuery(goLang, `(import_ statement ( @foo`)
 	if err == nil {

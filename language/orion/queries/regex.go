@@ -3,7 +3,6 @@ package queries
 import (
 	"regexp"
 
-	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 	"golang.org/x/sync/errgroup"
 )
@@ -19,7 +18,7 @@ func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries, queryResult
 		eg.Go(func() error {
 			queryResults <- &plugin.QueryProcessorResult{
 				Key:    key,
-				Result: runRegexQuery(sourceCode, common.ParseRegex(q.(*plugin.RegexQuery).Expression)),
+				Result: runRegexQuery(sourceCode, q.(*plugin.RegexQuery).ExpressionRe()),
 			}
 			return nil
 		})

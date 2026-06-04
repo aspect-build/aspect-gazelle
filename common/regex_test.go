@@ -40,11 +40,20 @@ func TestParseMatcherVsRegexp(t *testing.T) {
 	}
 }
 
-func TestParseMatcherInvalidRegexErrors(t *testing.T) {
-	// Has a metacharacter (so it takes the regex path) and is invalid.
+func TestParseInvalidRegexErrors(t *testing.T) {
+	re, err := ParseRegex("[unclosed")
+	if err == nil {
+		t.Error("expected ParseRegex to return an error on an invalid regex")
+	}
+	if re != nil {
+		t.Error("expected ParseRegex to return a nil regexp on an invalid regex")
+	}
+
+	// Has a metacharacter (so ParseMatcher takes the regex path, propagating
+	// the same ParseRegex error).
 	m, err := ParseMatcher("[unclosed")
 	if err == nil {
-		t.Fatal("expected ParseMatcher to return an error on an invalid regex")
+		t.Error("expected ParseMatcher to return an error on an invalid regex")
 	}
 	if m != nil {
 		t.Error("expected ParseMatcher to return a nil matcher on an invalid regex")
@@ -64,15 +73,5 @@ func TestParseRegexCaches(t *testing.T) {
 	}
 	if a != b {
 		t.Error("ParseRegex did not return a cached instance for the same expression")
-	}
-}
-
-func TestParseRegexInvalidErrors(t *testing.T) {
-	re, err := ParseRegex("[unclosed")
-	if err == nil {
-		t.Fatal("expected ParseRegex to return an error on an invalid regex")
-	}
-	if re != nil {
-		t.Error("expected ParseRegex to return a nil regexp on an invalid regex")
 	}
 }

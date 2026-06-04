@@ -25,7 +25,6 @@ go_library(
         "@aspect_treesitter_grammars//starlark",
         "@aspect_treesitter_grammars//tsx",
         "@aspect_treesitter_grammars//typescript",
-        "@com_github_aspect_build_aspect_gazelle_common//:common",
         "@com_github_aspect_build_aspect_gazelle_common//logger",
         "@com_github_aspect_build_aspect_gazelle_common//treesitter",
         "@com_github_itchyny_gojq//:gojq",
