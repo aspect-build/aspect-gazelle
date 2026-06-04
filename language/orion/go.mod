@@ -6,7 +6,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260603182414-c8aa1eafb63a
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260531075410-248a9640a3d0
 	github.com/bazelbuild/bazel-gazelle v0.51.1 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f
+	github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/itchyny/gojq v0.12.19
 	github.com/mikefarah/yq/v4 v4.53.2

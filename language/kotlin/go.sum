@@ -8,8 +8,8 @@ github.com/bazel-contrib/rules_jvm v0.33.0 h1:hdGoYvvHNdC23U4+V7MysWSXUUV84XsOcd
 github.com/bazel-contrib/rules_jvm v0.33.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
 github.com/bazelbuild/bazel-gazelle v0.51.1 h1:poG8ATOReLVPKOiiA3fRhmEijXc4+FCzzCGlPkeRyW0=
 github.com/bazelbuild/bazel-gazelle v0.51.1/go.mod h1:AeYjUGaxXcMZ51CYHBT1YK3Qxb2yrJl77A8g7GF6d+g=
-github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f h1:khsR2MoXO+WButt3L5nnkAOGO17BAr0G/pGHZczF5/E=
-github.com/bazelbuild/buildtools v0.0.0-20260319080235-05d2ebe49b0f/go.mod h1:PLNUetjLa77TCCziPsz0EI8a6CUxgC+1jgmWv0H25tg=
+github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6 h1:qoTpOHw6TAC4AtKC/O/Bx2QXn2c8OnzwTOD1nBzLynk=
+github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6/go.mod h1:PLNUetjLa77TCCziPsz0EI8a6CUxgC+1jgmWv0H25tg=
 github.com/bazelbuild/rules_go v0.60.0 h1:apGSxTTrFUyLNvX9NQmF4CbntWAO0/S5eALeVgB/6Qk=
 github.com/bazelbuild/rules_go v0.60.0/go.mod h1:CYcohJVxs4n7eftbC39GCqaEJm3E1EME+6QAkGguKoI=
 github.com/bmatcuk/doublestar/v4 v4.10.0 h1:zU9WiOla1YA122oLM6i4EXvGW62DvKZVxIe6TYWexEs=
