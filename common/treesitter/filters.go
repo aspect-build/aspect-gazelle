@@ -1,7 +1,6 @@
 package treesitter
 
 import (
-	common "github.com/aspect-build/aspect-gazelle/common"
 	sitter "github.com/smacker/go-tree-sitter"
 )
 
@@ -81,7 +80,7 @@ func matchesAllPredicates(q *sitterQuery, m *sitter.QueryMatch, qc *sitter.Query
 			isPositive := operator == "match?"
 
 			expectedCaptureName := q.CaptureNameForId(steps[1].ValueId)
-			matcher := common.ParseMatcher(q.StringValueForId(steps[2].ValueId))
+			matcher := q.MatcherForId(steps[2].ValueId)
 
 			for _, c := range m.Captures {
 				captureName := q.CaptureNameForId(c.Index)

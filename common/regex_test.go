@@ -27,7 +27,10 @@ func TestParseMatcherVsRegexp(t *testing.T) {
 	}
 
 	for pattern, inputs := range tests {
-		matcher := ParseMatcher(pattern)
+		matcher, err := ParseMatcher(pattern)
+		if err != nil {
+			t.Fatalf("ParseMatcher(%q) returned an error: %v", pattern, err)
+		}
 		re := regexp.MustCompile(pattern)
 		for _, input := range inputs {
 			if matcher([]byte(input)) != re.Match([]byte(input)) {
@@ -37,29 +40,39 @@ func TestParseMatcherVsRegexp(t *testing.T) {
 	}
 }
 
-func TestParseMatcherInvalidRegexPanics(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Fatal("expected ParseMatcher to panic on an invalid regex")
-		}
-	}()
+func TestParseMatcherInvalidRegexErrors(t *testing.T) {
 	// Has a metacharacter (so it takes the regex path) and is invalid.
-	ParseMatcher("[unclosed")
+	m, err := ParseMatcher("[unclosed")
+	if err == nil {
+		t.Fatal("expected ParseMatcher to return an error on an invalid regex")
+	}
+	if m != nil {
+		t.Error("expected ParseMatcher to return a nil matcher on an invalid regex")
+	}
 }
 
 func TestParseRegexCaches(t *testing.T) {
 	// ParseRegex returns the cached *regexp.Regexp, so repeated calls for the
 	// same expression return the identical pointer.
-	if ParseRegex("a.c") != ParseRegex("a.c") {
+	a, err := ParseRegex("a.c")
+	if err != nil {
+		t.Fatalf("ParseRegex returned an error: %v", err)
+	}
+	b, err := ParseRegex("a.c")
+	if err != nil {
+		t.Fatalf("ParseRegex returned an error: %v", err)
+	}
+	if a != b {
 		t.Error("ParseRegex did not return a cached instance for the same expression")
 	}
 }
 
-func TestParseRegexInvalidPanics(t *testing.T) {
-	defer func() {
-		if recover() == nil {
-			t.Fatal("expected ParseRegex to panic on an invalid regex")
-		}
-	}()
-	ParseRegex("[unclosed")
+func TestParseRegexInvalidErrors(t *testing.T) {
+	re, err := ParseRegex("[unclosed")
+	if err == nil {
+		t.Fatal("expected ParseRegex to return an error on an invalid regex")
+	}
+	if re != nil {
+		t.Error("expected ParseRegex to return a nil regexp on an invalid regex")
+	}
 }

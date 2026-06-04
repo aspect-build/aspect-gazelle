@@ -20,21 +20,25 @@ var matcherCache = sync.Map{}
 // Parse a regex and return a regexp.Regexp.
 // Use if the full regexp.Regexp API is needed (e.g. capture groups), otherwise
 // the ParseMatcher() API is more efficient for simple substring matches.
-// Panics if the regex is invalid. Caches parsed regexes for efficiency.
-func ParseRegex(regexStr string) *regexp.Regexp {
+// Returns an error if the regex is invalid. Caches parsed regexes for efficiency.
+func ParseRegex(regexStr string) (*regexp.Regexp, error) {
 	re, found := regexCache.Load(regexStr)
 	if !found {
-		re, _ = regexCache.LoadOrStore(regexStr, regexp.MustCompile(regexStr))
+		compiled, err := regexp.Compile(regexStr)
+		if err != nil {
+			return nil, err
+		}
+		re, _ = regexCache.LoadOrStore(regexStr, compiled)
 	}
 
-	return re.(*regexp.Regexp)
+	return re.(*regexp.Regexp), nil
 }
 
 // Parse a regex or simple substring and return a BytesMatcher.
-// Panics if the regex is invalid. Caches parsed regexes for efficiency.
-func ParseMatcher(matchExpr string) BytesMatcher {
+// Returns an error if the regex is invalid. Caches parsed regexes for efficiency.
+func ParseMatcher(matchExpr string) (BytesMatcher, error) {
 	if m, found := matcherCache.Load(matchExpr); found {
-		return m.(BytesMatcher)
+		return m.(BytesMatcher), nil
 	}
 
 	var m BytesMatcher
@@ -44,9 +48,13 @@ func ParseMatcher(matchExpr string) BytesMatcher {
 			return bytes.Contains(b, needle)
 		}
 	} else {
-		m = ParseRegex(matchExpr).Match
+		re, err := ParseRegex(matchExpr)
+		if err != nil {
+			return nil, err
+		}
+		m = re.Match
 	}
 
 	actual, _ := matcherCache.LoadOrStore(matchExpr, m)
-	return actual.(BytesMatcher)
+	return actual.(BytesMatcher), nil
 }
