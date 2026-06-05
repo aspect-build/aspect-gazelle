@@ -531,7 +531,8 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 	for _, t := range tsconfig.Types {
 		if !cfg.IsImportIgnored(t) {
 			imp := t
-			if len(t) > 0 && (t[0] == '.' || t[0] == '/') {
+			isLocalRef := len(t) > 0 && (t[0] == '.' || t[0] == '/')
+			if isLocalRef {
 				imp = toImportSpecPath("", SourcePath, t)
 			}
 			imports = append(imports, ImportStatement{
@@ -543,6 +544,13 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 				SourcePath: SourcePath,
 				TypesOnly:  true,
 			})
+
+			// Process the discovered "types" imports to find any of their
+			// depednencies which should also be included
+			if isLocalRef {
+				parsed := ts.collectImports(cfg, cache.Get(args.Config), args.Config.RepoRoot, imp)
+				imports = append(imports, parsed.Imports...)
+			}
 		}
 	}
 
