@@ -62,6 +62,12 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	rm -rf "$UNPACK_DIR"
 
 	cat <<EOF
+> [!NOTE]
+> \`${MODULE_NAME}\` is only needed when **building the Gazelle binary from source**.
+> If you use [\`aspect_gazelle_prebuilt\`](https://github.com/aspect-build/aspect-gazelle/tree/main/prebuilt),
+> its functionality is already included in the prebuilt binary and no other
+> \`aspect_gazelle_*\` module is required.
+
 Add to your \`MODULE.bazel\`:
 
 \`\`\`starlark
@@ -162,6 +168,13 @@ tar --file "$ARCHIVE_TMP" --append \
 gzip <"$ARCHIVE_TMP" >"$ARCHIVE"
 
 cat <<EOF
+> [!NOTE]
+> \`aspect_gazelle_prebuilt\` is the only module you need — every language and
+> extension is already compiled into the prebuilt binary. The other
+> \`aspect_gazelle_*\` modules (\`aspect_gazelle_js\`, \`aspect_gazelle_kotlin\`,
+> \`aspect_gazelle_orion\`, \`aspect_gazelle_runner\`, ...) are only used when
+> building the Gazelle binary from source.
+
 Add to your \`MODULE.bazel\`:
 
 \`\`\`starlark

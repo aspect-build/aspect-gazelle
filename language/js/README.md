@@ -2,6 +2,9 @@
 
 This package is a [Gazelle](https://github.com/bazelbuild/bazel-gazelle) `Language` implementation for [rules_js](https://github.com/aspect-build/rules_js) and [rules_ts](https://github.com/aspect-build/rules_ts).
 
+> [!NOTE]
+> The `aspect_gazelle_js` module is only needed when **building the Gazelle binary from source**. If you use [`aspect_gazelle_prebuilt`](../../prebuilt/), this language is already compiled into the prebuilt binary and no other `aspect_gazelle_*` module is required — the directives documented below work the same either way.
+
 ## Rules
 
 Generated targets include:
@@ -70,7 +73,7 @@ Finally, the `import` statements in the source files are parsed, and dependencie
 
 ## Build setup
 
-> **The setup below is only required when building the Gazelle binary from source.** Users of [`aspect_gazelle_prebuilt`](../../prebuilt/) can skip it entirely — that module ships a prebuilt Gazelle binary, so you don't compile the Rust parser, or need a Go, Rust, or LLVM toolchain, at all.
+> **The setup below is only required when building the Gazelle binary from source.** Users of [`aspect_gazelle_prebuilt`](../../prebuilt/) can skip it entirely — that module ships a prebuilt Gazelle binary, so you don't depend on `aspect_gazelle_js` (or any other `aspect_gazelle_*` module), compile the Rust parser, or need a Go, Rust, or LLVM toolchain at all.
 
 The JS/TS import parser is implemented in Rust (using [oxc](https://oxc.rs/)) and linked into the Gazelle binary via cgo. Building this module therefore compiles a Rust static library through [rules_rs](https://github.com/hermeticbuild/rules_rs) and a hermetic LLVM C/C++ toolchain.
 

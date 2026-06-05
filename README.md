@@ -20,6 +20,8 @@ We provide a variety of enhancements to Gazelle.
 
 The [runner](./runner) enables these enhancements automatically, otherwise manual setup (including patching Gazelle) is required.
 
+The runner has Aspect-endorsed Gazelle languages built in; further Gazelle languages (written with the Go SDK) cannot be added without changes to the [runner](./runner). The built-in languages — the names accepted by the `languages` attribute — are [`buf`](https://github.com/bufbuild/rules_buf/tree/main/gazelle/buf), [`cc`](https://github.com/EngFlow/gazelle_cc/tree/main/language/cc), [`go`](https://github.com/bazel-contrib/bazel-gazelle/tree/master/language/go), [`js`](./language/js), [`kotlin`](./language/kotlin), [`orion`](./language/orion) (AXL extensions), [`proto`](https://github.com/bazel-contrib/bazel-gazelle/tree/master/language/proto), [`python`](https://github.com/bazel-contrib/rules_python/tree/main/gazelle), [`starlark`](https://github.com/bazelbuild/bazel-skylib/tree/main/gazelle/bzl) and [`visibility_extension`](https://github.com/bazel-contrib/bazel-gazelle/tree/master/language/bazel/visibility). This same fixed language set is what the [prebuilt](#prebuilt) binary ships. More may be added upon request (file an issue) if the quality is good and maintenance is likely.
+
 ### Gitignore
 
 Support for `.gitignore` when generating BUILD files. Files (and directories) matched by any `.gitignore` in the workspace are skipped during the walk, so they don't become BUILD-file sources.
@@ -46,7 +48,12 @@ The [runner](./runner) supports a `--watch` mode that uses [watchman](https://fa
 
 ## Prebuilt
 
-The [./prebuilt](./prebuilt) module provides a prebuilt version of the [runner](./runner) as a drop-in replacement for the Gazelle binary, with all enhancements and extensions included, and without the need for any compilation of Go code or Gazelle extensions on the user's machine.
+The [prebuilt](./prebuilt) module provides a prebuilt version of the [runner](./runner).
+
+This is a drop-in replacement for the Gazelle binary, with all the runner enhancements and extensions included, and without the need for any compilation of Gazelle or Gazelle languages on the user's machine. This avoids pulling in transitive bzlmod dependencies such as rules_go, rules_python, and rules_rs (with its LLVM toolchain), which are otherwise required to build Gazelle from source.
+
+> [!NOTE]
+> `aspect_gazelle_prebuilt` is the only module you need — every language and extension is already compiled into the prebuilt binary. The other `aspect_gazelle_*` modules (`aspect_gazelle_js`, `aspect_gazelle_kotlin`, `aspect_gazelle_orion`, `aspect_gazelle_runner`, ...) are only used when building the Gazelle binary from source; do not add them to your `MODULE.bazel` when using the prebuilt module.
 
 ### Why use a prebuilt binary?
 

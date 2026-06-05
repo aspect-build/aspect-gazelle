@@ -3,6 +3,13 @@
 A prebuilt distribution of [aspect_gazelle_runner](../runner/) that downloads
 platform-specific binaries from GitHub Releases instead of compiling from source.
 
+> [!NOTE]
+> `aspect_gazelle_prebuilt` is the only module you need — every language and
+> extension is already compiled into the prebuilt binary. The other
+> `aspect_gazelle_*` modules (`aspect_gazelle_js`, `aspect_gazelle_kotlin`,
+> `aspect_gazelle_orion`, `aspect_gazelle_runner`, ...) are only used when
+> building the Gazelle binary from source.
+
 ## Usage
 
 ```starlark

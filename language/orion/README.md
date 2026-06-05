@@ -2,6 +2,9 @@
 
 A BUILD generator where plugins implemented in Starlark can be used to generate BUILD files for bazel projects.
 
+> [!NOTE]
+> The `aspect_gazelle_orion` module is only needed when **building the Gazelle binary from source**. If you use [`aspect_gazelle_prebuilt`](../../prebuilt/), this language is already compiled into the prebuilt binary and no other `aspect_gazelle_*` module is required.
+
 See [Starlark spec](https://github.com/bazelbuild/starlark/blob/master/spec.md), [core Starlark data types](https://bazel.build/rules/lib/core), [Starlark github-linguist](https://github.com/github-linguist/linguist/blob/v7.29.0/lib/linguist/languages.yml#L6831-L6852) for general Starlark docs and information.
 
 ## Why we made it
