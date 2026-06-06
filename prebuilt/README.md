@@ -24,6 +24,24 @@ load("@aspect_gazelle_prebuilt//:def.bzl", "aspect_gazelle")
 aspect_gazelle(languages = ["js"])
 ```
 
+## Verifying BUILD files in CI
+
+`with_check = True` additionally creates a `<name>.check` target that runs
+Gazelle in `diff` mode: it makes no changes, prints a diff of what the main
+target would change, and exits non-zero if any BUILD file is out of date.
+
+```starlark
+aspect_gazelle(
+    languages = ["js"],
+    with_check = True,
+)
+```
+
+```sh
+bazel run //:gazelle        # update BUILD files
+bazel run //:gazelle.check  # CI: fail if BUILD files are stale
+```
+
 ## How it works
 
 `aspect_gazelle()` generates a bash wrapper script that invokes the prebuilt binary
