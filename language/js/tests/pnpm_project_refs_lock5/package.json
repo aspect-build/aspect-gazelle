@@ -1,3 +1,4 @@
 {
-  "name": "main-lib"
+  "name": "main-lib",
+  "packageManager": "pnpm@7.33.7"
 }

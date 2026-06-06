@@ -1,27 +1,39 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@aspect-test/a': 5.0.1
-  '@aspect-test/b': 5.0.2
-  '@aspect-test/c': 2.0.2
-  '@aspect-test/d': 5.0.3
-  '@aspect-test/e': 5.0.4
-  '@aspect-test/f': 5.0.5
-  '@aspect-test/g': 5.0.6
-  '@types/jquery': 3.6.1
-  jquery: 3.6.1
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  '@aspect-test/a': 5.0.1
-  '@aspect-test/b': 5.0.2
-  '@aspect-test/c': 2.0.2
-  '@aspect-test/d': 5.0.3
-  jquery: 3.6.1
+importers:
 
-peerDependencies:
-  '@aspect-test/e': 5.0.4
-  '@aspect-test/f': 5.0.5
-  '@aspect-test/g': 5.0.6
-
-devDependencies:
-  '@types/jquery': 3.6.1
+  .:
+    dependencies:
+      '@aspect-test/a':
+        specifier: 5.0.1
+        version: 5.0.1
+      '@aspect-test/b':
+        specifier: 5.0.2
+        version: 5.0.2
+      '@aspect-test/c':
+        specifier: 2.0.2
+        version: 2.0.2
+      '@aspect-test/d':
+        specifier: 5.0.3
+        version: 5.0.3
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+    peerDependencies:
+      '@aspect-test/e':
+        specifier: 5.0.4
+        version: 5.0.4
+      '@aspect-test/f':
+        specifier: 5.0.5
+        version: 5.0.5
+      '@aspect-test/g':
+        specifier: 5.0.6
+        version: 5.0.6
+    devDependencies:
+      '@types/jquery':
+        specifier: 3.6.1
+        version: 3.6.1

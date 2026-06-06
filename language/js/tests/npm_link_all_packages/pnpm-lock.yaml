@@ -1,7 +1,13 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@aspect-test/c': ^2.0.2
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  '@aspect-test/c': 2.0.2
+importers:
+
+  .:
+    dependencies:
+      '@aspect-test/c':
+        specifier: ^2.0.2
+        version: 2.0.2

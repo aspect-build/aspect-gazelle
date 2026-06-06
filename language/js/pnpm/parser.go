@@ -23,7 +23,7 @@ func ParsePnpmLockFileDependencies(lockfileContent []byte) (WorkspacePackageVers
 	return parsePnpmLockDependencies(bytes.NewReader(lockfileContent))
 }
 
-var lockVersionRegex = regexp.MustCompile(`^\s*lockfileVersion: '?(?P<Version>\d\.\d)'?`)
+var lockVersionRegex = regexp.MustCompile(`^\s*lockfileVersion: '?(?P<Version>\d+\.\d+)'?`)
 
 func parsePnpmLockVersion(yamlFileReader *bufio.Reader) (string, error) {
 	versionBytes, isShort, err := yamlFileReader.ReadLine()
