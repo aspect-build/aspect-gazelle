@@ -1,15 +1,23 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@types/jquery': 3.5.14
-  '@types/testing-library__jest-dom': 5.14.5
-  jquery: 3.6.1
-  lodash: 1.2.3
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  jquery: 3.6.1
-  lodash: 1.2.3
+importers:
 
-devDependencies:
-  '@types/jquery': 3.5.14
-  '@types/testing-library__jest-dom': 5.14.5
+  .:
+    dependencies:
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+      lodash:
+        specifier: 1.2.3
+        version: 1.2.3
+    devDependencies:
+      '@types/jquery':
+        specifier: 3.5.14
+        version: 3.5.14
+      '@types/testing-library__jest-dom':
+        specifier: 5.14.5
+        version: 5.14.5

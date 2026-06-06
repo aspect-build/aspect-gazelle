@@ -21,6 +21,15 @@ func TestPnpmLockParseDependencies(t *testing.T) {
 		} else if v != "6.0" {
 			t.Error("Failed to parse lockfile version 6.0")
 		}
+
+		// Multi-digit versions must parse so a future bump fails with
+		// "unsupported version" instead of a version-parse error.
+		v, e = parsePnpmLockVersion(bufio.NewReader(strings.NewReader("lockfileVersion: '10.0'")))
+		if e != nil {
+			t.Error(e)
+		} else if v != "10.0" {
+			t.Error("Failed to parse lockfile version 10.0")
+		}
 	})
 
 	t.Run("empty lock file", func(t *testing.T) {
@@ -220,6 +229,54 @@ importers:
 
 		if basic["."]["jquery"] != "3.6.1" {
 			t.Errorf("Simple deps parse error. Expected 2.0.2 version for @aspect-test/c, found %q", basic["."]["@aspect-test/c"])
+		}
+	})
+
+	t.Run("catalog deps (lockfile v9)", func(t *testing.T) {
+		// Catalog entries (pnpm 9.5+) keep the resolved version on the importer
+		// dependency, with the catalog indirection only in 'specifier'.
+		basic, err := parsePnpmLockDependencies(strings.NewReader(`lockfileVersion: '9.0'
+
+catalogs:
+  default:
+    jquery:
+      specifier: 3.6.1
+      version: 3.6.1
+  tools:
+    '@aspect-test/a':
+      specifier: ^5.0.0
+      version: 5.0.2
+
+importers:
+  .:
+    dependencies:
+      jquery:
+        specifier: 'catalog:'
+        version: 3.6.1
+    devDependencies:
+      '@aspect-test/a':
+        specifier: catalog:tools
+        version: 5.0.2
+`))
+
+		if err != nil {
+			t.Error("Parse failure: ", err)
+		}
+
+		if len(basic) != 1 || basic["."] == nil {
+			t.Error("Catalog deps parse error. Expected only '.' workspace, found ", len(basic))
+		}
+
+		if len(basic["."]) != 2 {
+			t.Error("Catalog deps parse error. Expected 2 deps in 1 workspace entry, found ", len(basic["."]))
+		}
+
+		if basic["."]["jquery"] != "3.6.1" {
+			t.Errorf("Catalog deps parse error. Expected 3.6.1 version for jquery, found %q", basic["."]["jquery"])
+		}
+
+		if basic["."]["@aspect-test/a"] != "5.0.2" {
+			t.Errorf("Catalog deps parse error. Expected 5.0.2 version for @aspect-test/a, found %q", basic["."]["@aspect-test/a"])
 		}
 	})
 

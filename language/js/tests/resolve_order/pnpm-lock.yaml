@@ -1,11 +1,19 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@types/node': ^18.11.11
-  '@types/the-import': 1
-  'the-import': 1
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  '@types/node': 18.11.11
-  '@types/the-import': 1.0.0
-  'the-import': 1.0.0
+importers:
+
+  .:
+    dependencies:
+      '@types/node':
+        specifier: ^18.11.11
+        version: 18.11.11
+      '@types/the-import':
+        specifier: 1
+        version: 1.0.0
+      the-import:
+        specifier: 1
+        version: 1.0.0

@@ -1,21 +1,23 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
 importers:
 
-  .:
-    specifiers: {}
+  .: {}
 
   lib/a:
-    specifiers:
-      '@lib/b': workspace:*
     dependencies:
-      '@lib/b': link:../b
+      '@lib/b':
+        specifier: workspace:*
+        version: link:../b
 
   lib/b:
-    specifiers:
-      '@lib/c': workspace:*
     dependencies:
-      '@lib/c': link:../c
+      '@lib/c':
+        specifier: workspace:*
+        version: link:../c
 
-  lib/c:
-    specifiers: {}
+  lib/c: {}

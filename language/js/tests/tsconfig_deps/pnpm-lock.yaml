@@ -1,17 +1,28 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@testing-library/jest-dom': ^5.16.5
-  '@types/jquery': 3.5.14
-  '@types/testing-library__jest-dom': ^5.14.5
-  cypress: ^13.16.0
-  jquery: 3.6.1
-  fastify-tsconfig: ~1.2.3
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  '@testing-library/jest-dom': 5.16.5
-  '@types/jquery': 3.5.14
-  '@types/testing-library__jest-dom': 5.14.5
-  cypress: 13.16.0
-  jquery: 3.6.1
-  fastify-tsconfig: 1.2.3
+importers:
+
+  .:
+    dependencies:
+      '@testing-library/jest-dom':
+        specifier: ^5.16.5
+        version: 5.16.5
+      '@types/jquery':
+        specifier: 3.5.14
+        version: 3.5.14
+      '@types/testing-library__jest-dom':
+        specifier: ^5.14.5
+        version: 5.14.5
+      cypress:
+        specifier: ^13.16.0
+        version: 13.16.0
+      fastify-tsconfig:
+        specifier: ~1.2.3
+        version: 1.2.3
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1

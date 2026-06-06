@@ -1,9 +1,16 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  jquery: ^3.6.1
-  lodash: ^4.17.21
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  jquery: 3.6.1
-  lodash: 4.17.21
+importers:
+
+  .:
+    dependencies:
+      jquery:
+        specifier: ^3.6.1
+        version: 3.6.1
+      lodash:
+        specifier: ^4.17.21
+        version: 4.17.21

@@ -1,11 +1,17 @@
-lockfileVersion: 5.4
+lockfileVersion: '9.0'
 
-specifiers:
-  '@types/jquery': 3.6.1
-  jquery: 3.6.1
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
 
-dependencies:
-  jquery: 3.6.1
+importers:
 
-devDependencies:
-  '@types/jquery': 3.6.1
+  .:
+    dependencies:
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+    devDependencies:
+      '@types/jquery':
+        specifier: 3.6.1
+        version: 3.6.1
