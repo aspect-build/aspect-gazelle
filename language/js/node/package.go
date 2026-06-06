@@ -9,6 +9,9 @@ import (
 )
 
 type npmPackageJSON struct {
+	// name: https://nodejs.org/docs/latest-v22.x/api/packages.html#name
+	Name string `json:"name"`
+
 	// main: https://nodejs.org/docs/latest-v22.x/api/packages.html#main
 	Main string `json:"main"`
 
@@ -20,29 +23,45 @@ type npmPackageJSON struct {
 	Typings string `json:"typings"`
 }
 
-// Extract the various import types from the package.json file such as
-// 'main' and 'exports' fields.
-func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
+// PackageJson is the package.json data relevant to gazelle such as the
+// package name and entry point fields ('main', 'exports' etc).
+type PackageJson struct {
+	// The package "name" field.
+	Name string
+
+	// All entry point files such as the 'main' and 'exports' fields.
+	Entries []string
+}
+
+func (p *PackageJson) addEntry(file string) {
+	p.Entries = append(p.Entries, path.Clean(file))
+}
+
+// Extract the package metadata from the package.json file such as the
+// package name and the various entry point fields such as 'main' and 'exports'.
+func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
+	pkg := PackageJson{}
+
 	packageJsonData, err := io.ReadAll(packageJsonReader)
 	if err != nil {
-		return nil, err
+		return pkg, err
 	}
 
 	var c npmPackageJSON
 	if err := jsonc.Unmarshal(packageJsonData, &c); err != nil {
-		return nil, err
+		return pkg, err
 	}
 
-	imports := []string{}
+	pkg.Name = c.Name
 
 	if c.Main != "" {
-		imports = append(imports, path.Clean(c.Main))
+		pkg.addEntry(c.Main)
 	}
 	if c.Types != "" {
-		imports = append(imports, path.Clean(c.Types))
+		pkg.addEntry(c.Types)
 	}
 	if c.Typings != "" {
-		imports = append(imports, path.Clean(c.Typings))
+		pkg.addEntry(c.Typings)
 	}
 
 	// https://nodejs.org/api/packages.html#exports
@@ -50,14 +69,14 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 		switch exports := c.Exports.(type) {
 		case string:
 			// Single export
-			imports = append(imports, path.Clean(exports))
+			pkg.addEntry(exports)
 		case map[string]any:
 			// Subpath exports
 			for exportKey, export := range exports {
 				switch e := export.(type) {
 				case string:
 					// Regular subpath export
-					imports = append(imports, path.Clean(e))
+					pkg.addEntry(e)
 				case nil:
 					// According to https://nodejs.org/api/packages.html#subpath-patterns, to exclude
 					// private subfolders from patterns, null targets can be used:
@@ -73,7 +92,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 					for subEKey, subE := range e {
 						switch subE := subE.(type) {
 						case string:
-							imports = append(imports, path.Clean(subE))
+							pkg.addEntry(subE)
 						default:
 							BazelLog.Warnf("Unknown package.json exports.%s.%s type: %T", exportKey, subEKey, subE)
 						}
@@ -87,7 +106,7 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 			for i, subE := range exports {
 				switch subE := subE.(type) {
 				case string:
-					imports = append(imports, path.Clean(subE))
+					pkg.addEntry(subE)
 				default:
 					BazelLog.Warnf("Unknown package.json exports[%v] type: %T", i, subE)
 				}
@@ -97,5 +116,5 @@ func ParsePackageJsonImports(packageJsonReader io.Reader) ([]string, error) {
 		}
 	}
 
-	return imports, nil
+	return pkg, nil
 }

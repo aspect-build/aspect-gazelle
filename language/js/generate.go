@@ -364,15 +364,15 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	packageJsonPath := path.Join(args.Rel, NpmPackageFilename)
 
 	parserCache := cache.Get(args.Config)
-	packageImports, _, err := parserCache.LoadOrStoreFile(args.Config.RepoRoot, packageJsonPath, "parsePackageJsonImports", func(path string, content []byte) (any, error) {
-		return node.ParsePackageJsonImports(bytes.NewReader(content))
+	packageJson, _, err := parserCache.LoadOrStoreFile(args.Config.RepoRoot, packageJsonPath, "node.ParsePackageJson", func(path string, content []byte) (any, error) {
+		return node.ParsePackageJson(bytes.NewReader(content))
 	})
 	if err != nil {
 		common.MisconfiguredErrorf(args.Config, "Failed to parse %q imports: %v", packageJsonPath, err)
 		return
 	}
 
-	for _, impt := range packageImports.([]string) {
+	for _, impt := range packageJson.(node.PackageJson).Entries {
 		if cfg.IsImportIgnored(impt) {
 			continue
 		}
@@ -1133,6 +1133,7 @@ func parseSourceFile(parserCache cache.Cache, rootDir, filePath string) (parser.
 func init() {
 	// TODO: don't expose 'gob' cache serialization here
 	gob.Register(parser.ParseResult{})
+	gob.Register(node.PackageJson{})
 }
 
 // reportSyntaxErrors prints parser diagnostics to stderr. The JS parser (oxc)
