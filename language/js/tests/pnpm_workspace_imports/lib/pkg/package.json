@@ -1,0 +1,19 @@
+{
+  "name": "@lib/pkg",
+  "private": true,
+  "imports": {
+    "#sub": "./sub/main.js",
+    "#self": {
+      "default": "./index.js"
+    },
+    "#ext": "@lib/other",
+    "#cond": {
+      "node": "./cond_node/main.js",
+      "browser": "./cond_browser/main.js",
+      "default": "./cond_default/main.js"
+    }
+  },
+  "dependencies": {
+    "@lib/other": "workspace:*"
+  }
+}

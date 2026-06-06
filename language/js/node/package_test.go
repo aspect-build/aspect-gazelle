@@ -42,12 +42,31 @@ func TestParsePackageJson(t *testing.T) {
 		}
 	})
 
-	t.Run("conditional exports", func(t *testing.T) {
-		assertParsePackageJsonEntries(t, `{"exports":{"node":"./foo.js","default":"./bar.js"}}`, "foo.js", "bar.js")
-		assertParsePackageJsonEntries(t,
-			`{"exports":{".":{"node":"./foo.js"},"./sub":{"types":"./sub.d.ts","default":"./sub.js"}}}`,
-			"foo.js", "sub.d.ts", "sub.js",
+	t.Run("subpath imports", func(t *testing.T) {
+		// Internal file targets are entries, external package targets are not
+		assertParsePackageJsonEntries(t, `{"imports":{"#utils":"./src/utils.js"}}`, "src/utils.js")
+		assertParsePackageJsonEntries(t, `{"imports":{"#dep":"external-pkg"}}`)
+		assertParsePackageJsonEntries(t, `{"imports":{"#dep":null}}`)
+
+		assertPackageJsonImports(t, `{"main":"foo.js"}`, nil)
+		assertPackageJsonImports(t, `{"imports":{"#utils":"./src/utils.js"}}`, map[string][]string{"#utils": {"./src/utils.js"}})
+		assertPackageJsonImports(t, `{"imports":{"#dep":"external-pkg"}}`, map[string][]string{"#dep": {"external-pkg"}})
+		assertPackageJsonImports(t, `{"imports":{"#dep":null}}`, map[string][]string{})
+
+		// Conditional subpath imports. Targets are sorted regardless of JSON
+		// condition order.
+		assertPackageJsonImports(t,
+			`{"imports":{"#dep":{"node":"./node.js","default":"external-pkg"}}}`,
+			map[string][]string{"#dep": {"./node.js", "external-pkg"}},
 		)
+		assertPackageJsonImports(t,
+			`{"imports":{"#dep":{"default":"external-pkg","browser":"./b.js","node":"./a.js"}}}`,
+			map[string][]string{"#dep": {"./a.js", "./b.js", "external-pkg"}},
+		)
+
+		// Invalid types
+		assertPackageJsonImports(t, `{"imports":"./foo.js"}`, nil)
+		assertPackageJsonImports(t, `{"imports":{"#dep":123}}`, map[string][]string{})
 	})
 }
 
@@ -71,5 +90,26 @@ func assertParsePackageJsonEntries(t *testing.T, packageJson string, expectedEnt
 
 	if !slices.Equal(entries, expectedEntries) {
 		t.Errorf("ParsePackageJson(%q) expected entries %q, got %q", packageJson, expectedEntries, entries)
+	}
+}
+
+func assertPackageJsonImports(t *testing.T, packageJson string, expectedImports map[string][]string) {
+	t.Helper()
+	assertSpecifierMap(t, "imports", packageJson, parsePackageJson(t, packageJson).Imports, expectedImports)
+}
+
+func assertSpecifierMap(t *testing.T, field, packageJson string, actual, expected map[string][]string) {
+	t.Helper()
+
+	if (actual == nil) != (expected == nil) || len(actual) != len(expected) {
+		t.Errorf("ParsePackageJson(%q) expected %s %v, got %v", packageJson, field, expected, actual)
+		return
+	}
+
+	for specifier, expectedTargets := range expected {
+		// Order-sensitive: targets are sorted when parsed for deterministic resolution.
+		if !slices.Equal(actual[specifier], expectedTargets) {
+			t.Errorf("ParsePackageJson(%q) expected %s[%q] %q, got %q", packageJson, field, specifier, expectedTargets, actual[specifier])
+		}
 	}
 }

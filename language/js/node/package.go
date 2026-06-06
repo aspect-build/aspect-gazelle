@@ -3,6 +3,8 @@ package gazelle
 import (
 	"io"
 	"path"
+	"slices"
+	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/goexlib/jsonc"
@@ -18,6 +20,9 @@ type npmPackageJSON struct {
 	// exports: https://nodejs.org/docs/latest-v22.x/api/packages.html#exports
 	Exports any `json:"exports"`
 
+	// imports: https://nodejs.org/docs/latest-v22.x/api/packages.html#imports
+	Imports any `json:"imports"`
+
 	// types/typings: https://www.typescriptlang.org/docs/handbook/declaration-files/publishing.html#including-declarations-in-your-npm-package
 	Types   string `json:"types"`
 	Typings string `json:"typings"`
@@ -31,10 +36,28 @@ type PackageJson struct {
 
 	// All entry point files such as the 'main' and 'exports' fields.
 	Entries []string
+
+	// Subpath imports from the 'imports' field, keyed by the '#'-prefixed
+	// specifier. Values are the raw mapping targets: './'-relative files
+	// within the package, or external package specifiers. Targets are
+	// sorted, JSON condition order is not preserved.
+	// Nil if package.json has no 'imports' field.
+	Imports map[string][]string
 }
 
 func (p *PackageJson) addEntry(file string) {
 	p.Entries = append(p.Entries, path.Clean(file))
+}
+
+func (p *PackageJson) addImport(specifier, target string) {
+	specifier = path.Clean(specifier)
+	p.Imports[specifier] = append(p.Imports[specifier], target)
+
+	// Only './'-relative targets are files within the package, otherwise
+	// the target is an external package specifier.
+	if strings.HasPrefix(target, "./") {
+		p.addEntry(target)
+	}
 }
 
 // Extract the package metadata from the package.json file such as the
@@ -113,6 +136,44 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 			}
 		default:
 			BazelLog.Warnf("Unknown package.json exports type: %T", exports)
+		}
+	}
+
+	// https://nodejs.org/api/packages.html#subpath-imports
+	if c.Imports != nil {
+		if imports, ok := c.Imports.(map[string]any); ok {
+			pkg.Imports = make(map[string][]string)
+
+			for importKey, imprt := range imports {
+				switch i := imprt.(type) {
+				case string:
+					// Regular subpath import
+					pkg.addImport(importKey, i)
+				case nil:
+					// Excluded target, same as 'exports' null targets.
+					break
+				case map[string]any:
+					// Conditional subpath import
+					for subIKey, subI := range i {
+						switch subI := subI.(type) {
+						case string:
+							pkg.addImport(importKey, subI)
+						default:
+							BazelLog.Warnf("Unknown package.json imports.%s.%s type: %T", importKey, subIKey, subI)
+						}
+					}
+				default:
+					BazelLog.Warnf("Unknown package.json imports.%s type: %T", importKey, imprt)
+				}
+			}
+
+			// Conditional import targets are collected in undefined map iteration
+			// order. Sort for determinism.
+			for _, targets := range pkg.Imports {
+				slices.Sort(targets)
+			}
+		} else {
+			BazelLog.Warnf("Unknown package.json imports type: %T", c.Imports)
 		}
 	}
 
