@@ -89,10 +89,13 @@ aspect_gazelle(
     name = "gazelle",
     languages = ["js", "python", ...],
     extensions = ["//tools/gazelle:my_rule.star", ...],
+    # Also create a `gazelle.check` target that fails if BUILD files are stale.
+    with_check = True,
 )
 ```
 
 Continue as normal from the [gazelle Usage](https://github.com/bazel-contrib/bazel-gazelle#usage) docs.
+See [prebuilt](./prebuilt) for details, including verifying BUILD files in CI with `with_check`.
 
 ## Developing
 
