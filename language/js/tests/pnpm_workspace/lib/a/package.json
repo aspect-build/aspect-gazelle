@@ -1,6 +1,10 @@
 {
   "name": "@lib/a",
   "private": true,
+  "exports": {
+    ".": "./index.js",
+    "./sub": "./sub/main.js"
+  },
   "dependencies": {
     "@aspect-test/e": "1.0.0",
     "@lib/b": "workspace:*"

@@ -4,7 +4,10 @@ load("@npm//:defs.bzl", "npm_link_all_packages")
 
 npm_package(
     name = "a",
-    srcs = [":a_lib"],
+    srcs = [
+        ":a_lib",
+        "//lib/a/sub",
+    ],
     visibility = ["//visibility:public"],  # overriden
 )
 

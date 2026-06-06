@@ -29,10 +29,12 @@ importers:
   app/b:
     specifiers:
       '@aspect-test/h': 1.0.0
+      '@lib/a': workspace:*
       '@lib/b': workspace:*
       '@lib/b_alias': workspace:@lib/b@*
     dependencies:
       '@aspect-test/h': 1.0.0
+      '@lib/a': link:../../lib/a
       '@lib/b': link:../../lib/b
       '@lib/b_alias': link:../../lib/b
 

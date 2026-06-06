@@ -3,6 +3,7 @@
   "private": true,
   "dependencies": {
     "@aspect-test/h": "1.0.0",
+    "@lib/a": "workspace:*",
     "@lib/b": "workspace:*",
     "@lib/b_alias": "workspace:@lib/b@*"
   }

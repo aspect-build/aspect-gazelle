@@ -9,6 +9,7 @@ ts_project(
     tsconfig = "//:tsconfig",
     deps = [
         ":node_modules/@aspect-test/h",
+        ":node_modules/@lib/a",
         ":node_modules/@lib/b",
         ":node_modules/@lib/b_alias",
         "//:node_modules/@aspect-test/a",
