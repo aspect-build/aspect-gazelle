@@ -363,16 +363,23 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 	packageJsonPath := path.Join(args.Rel, NpmPackageFilename)
 
-	parserCache := cache.Get(args.Config)
-	packageJson, _, err := parserCache.LoadOrStoreFile(args.Config.RepoRoot, packageJsonPath, "node.ParsePackageJson", func(path string, content []byte) (any, error) {
-		return node.ParsePackageJson(bytes.NewReader(content))
-	})
-	if err != nil {
-		common.MisconfiguredErrorf(args.Config, "Failed to parse %q imports: %v", packageJsonPath, err)
+	// The package.json may not exist if it is generated or for some reason does not exist on disk.
+	var packageJsonEntries []string
+	if packageJson, err := ts.getPackageJson(args.Config, args.Rel); err != nil {
+		common.MisconfiguredErrorf(args.Config, "Failed to parse %q: %v", packageJsonPath, err)
 		return
+	} else if packageJson != nil {
+		packageJsonEntries = packageJson.Entries
+	} else if slices.Contains(args.GenFiles, NpmPackageFilename) {
+		BazelLog.Debugf("Generated package.json for %q", args.Rel)
+	} else {
+		// A pnpm project with no walkable package.json: either deleted but still
+		// referenced by the lockfile, or excluded from the walk. Entries such as
+		// main/exports/types are not parsed in this case.
+		BazelLog.Warnf("No package.json found for pnpm project %q", args.Rel)
 	}
 
-	for _, impt := range packageJson.(node.PackageJson).Entries {
+	for _, impt := range packageJsonEntries {
 		if cfg.IsImportIgnored(impt) {
 			continue
 		}
@@ -425,6 +432,28 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, &npmPackageInfo.TsProjectInfo)...)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", cfg.packageTargetKind, args.Rel, packageTargetName)
+}
+
+// getPackageJson lazily parses and returns the package.json data of the given
+// directory. Returns nil if the directory does not contain a package.json,
+// an error if the package.json fails to parse. Like the Node.js runtime, a
+// package.json is only parsed (and only fails) when actually consulted.
+func (ts *typeScriptLang) getPackageJson(c *config.Config, rel string) (*node.PackageJson, error) {
+	if _, found := ts.packageJsonDirs[rel]; !found {
+		return nil, nil
+	}
+
+	packageJsonPath := path.Join(rel, NpmPackageFilename)
+
+	packageJson, _, err := cache.Get(c).LoadOrStoreFile(c.RepoRoot, packageJsonPath, "node.ParsePackageJson", func(path string, content []byte) (any, error) {
+		return node.ParsePackageJson(bytes.NewReader(content))
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pkg := packageJson.(node.PackageJson)
+	return &pkg, nil
 }
 
 // collectTsConfigPackageJsonDeps returns label deps for the package.json files

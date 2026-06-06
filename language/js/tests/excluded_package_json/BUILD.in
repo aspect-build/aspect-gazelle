@@ -1,0 +1,2 @@
+# gazelle:js_npm_package enabled
+# gazelle:exclude package.json

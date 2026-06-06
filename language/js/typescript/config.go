@@ -23,10 +23,6 @@ type TsConfigMap struct {
 	// loading on multiple threads in the generate phase.
 	configFiles map[string]map[string]*workspacePath
 
-	// Dirs with a package.json; anchors for forwarding ts_config rules.
-	// Same configure-phase-write / generate-phase-read invariant as `configFiles`.
-	packageJsonDirs map[string]struct{}
-
 	configs      map[string]*TsConfig
 	configsMutex sync.RWMutex
 	pnpmProjects *pnpm.PnpmProjectMap
@@ -34,33 +30,33 @@ type TsConfigMap struct {
 
 type TsWorkspace struct {
 	cm *TsConfigMap
+
+	// hasPackageJson reports whether a dir contains a package.json; such dirs
+	// are anchors for forwarding ts_config rules. The backing data must be
+	// recorded during the configure phase (single threaded) and is only
+	// queried during the generate phase, matching the `configFiles` invariant.
+	hasPackageJson func(rel string) bool
 }
 
-func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap) *TsWorkspace {
+func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap, hasPackageJson func(rel string) bool) *TsWorkspace {
 	return &TsWorkspace{
 		cm: &TsConfigMap{
-			configFiles:     make(map[string]map[string]*workspacePath),
-			packageJsonDirs: make(map[string]struct{}),
-			configs:         make(map[string]*TsConfig),
-			pnpmProjects:    pnpmProjects,
-			configsMutex:    sync.RWMutex{},
+			configFiles:  make(map[string]map[string]*workspacePath),
+			configs:      make(map[string]*TsConfig),
+			pnpmProjects: pnpmProjects,
+			configsMutex: sync.RWMutex{},
 		},
+		hasPackageJson: hasPackageJson,
 	}
 }
 
-// RegisterPackageJsonDir records a dir containing a package.json so FindConfig
-// anchors at the local forwarding ts_config rather than the ancestor tsconfig.
-func (tc *TsWorkspace) RegisterPackageJsonDir(rel string) {
-	tc.cm.packageJsonDirs[rel] = struct{}{}
-}
-
 // ClosestAncestorPackageJsonDir returns the closest strictly-ancestor dir of
-// `dir` registered as a package.json dir, or "", false.
+// `dir` containing a package.json, or "", false.
 func (tc *TsWorkspace) ClosestAncestorPackageJsonDir(dir string) (string, bool) {
 	for dir != "" {
 		base, _ := path.Split(dir)
 		dir = strings.TrimSuffix(base, "/")
-		if _, ok := tc.cm.packageJsonDirs[dir]; ok {
+		if tc.hasPackageJson(dir) {
 			return dir, true
 		}
 	}
@@ -183,10 +179,8 @@ func (tc *TsWorkspace) FindConfig(dir, groupName string) (string, string, *TsCon
 		}
 
 		// Record the closest package.json dir; validated against configRel below.
-		if !foundPackageJsonDir {
-			if _, ok := tc.cm.packageJsonDirs[dir]; ok {
-				packageJsonDirRel, foundPackageJsonDir = dir, true
-			}
+		if !foundPackageJsonDir && tc.hasPackageJson(dir) {
+			packageJsonDirRel, foundPackageJsonDir = dir, true
 		}
 
 		if dir == "" {

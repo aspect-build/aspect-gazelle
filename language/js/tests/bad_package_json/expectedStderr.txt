@@ -1,1 +1,1 @@
-Failed to parse "package.json" imports: invalid character 'o' in literal null (expecting 'u')
+Failed to parse "package.json": invalid character 'o' in literal null (expecting 'u')

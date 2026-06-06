@@ -1,0 +1,7 @@
+# gazelle:js_npm_package enabled
+
+genrule(
+    name = "gen_package_json",
+    outs = ["package.json"],
+    cmd = "echo '{}' > $@",
+)

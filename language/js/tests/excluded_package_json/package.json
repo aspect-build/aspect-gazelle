@@ -1,0 +1,5 @@
+{
+  "name": "excluded-package-json",
+  "private": true,
+  "main": "main.js"
+}
