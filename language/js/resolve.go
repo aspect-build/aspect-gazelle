@@ -280,8 +280,12 @@ func (ts *typeScriptLang) CrossResolve(c *config.Config, ix *resolve.RuleIndex, 
 
 	results := []resolve.FindResult{}
 
-	// Imports of npm packages
-	if impPkg, _ := node.ParseImportPath(imp.Imp); impPkg != "" {
+	if node.IsSubpathImport(imp.Imp) {
+		// Node-style subpath imports, mapped by the 'imports' field of the
+		// importing package.
+		results = append(results, ts.findSubpathImport(c, ix, fromRel, imp.Imp)...)
+	} else if impPkg, _ := node.ParseImportPath(imp.Imp); impPkg != "" {
+		// Imports of npm packages
 		if pkg := ts.findPackage(fromRel, impPkg); pkg != nil {
 			results = append(results, resolve.FindResult{
 				Label: *pkg,
@@ -450,7 +454,7 @@ func (ts *typeScriptLang) resolveImports(
 			continue
 		}
 
-		resolutionType, dep, err := ts.resolveImport(c, ix, from, imp, groupName)
+		resolutionType, resolved, err := ts.resolveImport(c, ix, from, imp, groupName)
 		if err != nil {
 			return err
 		}
@@ -460,8 +464,10 @@ func (ts *typeScriptLang) resolveImports(
 			deps.Add(typesDep)
 		}
 
-		if dep != nil && (!imp.TypesOnly || len(types) == 0) {
-			deps.Add(dep)
+		if !imp.TypesOnly || len(types) == 0 {
+			for _, dep := range resolved {
+				deps.Add(dep)
+			}
 		}
 
 		// Neither the import or a type definition was found.
@@ -506,7 +512,7 @@ func (ts *typeScriptLang) resolveImport(
 	from label.Label,
 	impStm ImportStatement,
 	groupName string,
-) (ResolutionType, *label.Label, error) {
+) (ResolutionType, []*label.Label, error) {
 	imp := impStm.ImportSpec
 
 	// Gazelle rule index
@@ -535,7 +541,7 @@ func (ts *typeScriptLang) resolveImport(
 
 	// References to a label such as a file or file-generating rule
 	if importLabel := ts.getImportLabel(imp.Imp); importLabel != nil {
-		return Resolution_Label, importLabel, nil
+		return Resolution_Label, []*label.Label{importLabel}, nil
 	}
 
 	// Native node imports
@@ -550,7 +556,7 @@ func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 	c *config.Config,
 	ix *resolve.RuleIndex,
 	from label.Label,
-	impStm ImportStatement) (ResolutionType, *label.Label, error) {
+	impStm ImportStatement) (ResolutionType, []*label.Label, error) {
 
 	matches := ix.FindRulesByImportWithConfig(c, impStm.ImportSpec, LanguageName)
 	if len(matches) == 0 {
@@ -564,17 +570,60 @@ func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 		}
 	}
 
-	// Too many results, don't know which is correct
-	if len(matches) > 1 {
+	// Subpath imports may map to multiple targets, such as conditional
+	// 'imports' mapping different conditions to different files. All
+	// mapped targets are dependencies.
+	if len(matches) > 1 && !node.IsSubpathImport(impStm.Imp) {
+		// Too many results, don't know which is correct
 		return Resolution_Error, nil, fmt.Errorf(
 			"Import %q from %q resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
 			impStm.ImportPath, impStm.SourcePath, targetListFromResults(matches))
 	}
 
-	resultMatch := &matches[0].Label
-	BazelLog.Tracef("resolve %q import %q as %q", from, impStm.Imp, resultMatch)
+	results := make([]*label.Label, len(matches))
+	for i := range matches {
+		results[i] = &matches[i].Label
+	}
 
-	return Resolution_Label, resultMatch, nil
+	BazelLog.Tracef("resolve %q import %q as %v", from, impStm.Imp, results)
+
+	return Resolution_Label, results, nil
+}
+
+// findSubpathImport resolves a node-style subpath import: a '#'-prefixed
+// import mapped to files within the package or to external packages by the
+// 'imports' field of the importing package.
+// See https://nodejs.org/api/packages.html#subpath-imports
+func (ts *typeScriptLang) findSubpathImport(c *config.Config, ix *resolve.RuleIndex, from, imp string) []resolve.FindResult {
+	fromProject := ts.pnpmProjects.GetProject(from)
+	if fromProject == nil {
+		return nil
+	}
+
+	// Parse errors are reported when generating rules for the package.
+	packageJson, err := ts.getPackageJson(c, fromProject.Pkg())
+	if packageJson == nil || err != nil {
+		return nil
+	}
+
+	// Collect all resolving targets. A conditional import may map different
+	// conditions to different targets, all of which are dependencies.
+	var results []resolve.FindResult
+	for _, target := range packageJson.Imports[imp] {
+		if strings.HasPrefix(target, "./") {
+			// Files within the package
+			fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), target)}
+
+			results = append(results, ix.FindRulesByImport(fileSpec, LanguageName)...)
+		} else if impPkg, _ := node.ParseImportPath(target); impPkg != "" {
+			// External packages
+			if pkg := ts.findPackage(from, impPkg); pkg != nil {
+				results = append(results, resolve.FindResult{Label: *pkg})
+			}
+		}
+	}
+
+	return results
 }
 
 func (ts *typeScriptLang) findPackage(from string, impPkg string) *label.Label {

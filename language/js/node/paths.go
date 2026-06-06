@@ -33,6 +33,13 @@ func ParseImportPath(imp string) (string, string) {
 	return before, after
 }
 
+// IsSubpathImport returns true if the import is a node-style '#' subpath
+// import, mapped by the 'imports' field of the importing package.
+// See https://nodejs.org/api/packages.html#subpath-imports
+func IsSubpathImport(imp string) bool {
+	return strings.HasPrefix(imp, "#")
+}
+
 func ToAtTypesPackage(pkg string) string {
 	// @scoped packages
 	if pkg[0] == '@' {
