@@ -24,7 +24,7 @@ import (
 
 func TestGetTsConfigFromPath(t *testing.T) {
 	t.Run("cache hit returns identical pointer", func(t *testing.T) {
-		tc := NewTsWorkspace(nil)
+		tc := NewTsWorkspace(nil, func(string) bool { return false })
 		tc.SetTsConfigFile(".", "tests", "", "base.tsconfig.json")
 
 		first := tc.GetTsConfigFile("tests", "")
@@ -37,7 +37,7 @@ func TestGetTsConfigFromPath(t *testing.T) {
 	})
 
 	t.Run("failure leaves InvalidTsconfig sentinel and stays nil on re-call", func(t *testing.T) {
-		tc := NewTsWorkspace(nil)
+		tc := NewTsWorkspace(nil, func(string) bool { return false })
 		tc.SetTsConfigFile(".", "tests", "", "does-not-exist.json")
 
 		if c := tc.GetTsConfigFile("tests", ""); c != nil {
@@ -76,10 +76,14 @@ func TestGetTsConfigFromPath(t *testing.T) {
 		}
 		for _, tc := range cases {
 			t.Run(tc.name, func(t *testing.T) {
-				ws := NewTsWorkspace(nil)
+				registered := make(map[string]struct{}, len(tc.registered))
 				for _, r := range tc.registered {
-					ws.RegisterPackageJsonDir(r)
+					registered[r] = struct{}{}
 				}
+				ws := NewTsWorkspace(nil, func(rel string) bool {
+					_, ok := registered[rel]
+					return ok
+				})
 				gotDir, gotOk := ws.ClosestAncestorPackageJsonDir(tc.input)
 				if gotDir != tc.wantDir || gotOk != tc.wantOk {
 					t.Errorf("ClosestAncestorPackageJsonDir(%q) = (%q, %v); want (%q, %v)",
@@ -90,7 +94,7 @@ func TestGetTsConfigFromPath(t *testing.T) {
 	})
 
 	t.Run("concurrent callers see same cached pointer", func(t *testing.T) {
-		tc := NewTsWorkspace(nil)
+		tc := NewTsWorkspace(nil, func(string) bool { return false })
 		tc.SetTsConfigFile(".", "tests", "", "base.tsconfig.json")
 
 		const goroutines = 32

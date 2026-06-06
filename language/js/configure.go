@@ -110,9 +110,9 @@ func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
 		}
 	}
 
-	// Anchor for the forwarding ts_config rule generated in package.json-only dirs.
+	// packages - pnpm or arbitrary package.json files
 	if common.WalkHasPath(rel, NpmPackageFilename) {
-		ts.tsconfig.RegisterPackageJsonDir(rel)
+		ts.packageJsonDirs[rel] = struct{}{}
 	}
 }
 

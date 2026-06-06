@@ -28,6 +28,10 @@ type typeScriptLang struct {
 	// to the parent pnpm project map.
 	pnpmProjects *pnpm.PnpmProjectMap
 
+	// Directories containing a package.json file.
+	// Possibly pnpm projects, possibly just package.json files.
+	packageJsonDirs map[string]struct{}
+
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
 }
@@ -39,11 +43,16 @@ var _ language.ModuleAwareLanguage = (*typeScriptLang)(nil)
 // interface. This is the entrypoint for the extension initialization.
 func NewLanguage() language.Language {
 	pnpmProjects := pnpm.NewPnpmProjectMap()
+	packageJsonDirs := make(map[string]struct{})
 
 	return &typeScriptLang{
-		fileLabels:   make(map[string]*label.Label),
-		moduleTypes:  make(map[string][]*label.Label),
-		pnpmProjects: pnpmProjects,
-		tsconfig:     typescript.NewTsWorkspace(pnpmProjects),
+		fileLabels:      make(map[string]*label.Label),
+		moduleTypes:     make(map[string][]*label.Label),
+		pnpmProjects:    pnpmProjects,
+		packageJsonDirs: packageJsonDirs,
+		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
+			_, found := packageJsonDirs[rel]
+			return found
+		}),
 	}
 }

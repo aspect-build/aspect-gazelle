@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# gazelle:js_npm_package disabled
+
+npm_link_all_packages(name = "node_modules")
+
+ts_project(
+    name = "bad_package_json_no_package_target",
+    srcs = ["main.ts"],
+)
