@@ -37,27 +37,51 @@ type PackageJson struct {
 	// All entry point files such as the 'main' and 'exports' fields.
 	Entries []string
 
-	// Subpath imports from the 'imports' field, keyed by the '#'-prefixed
-	// specifier. Values are the raw mapping targets: './'-relative files
-	// within the package, or external package specifiers. Targets are
-	// sorted, JSON condition order is not preserved.
-	// Nil if package.json has no 'imports' field.
+	// Exact (non-pattern) subpath imports from the 'imports' field, mapped to their sorted targets.
 	Imports map[string][]string
+
+	// '*' subpath import patterns from the 'imports' field, sorted by resolution priority.
+	ImportPatterns []SubpathImportPattern
+}
+
+// SubpathImportPattern is a '*' subpath import pattern such as
+// "#internal/*": "./src/internal/*.js", split around the specifier '*'.
+// See https://nodejs.org/api/packages.html#subpath-imports
+type SubpathImportPattern struct {
+	Prefix, Suffix string
+
+	// The sorted mapping targets, '*'s not yet substituted.
+	Targets []string
+}
+
+// ResolveImport resolves a subpath import specifier to its mapping targets,
+// matching and expanding '*' subpath patterns.
+func (p *PackageJson) ResolveImport(specifier string) []string {
+	// Exact matches take precedence over '*' patterns.
+	if targets, found := p.Imports[specifier]; found {
+		return targets
+	}
+
+	// Patterns are pre-sorted by priority; the first match wins.
+	for _, pat := range p.ImportPatterns {
+		if len(specifier) <= len(pat.Prefix)+len(pat.Suffix) || !strings.HasPrefix(specifier, pat.Prefix) || !strings.HasSuffix(specifier, pat.Suffix) {
+			continue
+		}
+
+		// Substitute the pattern match into the targets.
+		matched := specifier[len(pat.Prefix) : len(specifier)-len(pat.Suffix)]
+		targets := make([]string, len(pat.Targets))
+		for i, target := range pat.Targets {
+			targets[i] = strings.ReplaceAll(target, "*", matched)
+		}
+		return targets
+	}
+
+	return nil
 }
 
 func (p *PackageJson) addEntry(file string) {
 	p.Entries = append(p.Entries, path.Clean(file))
-}
-
-func (p *PackageJson) addImport(specifier, target string) {
-	specifier = path.Clean(specifier)
-	p.Imports[specifier] = append(p.Imports[specifier], target)
-
-	// Only './'-relative targets are files within the package, otherwise
-	// the target is an external package specifier.
-	if strings.HasPrefix(target, "./") {
-		p.addEntry(target)
-	}
 }
 
 // Extract the package metadata from the package.json file such as the
@@ -142,13 +166,23 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 	// https://nodejs.org/api/packages.html#subpath-imports
 	if c.Imports != nil {
 		if imports, ok := c.Imports.(map[string]any); ok {
-			pkg.Imports = make(map[string][]string)
+			rawImports := make(map[string][]string)
+			addImport := func(specifier, target string) {
+				specifier = path.Clean(specifier)
+				rawImports[specifier] = append(rawImports[specifier], target)
+
+				// Only './'-relative targets are files within the package, otherwise
+				// the target is an external package specifier.
+				if strings.HasPrefix(target, "./") {
+					pkg.addEntry(target)
+				}
+			}
 
 			for importKey, imprt := range imports {
 				switch i := imprt.(type) {
 				case string:
 					// Regular subpath import
-					pkg.addImport(importKey, i)
+					addImport(importKey, i)
 				case nil:
 					// Excluded target, same as 'exports' null targets.
 					break
@@ -157,7 +191,7 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 					for subIKey, subI := range i {
 						switch subI := subI.(type) {
 						case string:
-							pkg.addImport(importKey, subI)
+							addImport(importKey, subI)
 						default:
 							BazelLog.Warnf("Unknown package.json imports.%s.%s type: %T", importKey, subIKey, subI)
 						}
@@ -167,11 +201,40 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 				}
 			}
 
-			// Conditional import targets are collected in undefined map iteration
-			// order. Sort for determinism.
-			for _, targets := range pkg.Imports {
+			// Validate and index the raw mappings for resolution: exact
+			// specifiers split from '*' patterns, targets sorted and patterns
+			// ordered by resolution priority.
+			for key, targets := range rawImports {
 				slices.Sort(targets)
+
+				prefix, suffix, isPattern := strings.Cut(key, "*")
+				if !isPattern {
+					if pkg.Imports == nil {
+						pkg.Imports = make(map[string][]string, len(rawImports))
+					}
+					pkg.Imports[key] = targets
+				} else if strings.Contains(suffix, "*") {
+					BazelLog.Warnf("Invalid package.json imports key %q: multiple '*'s", key)
+				} else {
+					pkg.ImportPatterns = append(pkg.ImportPatterns, SubpathImportPattern{Prefix: prefix, Suffix: suffix, Targets: targets})
+				}
 			}
+
+			// Node resolution priority (PATTERN_KEY_COMPARE): the longest prefix,
+			// then the longest suffix. Equal-length patterns can not match the same
+			// specifier; order those lexicographically for determinism.
+			slices.SortFunc(pkg.ImportPatterns, func(a, b SubpathImportPattern) int {
+				if d := len(b.Prefix) - len(a.Prefix); d != 0 {
+					return d
+				}
+				if d := len(b.Suffix) - len(a.Suffix); d != 0 {
+					return d
+				}
+				if d := strings.Compare(a.Prefix, b.Prefix); d != 0 {
+					return d
+				}
+				return strings.Compare(a.Suffix, b.Suffix)
+			})
 		} else {
 			BazelLog.Warnf("Unknown package.json imports type: %T", c.Imports)
 		}

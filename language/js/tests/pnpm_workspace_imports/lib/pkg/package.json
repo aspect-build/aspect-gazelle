@@ -11,7 +11,8 @@
       "node": "./cond_node/main.js",
       "browser": "./cond_browser/main.js",
       "default": "./cond_default/main.js"
-    }
+    },
+    "#internal/*": "./internal/*.js"
   },
   "dependencies": {
     "@lib/other": "workspace:*"

@@ -11,6 +11,9 @@
 #  * '#cond' conditionally mapping to separate directories per condition
 #    ('node', 'browser', 'default') resolves to all mapped targets
 #    (lib/pkg/index.ts -> //lib/pkg/cond_node + cond_browser + cond_default)
+#  * '#internal/*' subpath patterns map matching imports to the substituted
+#    target (lib/pkg/index.ts '#internal/util' -> //lib/pkg/internal)
 #  * the npm_package picks up targets generating internal 'imports' files
-#    (//lib/pkg/sub in //lib/pkg:pkg srcs)
+#    (//lib/pkg/sub in //lib/pkg:pkg srcs), except '*' wildcard entries
+#    which can not be statically enumerated (//lib/pkg/internal)
 workspace(name = "pnpm_workspace_imports")

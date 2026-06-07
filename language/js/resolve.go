@@ -609,7 +609,7 @@ func (ts *typeScriptLang) findSubpathImport(c *config.Config, ix *resolve.RuleIn
 	// Collect all resolving targets. A conditional import may map different
 	// conditions to different targets, all of which are dependencies.
 	var results []resolve.FindResult
-	for _, target := range packageJson.Imports[imp] {
+	for _, target := range packageJson.ResolveImport(imp) {
 		if strings.HasPrefix(target, "./") {
 			// Files within the package
 			fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), target)}
