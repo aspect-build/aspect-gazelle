@@ -15,6 +15,7 @@ ts_project(
         "//lib/pkg/cond_browser",
         "//lib/pkg/cond_default",
         "//lib/pkg/cond_node",
+        "//lib/pkg/internal",
         "//lib/pkg/sub",
     ],
 )

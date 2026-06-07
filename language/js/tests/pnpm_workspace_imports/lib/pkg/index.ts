@@ -4,5 +4,7 @@ import { subId } from '#sub';
 import { otherId } from '#ext';
 // Conditional subpath import mapping conditions to separate directories.
 import { condId } from '#cond';
+// Subpath import matching a '*' pattern.
+import { internalId } from '#internal/util';
 
-export const id = () => subId() + otherId() + condId();
+export const id = () => subId() + otherId() + condId() + internalId();

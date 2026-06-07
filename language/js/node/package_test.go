@@ -51,7 +51,7 @@ func TestParsePackageJson(t *testing.T) {
 		assertPackageJsonImports(t, `{"main":"foo.js"}`, nil)
 		assertPackageJsonImports(t, `{"imports":{"#utils":"./src/utils.js"}}`, map[string][]string{"#utils": {"./src/utils.js"}})
 		assertPackageJsonImports(t, `{"imports":{"#dep":"external-pkg"}}`, map[string][]string{"#dep": {"external-pkg"}})
-		assertPackageJsonImports(t, `{"imports":{"#dep":null}}`, map[string][]string{})
+		assertPackageJsonImports(t, `{"imports":{"#dep":null}}`, nil)
 
 		// Conditional subpath imports. Targets are sorted regardless of JSON
 		// condition order.
@@ -66,8 +66,73 @@ func TestParsePackageJson(t *testing.T) {
 
 		// Invalid types
 		assertPackageJsonImports(t, `{"imports":"./foo.js"}`, nil)
-		assertPackageJsonImports(t, `{"imports":{"#dep":123}}`, map[string][]string{})
+		assertPackageJsonImports(t, `{"imports":{"#dep":123}}`, nil)
 	})
+
+	t.Run("subpath import patterns", func(t *testing.T) {
+		pkg := parsePackageJson(t, `{"imports":{
+			"#internal/*": "./src/internal/*.js",
+			"#internal/special": "./special.js",
+			"#internal/deep/*": "./src/deep/*.mjs",
+			"#suffix/*.js": "./s/*.js",
+			"#multi/*": {"node": "./n/*.cjs", "default": "ext-pkg/*"}
+		}}`)
+
+		// Exact matches take precedence over patterns
+		assertResolveImport(t, pkg, "#internal/special", "./special.js")
+
+		// Pattern matches, '*' may span '/'
+		assertResolveImport(t, pkg, "#internal/foo", "./src/internal/foo.js")
+		assertResolveImport(t, pkg, "#internal/a/b", "./src/internal/a/b.js")
+
+		// The longest matching prefix wins
+		assertResolveImport(t, pkg, "#internal/deep/x", "./src/deep/x.mjs")
+
+		// With equal prefixes, the longest matching suffix wins
+		suffixes := parsePackageJson(t, `{"imports":{"#a/*":"./plain/*.js","#a/*.js":"./js/*.mjs"}}`)
+		assertResolveImport(t, suffixes, "#a/foo.js", "./js/foo.mjs")
+
+		// A higher-priority pattern that prefix/suffix-matches but has only an
+		// empty '*' is skipped, falling through to a lower-priority match.
+		shadow := parsePackageJson(t, `{"imports":{"#x/*":"./a/*.js","#x/y*":"./b/*.js"}}`)
+		assertResolveImport(t, shadow, "#x/y", "./a/y.js")
+
+		// Patterns with a suffix
+		assertResolveImport(t, pkg, "#suffix/y.js", "./s/y.js")
+
+		// Conditional pattern targets are all expanded
+		assertResolveImport(t, pkg, "#multi/x", "./n/x.cjs", "ext-pkg/x")
+
+		// No match: unknown specifiers and empty '*' matches
+		assertResolveImport(t, pkg, "#unknown")
+		assertResolveImport(t, pkg, "#internal/")
+
+		// Invalid pattern keys with multiple '*'s are dropped when parsed
+		invalid := parsePackageJson(t, `{"imports":{"#bad/*/*":"./x/*.js"}}`)
+		assertResolveImport(t, invalid, "#bad/a/b")
+
+		// An overlapping prefix and suffix has no (non-empty) '*' match and
+		// must not panic on the out-of-range substring: '#abc' starts with
+		// '#ab' and ends with 'bc' but is shorter than their sum.
+		overlap := parsePackageJson(t, `{"imports":{"#ab*bc":"./x/*.js"}}`)
+		assertResolveImport(t, overlap, "#abc")
+	})
+}
+
+func assertResolveImport(t *testing.T, pkg PackageJson, specifier string, expectedTargets ...string) {
+	t.Helper()
+
+	actual := pkg.ResolveImport(specifier)
+	if len(expectedTargets) == 0 {
+		if actual != nil {
+			t.Errorf("ResolveImport(%q) expected no targets, got %q", specifier, actual)
+		}
+		return
+	}
+
+	if !slices.Equal(actual, expectedTargets) {
+		t.Errorf("ResolveImport(%q) expected %q, got %q", specifier, expectedTargets, actual)
+	}
 }
 
 func parsePackageJson(t *testing.T, packageJson string) PackageJson {
@@ -93,23 +158,27 @@ func assertParsePackageJsonEntries(t *testing.T, packageJson string, expectedEnt
 	}
 }
 
+// assertPackageJsonImports asserts the exact (non-pattern) 'imports' compiled
+// when parsing the package.json. A nil expectation asserts no 'imports' field.
 func assertPackageJsonImports(t *testing.T, packageJson string, expectedImports map[string][]string) {
 	t.Helper()
-	assertSpecifierMap(t, "imports", packageJson, parsePackageJson(t, packageJson).Imports, expectedImports)
-}
 
-func assertSpecifierMap(t *testing.T, field, packageJson string, actual, expected map[string][]string) {
-	t.Helper()
+	pkg := parsePackageJson(t, packageJson)
 
-	if (actual == nil) != (expected == nil) || len(actual) != len(expected) {
-		t.Errorf("ParsePackageJson(%q) expected %s %v, got %v", packageJson, field, expected, actual)
+	if (pkg.Imports == nil) != (expectedImports == nil) {
+		t.Errorf("ParsePackageJson(%q) expected imports %v, got %v", packageJson, expectedImports, pkg.Imports)
 		return
 	}
 
-	for specifier, expectedTargets := range expected {
+	if len(pkg.ImportPatterns) > 0 || len(pkg.Imports) != len(expectedImports) {
+		t.Errorf("ParsePackageJson(%q) expected exact imports %v, got %v patterns %v", packageJson, expectedImports, pkg.Imports, pkg.ImportPatterns)
+		return
+	}
+
+	for specifier, expectedTargets := range expectedImports {
 		// Order-sensitive: targets are sorted when parsed for deterministic resolution.
-		if !slices.Equal(actual[specifier], expectedTargets) {
-			t.Errorf("ParsePackageJson(%q) expected %s[%q] %q, got %q", packageJson, field, specifier, expectedTargets, actual[specifier])
+		if !slices.Equal(pkg.Imports[specifier], expectedTargets) {
+			t.Errorf("ParsePackageJson(%q) expected imports[%q] %q, got %q", packageJson, specifier, expectedTargets, pkg.Imports[specifier])
 		}
 	}
 }
