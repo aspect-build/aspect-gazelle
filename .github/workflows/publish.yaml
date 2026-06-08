@@ -8,17 +8,15 @@ on:
       tag_prefix:
         required: true
         type: string
-      templates_ref:
+      module_roots:
         description: |
-          Git ref to read the .bcr templates (incl. config.yml moduleRoots) from,
-          instead of the release tag. Used to publish a single module from a repo
-          that hosts several: point at a ref whose .bcr/config.yml lists only that
-          module. Empty falls back to tag_name.
-
-          Interim mechanism for per-module publishing. Replace with a native
-          module+version input once bazel-contrib/publish-to-bcr#368 lands.
-        required: false
-        default: ""
+          Newline-separated module roots to publish. Required because this repo
+          hosts several separately versioned modules: each release tag belongs
+          to exactly one of them, so the publish must name which module(s) the
+          tag's version applies to. This overrides the .bcr/config.yml
+          moduleRoots index (which lists every module and must not be used as a
+          bare-publish default for separately versioned modules).
+        required: true
         type: string
     secrets:
       BCR_PUBLISH_TOKEN:
@@ -31,9 +29,8 @@ on:
       tag_prefix:
         required: true
         type: string
-      templates_ref:
-        required: false
-        default: ""
+      module_roots:
+        required: true
         type: string
 jobs:
   publish:
@@ -41,12 +38,11 @@ jobs:
     # version tag, not a commit SHA: slsa-verifier reads the builder ref from the
     # provenance and rejects a bare SHA ("unexpected ref type"), which breaks the
     # source.json attestation that BCR's presubmit verifies. Do not SHA-pin this.
-    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@v1.2.0
+    uses: bazel-contrib/publish-to-bcr/.github/workflows/publish.yaml@v1.3.0
     with:
       tag_name: ${{ inputs.tag_name }}
       tag_prefix: ${{ inputs.tag_prefix }}
-      # Empty string falls back to tag_name inside the reusable workflow.
-      templates_ref: ${{ inputs.templates_ref }}
+      module_roots: ${{ inputs.module_roots }}
       registry_fork: "aspect-forks/bazel-central-registry"
       draft: false
       # Open the BCR PR from the caller workflow after the release is finalized,

@@ -107,7 +107,7 @@ git tag prebuilt-v1.2.3
 git push origin prebuilt-v1.2.3
 ```
 
-The `release.yaml` workflow triggers on `prebuilt-v*.*.*` tags. Pre-release tags
+The `release-prebuilt.yaml` workflow triggers on `prebuilt-v*.*.*` tags. Pre-release tags
 (with a `-` in the version part, e.g. `prebuilt-v1.0.0-alpha1`) create a GitHub
 pre-release and skip BCR publishing.
 

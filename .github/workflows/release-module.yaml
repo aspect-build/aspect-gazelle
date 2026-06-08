@@ -1,10 +1,10 @@
 # Reusable per-module BCR release. Called by thin per-module trigger workflows
-# (release-js.yaml, and later release-orion.yaml / release-runner.yaml) that
-# supply the tag prefix, module root, and module name. Builds the module's
-# source archive via release_prep.sh and drives the publish-to-bcr reusable
-# workflow with a single-module .bcr/config.yml (interim per-module mechanism;
-# see bazel-contrib/publish-to-bcr#368 for the eventual native module+version
-# input that would let us drop the prepare-bcr-config job).
+# (release-prebuilt.yaml, release-js.yaml, and later release-orion.yaml /
+# release-runner.yaml) that supply the tag prefix, module root, module name, and
+# optionally the release assets to upload. Builds the module's archive via
+# release_prep.sh (which branches on the tag prefix) and drives the
+# publish-to-bcr reusable workflow, passing the module root through its native
+# `module_roots` input so only this module is published (not the others).
 name: Release (module)
 on:
   workflow_call:
@@ -20,6 +20,15 @@ on:
       module_name:
         description: 'Bzlmod module name, e.g. "aspect_gazelle_js".'
         required: true
+        type: string
+      release_files:
+        description: |
+          Newline-separated globs of release assets to upload. Defaults to just
+          the module's source archive (aspect-gazelle-<tag>.tar.gz). The prebuilt
+          release overrides this to also upload the compiled binaries under
+          artifacts/.
+        required: false
+        default: ""
         type: string
     secrets:
       BCR_PUBLISH_TOKEN:
@@ -52,44 +61,15 @@ jobs:
     with:
       prerelease: ${{ needs.tag.outputs.prerelease == 'true' }}
       tag_name: ${{ github.ref_name }}
-      release_files: aspect-gazelle-${{ inputs.tag_prefix }}*.tar.gz
-      # CI already tests; the release archive is source-only (no binaries to build).
+      # Default to the source archive; callers can add extra release assets.
+      release_files: ${{ inputs.release_files != '' && inputs.release_files || format('aspect-gazelle-{0}*.tar.gz', inputs.tag_prefix) }}
+      # Bypass rerunning the tests - CI already covers this so only run 'true'
       bazel_test_command: "true"
       # Draft so publish-to-bcr can upload attestations before the release is
       # finalized (immutable releases reject later asset uploads).
       draft: true
-  prepare-bcr-config:
-    # Push a transient ref whose .bcr/config.yml lists ONLY this module, so the
-    # publish step publishes just this module (not the others in the repo).
-    #
-    # This whole job is the interim per-module-publishing workaround. Once
-    # bazel-contrib/publish-to-bcr#368 adds a native module+version input, drop
-    # this job and pass the module directly to publish.yaml instead.
-    needs: [tag, release]
-    if: ${{ needs.tag.outputs.prerelease == 'false' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      ref: ${{ steps.mk.outputs.ref }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.ref_name }}
-      - name: Create single-module BCR config ref
-        run: |
-          set -o errexit -o nounset -o pipefail
-          REF="bcr-publish/${GITHUB_REF_NAME}"
-          printf 'moduleRoots:\n  - "%s"\n' "${{ inputs.module_root }}" > .bcr/config.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b "$REF"
-          git commit -am "bcr: single-module config for ${GITHUB_REF_NAME}"
-          git push -f origin "$REF"
-          echo "ref=$REF" >> "$GITHUB_OUTPUT"
-        id: mk
   publish:
-    needs: [tag, release, prepare-bcr-config]
+    needs: [tag, release]
     if: ${{ needs.tag.outputs.prerelease == 'false' }}
     permissions:
       id-token: write
@@ -99,7 +79,7 @@ jobs:
     with:
       tag_name: ${{ github.ref_name }}
       tag_prefix: ${{ inputs.tag_prefix }}
-      templates_ref: ${{ needs.prepare-bcr-config.outputs.ref }}
+      module_roots: ${{ inputs.module_root }}
     secrets:
       BCR_PUBLISH_TOKEN: ${{ secrets.BCR_PUBLISH_TOKEN }}
   finalize:
@@ -157,14 +137,3 @@ jobs:
             cat "$ERR"
             exit 1
           fi
-  cleanup-bcr-config:
-    # Delete the transient config ref once publishing is done (best-effort).
-    needs: [prepare-bcr-config, publish]
-    if: ${{ always() && needs.prepare-bcr-config.result == 'success' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v6
-      - name: Delete transient ref
-        run: git push origin --delete "${{ needs.prepare-bcr-config.outputs.ref }}" || true
