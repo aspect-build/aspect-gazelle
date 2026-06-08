@@ -83,11 +83,13 @@ func (tree *treeLanguage) String() string {
 	return fmt.Sprintf("treeLanguage{grammar: %q}", tree.grammar)
 }
 
-type ASTQueryResult interface {
-	Captures() map[string]string
-}
+// ASTQueryResult is the captures of a single query match (capture name ->
+// source text). It is an alias for the plain map so callers can index it and
+// pass it on without conversion.
+type ASTQueryResult = map[string]string
 
 type AST interface {
+	// Query yields the captures of each match.
 	Query(query TreeQuery) iter.Seq[ASTQueryResult]
 	QueryErrors() []error
 

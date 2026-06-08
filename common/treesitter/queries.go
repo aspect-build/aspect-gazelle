@@ -35,16 +35,6 @@ func GetQuery(lang Language, queryStr string) (*sitterQuery, error) {
 	return q.(*sitterQuery), nil
 }
 
-type queryResult struct {
-	QueryCaptures map[string]string
-}
-
-var _ ASTQueryResult = (*queryResult)(nil)
-
-func (qr queryResult) Captures() map[string]string {
-	return qr.QueryCaptures
-}
-
 func (tree *treeAst) Query(query TreeQuery) iter.Seq[ASTQueryResult] {
 	return func(yield func(ASTQueryResult) bool) {
 		q := query.(*sitterQuery)
@@ -65,15 +55,14 @@ func (tree *treeAst) Query(query TreeQuery) iter.Seq[ASTQueryResult] {
 				continue
 			}
 
-			r := &queryResult{QueryCaptures: tree.mapQueryMatchCaptures(m, q)}
-			if !yield(r) {
+			if !yield(tree.mapQueryMatchCaptures(m, q)) {
 				break
 			}
 		}
 	}
 }
 
-func (tree *treeAst) mapQueryMatchCaptures(m *sitter.QueryMatch, q *sitterQuery) map[string]string {
+func (tree *treeAst) mapQueryMatchCaptures(m *sitter.QueryMatch, q *sitterQuery) ASTQueryResult {
 	captures := make(map[string]string, len(m.Captures))
 	for _, c := range m.Captures {
 		name := q.CaptureNameForId(c.Index)

@@ -1,7 +1,6 @@
 package treesitter_test
 
 import (
-	"maps"
 	"slices"
 	"strings"
 	"testing"
@@ -34,8 +33,8 @@ func mustQuery(t *testing.T, queryStr string) treesitter.TreeQuery {
 // collectCaptures runs the query and returns all values of the named capture.
 func collectCaptures(ast treesitter.AST, q treesitter.TreeQuery, capture string) []string {
 	var results []string
-	for r := range ast.Query(q) {
-		if v, ok := r.Captures()[capture]; ok {
+	for captures := range ast.Query(q) {
+		if v, ok := captures[capture]; ok {
 			results = append(results, v)
 		}
 	}
@@ -326,8 +325,8 @@ func TestCapturesMap_allCapturesPresent(t *testing.T) {
 	q := mustQuery(t, `(function_declaration name: (identifier) @name) @func`)
 
 	var got []map[string]string
-	for r := range ast.Query(q) {
-		got = append(got, maps.Clone(r.Captures()))
+	for captures := range ast.Query(q) {
+		got = append(got, captures)
 	}
 
 	if len(got) != 3 {
@@ -353,8 +352,8 @@ func Foo() {}
 	q := mustQuery(t, `(function_declaration name: (identifier) @item parameters: (parameter_list) @item)`)
 
 	var got []map[string]string
-	for r := range ast.Query(q) {
-		got = append(got, maps.Clone(r.Captures()))
+	for captures := range ast.Query(q) {
+		got = append(got, captures)
 	}
 
 	if len(got) != 1 {
