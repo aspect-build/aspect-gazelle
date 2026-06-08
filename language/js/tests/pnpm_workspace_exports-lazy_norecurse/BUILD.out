@@ -1,0 +1,2 @@
+# Empty: the pnpm workspace root is outside the target and is never processed
+# under lazy indexing (it would otherwise get an npm_link_all_packages rule).

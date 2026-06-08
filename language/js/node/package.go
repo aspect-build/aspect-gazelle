@@ -37,17 +37,23 @@ type PackageJson struct {
 	// All entry point files such as the 'main' and 'exports' fields.
 	Entries []string
 
+	// Exact (non-pattern) subpath exports from the 'exports' field, keyed by normalized subpath, mapped to their sorted target files.
+	Exports map[string][]string
+
+	// '*' subpath export patterns from the 'exports' field, sorted by resolution priority.
+	ExportPatterns []SubpathPattern
+
 	// Exact (non-pattern) subpath imports from the 'imports' field, mapped to their sorted targets.
 	Imports map[string][]string
 
 	// '*' subpath import patterns from the 'imports' field, sorted by resolution priority.
-	ImportPatterns []SubpathImportPattern
+	ImportPatterns []SubpathPattern
 }
 
-// SubpathImportPattern is a '*' subpath import pattern such as
-// "#internal/*": "./src/internal/*.js", split around the specifier '*'.
-// See https://nodejs.org/api/packages.html#subpath-imports
-type SubpathImportPattern struct {
+// SubpathPattern is a '*' subpath pattern from the 'exports' or 'imports'
+// field such as "#internal/*": "./src/internal/*.js", split around the '*'.
+// See https://nodejs.org/api/packages.html#subpath-patterns
+type SubpathPattern struct {
 	Prefix, Suffix string
 
 	// The sorted mapping targets, '*'s not yet substituted.
@@ -57,13 +63,20 @@ type SubpathImportPattern struct {
 // ResolveImport resolves a subpath import specifier to its mapping targets,
 // matching and expanding '*' subpath patterns.
 func (p *PackageJson) ResolveImport(specifier string) []string {
-	// Exact matches take precedence over '*' patterns.
-	if targets, found := p.Imports[specifier]; found {
+	return resolveSubpath(p.Imports, p.ImportPatterns, specifier)
+}
+
+// ResolveExport resolves a normalized 'exports' subpath to its mapping target files, matching and expanding '*' subpath patterns.
+func (p *PackageJson) ResolveExport(subpath string) []string {
+	return resolveSubpath(p.Exports, p.ExportPatterns, subpath)
+}
+
+func resolveSubpath(exact map[string][]string, patterns []SubpathPattern, specifier string) []string {
+	if targets, found := exact[specifier]; found {
 		return targets
 	}
 
-	// Patterns are pre-sorted by priority; the first match wins.
-	for _, pat := range p.ImportPatterns {
+	for _, pat := range patterns {
 		if len(specifier) <= len(pat.Prefix)+len(pat.Suffix) || !strings.HasPrefix(specifier, pat.Prefix) || !strings.HasSuffix(specifier, pat.Suffix) {
 			continue
 		}
@@ -80,8 +93,57 @@ func (p *PackageJson) ResolveImport(specifier string) []string {
 	return nil
 }
 
+// indexSubpaths splits raw subpath mappings into exact specifiers and sorted '*' patterns; field ("exports"/"imports") labels warnings.
+func indexSubpaths(raw map[string][]string, field string) (map[string][]string, []SubpathPattern) {
+	var exact map[string][]string
+	var patterns []SubpathPattern
+
+	for key, targets := range raw {
+		slices.Sort(targets)
+
+		prefix, suffix, isPattern := strings.Cut(key, "*")
+		if !isPattern {
+			if exact == nil {
+				exact = make(map[string][]string, len(raw))
+			}
+			exact[key] = targets
+		} else if strings.Contains(suffix, "*") {
+			BazelLog.Warnf("Invalid package.json %s key %q: multiple '*'s", field, key)
+		} else {
+			patterns = append(patterns, SubpathPattern{Prefix: prefix, Suffix: suffix, Targets: targets})
+		}
+	}
+
+	// Node resolution priority (PATTERN_KEY_COMPARE): the longest prefix,
+	// then the longest suffix. Equal-length patterns can not match the same
+	// specifier; order those lexicographically for determinism.
+	slices.SortFunc(patterns, func(a, b SubpathPattern) int {
+		if d := len(b.Prefix) - len(a.Prefix); d != 0 {
+			return d
+		}
+		if d := len(b.Suffix) - len(a.Suffix); d != 0 {
+			return d
+		}
+		if d := strings.Compare(a.Prefix, b.Prefix); d != 0 {
+			return d
+		}
+		return strings.Compare(a.Suffix, b.Suffix)
+	})
+
+	return exact, patterns
+}
+
 func (p *PackageJson) addEntry(file string) {
 	p.Entries = append(p.Entries, path.Clean(file))
+}
+
+// exportSubpath normalizes an 'exports' subpath so the package root "." is ""
+// and subpaths have no leading "./".
+func exportSubpath(subpath string) string {
+	if subpath = path.Clean(subpath); subpath == "." {
+		return ""
+	}
+	return subpath
 }
 
 // Extract the package metadata from the package.json file such as the
@@ -113,17 +175,32 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 
 	// https://nodejs.org/api/packages.html#exports
 	if c.Exports != nil {
+		// Raw subpath -> target files, keyed by normalized subpath.
+		rawExports := make(map[string][]string)
+		addExport := func(subpath, file string) {
+			file = path.Clean(file)
+			subpath = exportSubpath(subpath)
+			rawExports[subpath] = append(rawExports[subpath], file)
+			pkg.addEntry(file)
+		}
+
 		switch exports := c.Exports.(type) {
 		case string:
 			// Single export
-			pkg.addEntry(exports)
+			addExport(".", exports)
 		case map[string]any:
-			// Subpath exports
+			// Subpath exports. Keys not starting with "." are conditions
+			// ("node", "default" etc.) of the package root export.
 			for exportKey, export := range exports {
+				subpath := exportKey
+				if !strings.HasPrefix(exportKey, ".") {
+					subpath = "."
+				}
+
 				switch e := export.(type) {
 				case string:
 					// Regular subpath export
-					pkg.addEntry(e)
+					addExport(subpath, e)
 				case nil:
 					// According to https://nodejs.org/api/packages.html#subpath-patterns, to exclude
 					// private subfolders from patterns, null targets can be used:
@@ -139,7 +216,7 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 					for subEKey, subE := range e {
 						switch subE := subE.(type) {
 						case string:
-							pkg.addEntry(subE)
+							addExport(subpath, subE)
 						default:
 							BazelLog.Warnf("Unknown package.json exports.%s.%s type: %T", exportKey, subEKey, subE)
 						}
@@ -153,7 +230,7 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 			for i, subE := range exports {
 				switch subE := subE.(type) {
 				case string:
-					pkg.addEntry(subE)
+					addExport(".", subE)
 				default:
 					BazelLog.Warnf("Unknown package.json exports[%v] type: %T", i, subE)
 				}
@@ -161,6 +238,10 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 		default:
 			BazelLog.Warnf("Unknown package.json exports type: %T", exports)
 		}
+
+		// Index the raw mappings for resolution: exact subpaths split from
+		// '*' patterns, targets sorted and patterns ordered by priority.
+		pkg.Exports, pkg.ExportPatterns = indexSubpaths(rawExports, "exports")
 	}
 
 	// https://nodejs.org/api/packages.html#subpath-imports
@@ -201,40 +282,9 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 				}
 			}
 
-			// Validate and index the raw mappings for resolution: exact
-			// specifiers split from '*' patterns, targets sorted and patterns
-			// ordered by resolution priority.
-			for key, targets := range rawImports {
-				slices.Sort(targets)
-
-				prefix, suffix, isPattern := strings.Cut(key, "*")
-				if !isPattern {
-					if pkg.Imports == nil {
-						pkg.Imports = make(map[string][]string, len(rawImports))
-					}
-					pkg.Imports[key] = targets
-				} else if strings.Contains(suffix, "*") {
-					BazelLog.Warnf("Invalid package.json imports key %q: multiple '*'s", key)
-				} else {
-					pkg.ImportPatterns = append(pkg.ImportPatterns, SubpathImportPattern{Prefix: prefix, Suffix: suffix, Targets: targets})
-				}
-			}
-
-			// Node resolution priority (PATTERN_KEY_COMPARE): the longest prefix,
-			// then the longest suffix. Equal-length patterns can not match the same
-			// specifier; order those lexicographically for determinism.
-			slices.SortFunc(pkg.ImportPatterns, func(a, b SubpathImportPattern) int {
-				if d := len(b.Prefix) - len(a.Prefix); d != 0 {
-					return d
-				}
-				if d := len(b.Suffix) - len(a.Suffix); d != 0 {
-					return d
-				}
-				if d := strings.Compare(a.Prefix, b.Prefix); d != 0 {
-					return d
-				}
-				return strings.Compare(a.Suffix, b.Suffix)
-			})
+			// Index the raw mappings for resolution: exact specifiers split
+			// from '*' patterns, targets sorted and patterns ordered by priority.
+			pkg.Imports, pkg.ImportPatterns = indexSubpaths(rawImports, "imports")
 		} else {
 			BazelLog.Warnf("Unknown package.json imports type: %T", c.Imports)
 		}
