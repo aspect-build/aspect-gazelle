@@ -500,3 +500,37 @@ func assertImports(t *testing.T, p string, expected []string) {
 		t.Errorf("toImportPaths('%s'): \nactual:   %s\nexpected:  %s\n", p, actual, expected)
 	}
 }
+
+func TestPackageScopeDir(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		registered []string
+		input      string
+		wantDir    string
+		wantOk     bool
+	}{
+		{"empty input with no registrations", nil, "", "", false},
+		{"empty input finds root", []string{""}, "", "", true},
+		{"single segment finds root ancestor", []string{""}, "a", "", true},
+		{"single segment with no registration", nil, "a", "", false},
+		{"self is its own scope", []string{"a"}, "a", "a", true},
+		{"nested finds nearest ancestor", []string{"a"}, "a/b/c", "a", true},
+		{"nested skips unregistered levels", []string{""}, "a/b/c", "", true},
+		{"nested prefers closer ancestor", []string{"", "a/b"}, "a/b/c", "a/b", true},
+		{"self preferred over ancestor", []string{"", "a/b/c"}, "a/b/c", "a/b/c", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			packageJsonDirs := make(map[string]struct{}, len(tc.registered))
+			for _, r := range tc.registered {
+				packageJsonDirs[r] = struct{}{}
+			}
+			ts := &typeScriptLang{packageJsonDirs: packageJsonDirs}
+
+			gotDir, gotOk := ts.packageScopeDir(tc.input)
+			if gotDir != tc.wantDir || gotOk != tc.wantOk {
+				t.Errorf("packageScopeDir(%q) = (%q, %v); want (%q, %v)",
+					tc.input, gotDir, gotOk, tc.wantDir, tc.wantOk)
+			}
+		})
+	}
+}

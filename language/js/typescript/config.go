@@ -50,19 +50,6 @@ func NewTsWorkspace(pnpmProjects *pnpm.PnpmProjectMap, hasPackageJson func(rel s
 	}
 }
 
-// ClosestAncestorPackageJsonDir returns the closest strictly-ancestor dir of
-// `dir` containing a package.json, or "", false.
-func (tc *TsWorkspace) ClosestAncestorPackageJsonDir(dir string) (string, bool) {
-	for dir != "" {
-		base, _ := path.Split(dir)
-		dir = strings.TrimSuffix(base, "/")
-		if tc.hasPackageJson(dir) {
-			return dir, true
-		}
-	}
-	return "", false
-}
-
 func (tc *TsWorkspace) SetTsConfigFile(root, rel, groupName, fileName string) {
 	if tc.cm.configFiles[rel] == nil {
 		tc.cm.configFiles[rel] = make(map[string]*workspacePath)

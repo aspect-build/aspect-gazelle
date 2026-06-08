@@ -1,0 +1,7 @@
+{
+  "name": "@lib/pkg",
+  "private": true,
+  "exports": {
+    ".": "./index.js"
+  }
+}

@@ -591,13 +591,13 @@ func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 // 'imports' field of the importing package.
 // See https://nodejs.org/api/packages.html#subpath-imports
 func (ts *typeScriptLang) findSubpathImport(c *config.Config, ix *resolve.RuleIndex, from, imp string) []resolve.FindResult {
-	fromProject := ts.pnpmProjects.GetProject(from)
-	if fromProject == nil {
+	packageDir, hasPackage := ts.packageScopeDir(from)
+	if !hasPackage {
 		return nil
 	}
 
 	// Parse errors are reported when generating rules for the package.
-	packageJson, err := ts.getPackageJson(c, fromProject.Pkg())
+	packageJson, err := ts.getPackageJson(c, packageDir)
 	if packageJson == nil || err != nil {
 		return nil
 	}
@@ -608,7 +608,7 @@ func (ts *typeScriptLang) findSubpathImport(c *config.Config, ix *resolve.RuleIn
 	for _, target := range packageJson.ResolveImport(imp) {
 		if strings.HasPrefix(target, "./") {
 			// Files within the package
-			fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), target)}
+			fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(packageDir, target)}
 
 			results = append(results, ix.FindRulesByImport(fileSpec, LanguageName)...)
 		} else if impPkg, impSubpath := node.ParseImportPath(target); impPkg != "" {
@@ -637,13 +637,13 @@ func (ts *typeScriptLang) findPackageImport(c *config.Config, ix *resolve.RuleIn
 // importing its own package.json 'name', resolved through its own 'exports' field.
 // See https://nodejs.org/api/packages.html#self-referencing-a-package-using-its-name
 func (ts *typeScriptLang) findPackageSelfReference(c *config.Config, ix *resolve.RuleIndex, from, impPkg, impSubpath string) []resolve.FindResult {
-	fromProject := ts.pnpmProjects.GetProject(from)
-	if fromProject == nil {
+	packageDir, hasPackage := ts.packageScopeDir(from)
+	if !hasPackage {
 		return nil
 	}
 
 	// Parse errors are reported when generating rules for the package.
-	packageJson, err := ts.getPackageJson(c, fromProject.Pkg())
+	packageJson, err := ts.getPackageJson(c, packageDir)
 	if packageJson == nil || err != nil || packageJson.Name != impPkg {
 		return nil
 	}
@@ -651,7 +651,7 @@ func (ts *typeScriptLang) findPackageSelfReference(c *config.Config, ix *resolve
 	// Self-references only resolve subpaths declared by the 'exports' field.
 	var results []resolve.FindResult
 	for _, file := range packageJson.ResolveExport(impSubpath) {
-		fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), file)}
+		fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(packageDir, file)}
 		results = append(results, ix.FindRulesByImport(fileSpec, LanguageName)...)
 	}
 
