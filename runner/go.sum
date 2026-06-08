@@ -1,5 +1,5 @@
-github.com/EngFlow/gazelle_cc v0.5.0 h1:9GB3iRmUTIfUsbNMYcFMI1QmT8DDz1OG+kRpds5mSV8=
-github.com/EngFlow/gazelle_cc v0.5.0/go.mod h1:4CDkNyAdqoR77hBG4le7Lt3iRHpAzSMbKrfYI1vEwpI=
+github.com/EngFlow/gazelle_cc v0.6.0 h1:e+FV7i8eKp4HXLRTIvsQWfVlUnVGdk4lx6Asj8q9JmE=
+github.com/EngFlow/gazelle_cc v0.6.0/go.mod h1:3mEwjlsBv3xK7WngrFVDbOEjvwaBd6iLOrEWnXoQ654=
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
 github.com/a8m/envsubst v1.4.3 h1:kDF7paGK8QACWYaQo6KtyYBozY2jhQrTuNNuUxQkhJY=
