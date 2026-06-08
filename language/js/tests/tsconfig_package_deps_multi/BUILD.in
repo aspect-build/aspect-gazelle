@@ -3,6 +3,15 @@
 # BUILD files of their own so they remain part of the root Bazel package, and
 # generation_mode update_only ensures gazelle does not create BUILD files in
 # them during the test.
+#
+# The 'app' package additionally covers a base directory with a local
+# tsconfig.json but no package.json of its own: its own files resolve to the
+# closest ancestor package.json (//:package.json), so that must be in deps
+# alongside the swept-in app/sub/package.json.
+#
+# The 'fwd' package has neither a local tsconfig.json nor a package.json of its
+# own, only a swept-in fwd/sub/package.json: a forwarding ts_config rule must
+# still be emitted to carry that package.json (and the ancestor) into scope.
 
 # gazelle:generation_mode update_only
 # gazelle:js_tsconfig_package_deps enabled

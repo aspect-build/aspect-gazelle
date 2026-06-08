@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+ts_project(
+    name = "fwd",
+    srcs = ["main.ts"],
+    tsconfig = "//:tsconfig",
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "//:tsconfig",
+    visibility = [":__subpackages__"],
+    deps = [
+        ":sub/package.json",
+        "//:package.json",
+    ],
+)

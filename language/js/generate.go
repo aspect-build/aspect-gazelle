@@ -510,16 +510,22 @@ func (ts *typeScriptLang) packageScopeDir(rel string) (string, bool) {
 
 // collectTsConfigPackageJsonDeps returns label deps for the package.json files
 // tsc consults: every package.json in this Bazel package, plus the closest
-// ancestor's if none is local (tsc stops at the first package.json walking up).
+// ancestor's if args.Rel itself has none (tsc stops at the first package.json
+// walking up). hasLocal reports whether any package.json is in this package.
 func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal bool) {
+	hasBaseLocal := false
 	for _, f := range args.RegularFiles {
 		if path.Base(f) == NpmPackageFilename {
 			l := label.New(args.Config.RepoName, args.Rel, f)
 			deps = append(deps, &l)
 			hasLocal = true
+			hasBaseLocal = hasBaseLocal || f == NpmPackageFilename
 		}
 	}
-	if !hasLocal {
+	// args.Rel's own files resolve to the nearest package.json at or above it;
+	// when args.Rel has none locally that is an ancestor outside this package,
+	// which the loop above does not see.
+	if !hasBaseLocal {
 		if ancestor, ok := ts.packageScopeDir(args.Rel); ok {
 			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
 			deps = append(deps, &l)
