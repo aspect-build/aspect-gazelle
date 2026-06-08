@@ -57,42 +57,6 @@ func TestGetTsConfigFromPath(t *testing.T) {
 		}
 	})
 
-	t.Run("ClosestAncestorPackageJsonDir", func(t *testing.T) {
-		cases := []struct {
-			name       string
-			registered []string
-			input      string
-			wantDir    string
-			wantOk     bool
-		}{
-			{"empty input with no registrations", nil, "", "", false},
-			{"empty input ignores root even if registered", []string{""}, "", "", false},
-			{"single segment finds root", []string{""}, "a", "", true},
-			{"single segment with no registration", nil, "a", "", false},
-			{"nested finds nearest", []string{"a"}, "a/b/c", "a", true},
-			{"nested skips unregistered levels", []string{""}, "a/b/c", "", true},
-			{"nested prefers closer ancestor", []string{"", "a/b"}, "a/b/c", "a/b", true},
-			{"self is not its own ancestor", []string{"a"}, "a", "", false},
-		}
-		for _, tc := range cases {
-			t.Run(tc.name, func(t *testing.T) {
-				registered := make(map[string]struct{}, len(tc.registered))
-				for _, r := range tc.registered {
-					registered[r] = struct{}{}
-				}
-				ws := NewTsWorkspace(nil, func(rel string) bool {
-					_, ok := registered[rel]
-					return ok
-				})
-				gotDir, gotOk := ws.ClosestAncestorPackageJsonDir(tc.input)
-				if gotDir != tc.wantDir || gotOk != tc.wantOk {
-					t.Errorf("ClosestAncestorPackageJsonDir(%q) = (%q, %v); want (%q, %v)",
-						tc.input, gotDir, gotOk, tc.wantDir, tc.wantOk)
-				}
-			})
-		}
-	})
-
 	t.Run("concurrent callers see same cached pointer", func(t *testing.T) {
 		tc := NewTsWorkspace(nil, func(string) bool { return false })
 		tc.SetTsConfigFile(".", "tests", "", "base.tsconfig.json")

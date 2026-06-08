@@ -115,14 +115,16 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo) []string {
 	i := []string{}
 
-	// The pnpm project (if any) this package belongs to, used to expand both
-	// workspace references and node-style subpath imports below.
-	project := ts.pnpmProjects.GetProject(cfg.rel)
-	if project != nil {
+	// Workspace references of the pnpm project (if any) this package belongs to.
+	if project := ts.pnpmProjects.GetProject(cfg.rel); project != nil {
 		for _, pkg := range project.GetLocalReferences() {
 			i = append(i, pkg)
 		}
 	}
+
+	// The node package scope (nearest package.json) used to expand subpath
+	// imports and self-references below.
+	packageScope, hasPackageScope := ts.packageScopeDir(cfg.rel)
 
 	for it := info.imports.Iterator(); it.Next(); {
 		impt := it.Value()
@@ -137,20 +139,20 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 		// package.json 'imports', or a self-reference (the package's own name)
 		// mapped to package files via 'exports'. Both must declare their target
 		// directories so lazy indexing reaches them.
-		if project != nil {
-			if packageJson, _ := ts.getPackageJson(args.Config, project.Pkg()); packageJson != nil {
+		if hasPackageScope {
+			if packageJson, _ := ts.getPackageJson(args.Config, packageScope); packageJson != nil {
 				if node.IsSubpathImport(impt.Imp) {
 					// './'-relative 'imports' targets are package files; external
 					// package targets are resolved via pnpm.
 					for _, target := range packageJson.ResolveImport(impt.Imp) {
 						if strings.HasPrefix(target, "./") {
-							i = append(i, path.Join(project.Pkg(), target))
+							i = append(i, path.Join(packageScope, target))
 						}
 					}
 				} else if impPkg, impSubpath := node.ParseImportPath(impt.Imp); impPkg != "" && impPkg == packageJson.Name {
 					// Self-reference 'exports' targets are always package files.
 					for _, target := range packageJson.ResolveExport(impSubpath) {
-						i = append(i, path.Join(project.Pkg(), target))
+						i = append(i, path.Join(packageScope, target))
 					}
 				}
 			}
@@ -489,6 +491,23 @@ func (ts *typeScriptLang) getPackageJson(c *config.Config, rel string) (*node.Pa
 	return &pkg, nil
 }
 
+// packageScopeDir returns the directory of the nearest package.json at or above
+// rel — the node "package scope" used to resolve 'imports' and self-'exports'.
+// Unlike a pnpm project this honors any package.json, including nested and
+// non-workspace ones, matching the node module resolution algorithm.
+func (ts *typeScriptLang) packageScopeDir(rel string) (string, bool) {
+	for {
+		if _, found := ts.packageJsonDirs[rel]; found {
+			return rel, true
+		}
+		if rel == "" {
+			return "", false
+		}
+		base, _ := path.Split(rel)
+		rel = strings.TrimSuffix(base, "/")
+	}
+}
+
 // collectTsConfigPackageJsonDeps returns label deps for the package.json files
 // tsc consults: every package.json in this Bazel package, plus the closest
 // ancestor's if none is local (tsc stops at the first package.json walking up).
@@ -501,7 +520,7 @@ func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateA
 		}
 	}
 	if !hasLocal {
-		if ancestor, ok := ts.tsconfig.ClosestAncestorPackageJsonDir(args.Rel); ok {
+		if ancestor, ok := ts.packageScopeDir(args.Rel); ok {
 			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
 			deps = append(deps, &l)
 		}

@@ -1,0 +1,7 @@
+{
+  "name": "@nested/feature",
+  "private": true,
+  "exports": {
+    "./sub": "./sub/main.js"
+  }
+}

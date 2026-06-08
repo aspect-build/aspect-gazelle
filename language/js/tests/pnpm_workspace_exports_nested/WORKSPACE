@@ -1,0 +1,8 @@
+# Test that a self-reference resolves against the node "package scope" — the
+# nearest package.json — not the nearest pnpm project. lib/pkg is a workspace
+# package, but lib/pkg/feature has its own (non-workspace) package.json that
+# shadows it for files underneath: lib/pkg/feature/index.ts importing
+# '@nested/feature/sub' must resolve via lib/pkg/feature's 'exports'
+# (-> //lib/pkg/feature/sub), not lib/pkg's package.json.
+# https://nodejs.org/api/packages.html#self-referencing-a-package-using-its-name
+workspace(name = "pnpm_workspace_exports_nested")
