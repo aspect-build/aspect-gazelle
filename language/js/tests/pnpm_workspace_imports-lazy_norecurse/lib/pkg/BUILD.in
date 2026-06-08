@@ -1,0 +1,8 @@
+# Disable the npm_package target so the '#' subpath imports are resolved purely
+# from the source ts_project. With an npm_package the package.json 'imports'
+# entries are also indexed via the generated package rule, which would mask
+# whether the source target itself declares the subpath import target
+# directories for lazy indexing (see tsPackageInfoToRelsToIndex). '*' patterns
+# such as '#internal/*' are never enumerated as package entries, so they always
+# rely on this path.
+# gazelle:js_npm_package disabled

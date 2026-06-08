@@ -1,0 +1,2 @@
+-index=lazy
+lib/pkg

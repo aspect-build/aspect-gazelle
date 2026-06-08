@@ -1,0 +1,20 @@
+# Test node-style subpath imports (package.json 'imports') with lazy indexing
+# AND recursion disabled (-index=lazy -r=false lib/pkg). Only //lib/pkg is
+# (re)generated; every other package keeps its committed BUILD file and is only
+# reached if //lib/pkg asks gazelle to lazily index it.
+#
+# The npm_package target is disabled (see lib/pkg/BUILD.in) so the '#' subpath
+# imports are resolved purely from the source ts_project. Under lazy indexing
+# the '#sub' and '#internal/*' target directories (lib/pkg/sub, lib/pkg/internal)
+# are only indexed when //lib/pkg declares them in GenerateResult.RelsToIndex,
+# so resolution must expand the package.json 'imports' targets into
+# rels-to-index (tsPackageInfoToRelsToIndex). Without that the imports resolve
+# to "unknown js dependency".
+# https://nodejs.org/api/packages.html#subpath-imports
+#
+#  * '#sub' -> ./sub/main.js resolves to //lib/pkg/sub
+#  * '#ext' -> @lib/other resolves to :node_modules/@lib/other (pnpm, not index)
+#  * '#internal/*' -> ./internal/*.js resolves '#internal/util' to //lib/pkg/internal
+#  * '#~db' (odd alias) -> ./db/client.js resolves to //lib/pkg/db, a dependency
+#    reached ONLY via the 'imports' field
+workspace(name = "pnpm_workspace_imports_lazy_norecurse")

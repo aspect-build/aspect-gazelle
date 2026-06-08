@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "consumer",
+    srcs = ["main.ts"],
+    deps = [
+        "//lib/pkg/db",
+        "//lib/pkg/internal",
+        "//lib/pkg/sub",
+    ],
+)
