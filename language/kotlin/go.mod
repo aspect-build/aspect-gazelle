@@ -18,7 +18,7 @@ require (
 	github.com/google/btree v1.1.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
-	github.com/odvcencio/gotreesitter v0.19.1 // indirect
+	github.com/odvcencio/gotreesitter v0.20.2 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
