@@ -1,0 +1,9 @@
+{
+  "name": "@lib/pkg",
+  "private": true,
+  "exports": {
+    ".": "./index.js",
+    "./sub": "./sub/main.js",
+    "./feat/*": "./feat/*.js"
+  }
+}

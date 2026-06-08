@@ -42,6 +42,60 @@ func TestParsePackageJson(t *testing.T) {
 		}
 	})
 
+	t.Run("exports by subpath", func(t *testing.T) {
+		// The package root "." normalizes to "", subpaths drop the leading "./".
+		assertResolveExport(t, parsePackageJson(t, `{"exports":"./foo.js"}`), "", "foo.js")
+		assertResolveExport(t, parsePackageJson(t, `{"exports":{".":"./foo.js"}}`), "", "foo.js")
+		assertResolveExport(t, parsePackageJson(t, `{"exports":{"./sub":"./lib/sub.js"}}`), "sub", "lib/sub.js")
+
+		// Array exports map to the package root.
+		assertResolveExport(t, parsePackageJson(t, `{"exports":["./foo.js","./bar.js"]}`), "", "bar.js", "foo.js")
+
+		// Top-level non-"." keys are conditions of the package root export.
+		// Targets are sorted regardless of JSON condition order.
+		assertResolveExport(t, parsePackageJson(t, `{"exports":{"node":"./foo.js","default":"./bar.js"}}`), "", "bar.js", "foo.js")
+
+		// Conditional subpath exports.
+		conds := parsePackageJson(t, `{"exports":{".":{"node":"./foo.js"},"./sub":{"types":"./sub.d.ts","default":"./sub.js"}}}`)
+		assertResolveExport(t, conds, "", "foo.js")
+		assertResolveExport(t, conds, "sub", "sub.d.ts", "sub.js")
+
+		// Excluded and unknown subpaths.
+		assertResolveExport(t, parsePackageJson(t, `{"exports":{"./sub":null}}`), "sub")
+		assertResolveExport(t, parsePackageJson(t, `{"main":"foo.js"}`), "")
+		assertResolveExport(t, parsePackageJson(t, `{"exports":"./foo.js"}`), "unknown")
+	})
+
+	t.Run("exports subpath patterns", func(t *testing.T) {
+		pkg := parsePackageJson(t, `{"exports":{
+			"./feat/*": "./src/feat/*.js",
+			"./feat/special": "./special.js",
+			"./feat/deep/*": "./src/deep/*.mjs",
+			"./multi/*": {"node": "./n/*.cjs", "default": "./d/*.js"}
+		}}`)
+
+		// Exact matches take precedence over patterns.
+		assertResolveExport(t, pkg, "feat/special", "special.js")
+
+		// Pattern matches, '*' may span '/'.
+		assertResolveExport(t, pkg, "feat/foo", "src/feat/foo.js")
+		assertResolveExport(t, pkg, "feat/a/b", "src/feat/a/b.js")
+
+		// The longest matching prefix wins.
+		assertResolveExport(t, pkg, "feat/deep/x", "src/deep/x.mjs")
+
+		// Conditional pattern targets are all expanded.
+		assertResolveExport(t, pkg, "multi/x", "d/x.js", "n/x.cjs")
+
+		// No match: unknown subpaths and empty '*' matches.
+		assertResolveExport(t, pkg, "unknown")
+		assertResolveExport(t, pkg, "feat/")
+
+		// Invalid pattern keys with multiple '*'s are dropped when parsed.
+		invalid := parsePackageJson(t, `{"exports":{"./bad/*/*":"./x/*.js"}}`)
+		assertResolveExport(t, invalid, "bad/a/b")
+	})
+
 	t.Run("subpath imports", func(t *testing.T) {
 		// Internal file targets are entries, external package targets are not
 		assertParsePackageJsonEntries(t, `{"imports":{"#utils":"./src/utils.js"}}`, "src/utils.js")
@@ -132,6 +186,22 @@ func assertResolveImport(t *testing.T, pkg PackageJson, specifier string, expect
 
 	if !slices.Equal(actual, expectedTargets) {
 		t.Errorf("ResolveImport(%q) expected %q, got %q", specifier, expectedTargets, actual)
+	}
+}
+
+func assertResolveExport(t *testing.T, pkg PackageJson, subpath string, expectedTargets ...string) {
+	t.Helper()
+
+	actual := pkg.ResolveExport(subpath)
+	if len(expectedTargets) == 0 {
+		if actual != nil {
+			t.Errorf("ResolveExport(%q) expected no targets, got %q", subpath, actual)
+		}
+		return
+	}
+
+	if !slices.Equal(actual, expectedTargets) {
+		t.Errorf("ResolveExport(%q) expected %q, got %q", subpath, expectedTargets, actual)
 	}
 }
 

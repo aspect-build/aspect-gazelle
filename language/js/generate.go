@@ -133,11 +133,23 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 		// Might require tsconfig path expansion (rootDir[s], paths etc.)
 		i = append(i, ts.tsconfig.ExpandPaths(impt.SourcePath, impt.Imp, info.groupName)...)
 
-		// Might be a node-style '#' subpath import mapped to package files via package.json 'imports'
-		if project != nil && node.IsSubpathImport(impt.Imp) {
+		// Might be a node-style '#' subpath import mapped to package files via
+		// package.json 'imports', or a self-reference (the package's own name)
+		// mapped to package files via 'exports'. Both must declare their target
+		// directories so lazy indexing reaches them.
+		if project != nil {
 			if packageJson, _ := ts.getPackageJson(args.Config, project.Pkg()); packageJson != nil {
-				for _, target := range packageJson.ResolveImport(impt.Imp) {
-					if strings.HasPrefix(target, "./") {
+				if node.IsSubpathImport(impt.Imp) {
+					// './'-relative 'imports' targets are package files; external
+					// package targets are resolved via pnpm.
+					for _, target := range packageJson.ResolveImport(impt.Imp) {
+						if strings.HasPrefix(target, "./") {
+							i = append(i, path.Join(project.Pkg(), target))
+						}
+					}
+				} else if impPkg, impSubpath := node.ParseImportPath(impt.Imp); impPkg != "" && impPkg == packageJson.Name {
+					// Self-reference 'exports' targets are always package files.
+					for _, target := range packageJson.ResolveExport(impSubpath) {
 						i = append(i, path.Join(project.Pkg(), target))
 					}
 				}
@@ -457,6 +469,12 @@ func (ts *typeScriptLang) getPackageJson(c *config.Config, rel string) (*node.Pa
 		return nil, nil
 	}
 
+	// Memoize the parse: getPackageJson is consulted per-import during
+	// resolution, and the parser cache is the noop cache by default.
+	if pkg, found := ts.packageJsons[rel]; found {
+		return pkg, nil
+	}
+
 	packageJsonPath := path.Join(rel, NpmPackageFilename)
 
 	packageJson, _, err := cache.Get(c).LoadOrStoreFile(c.RepoRoot, packageJsonPath, "node.ParsePackageJson", func(path string, content []byte) (any, error) {
@@ -467,6 +485,7 @@ func (ts *typeScriptLang) getPackageJson(c *config.Config, rel string) (*node.Pa
 	}
 
 	pkg := packageJson.(node.PackageJson)
+	ts.packageJsons[rel] = &pkg
 	return &pkg, nil
 }
 

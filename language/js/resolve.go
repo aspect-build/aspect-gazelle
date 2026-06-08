@@ -284,13 +284,9 @@ func (ts *typeScriptLang) CrossResolve(c *config.Config, ix *resolve.RuleIndex, 
 		// Node-style subpath imports, mapped by the 'imports' field of the
 		// importing package.
 		results = append(results, ts.findSubpathImport(c, ix, fromRel, imp.Imp)...)
-	} else if impPkg, _ := node.ParseImportPath(imp.Imp); impPkg != "" {
-		// Imports of npm packages
-		if pkg := ts.findPackage(fromRel, impPkg); pkg != nil {
-			results = append(results, resolve.FindResult{
-				Label: *pkg,
-			})
-		}
+	} else if impPkg, impSubpath := node.ParseImportPath(imp.Imp); impPkg != "" {
+		// Imports of npm packages.
+		results = append(results, ts.findPackageImport(c, ix, fromRel, impPkg, impSubpath)...)
 	}
 
 	// proto_library() targets when js_proto=aspect. The proto plugin owns the
@@ -615,12 +611,48 @@ func (ts *typeScriptLang) findSubpathImport(c *config.Config, ix *resolve.RuleIn
 			fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), target)}
 
 			results = append(results, ix.FindRulesByImport(fileSpec, LanguageName)...)
-		} else if impPkg, _ := node.ParseImportPath(target); impPkg != "" {
-			// External packages
-			if pkg := ts.findPackage(from, impPkg); pkg != nil {
-				results = append(results, resolve.FindResult{Label: *pkg})
-			}
+		} else if impPkg, impSubpath := node.ParseImportPath(target); impPkg != "" {
+			// External packages, including self-references through 'exports'.
+			results = append(results, ts.findPackageImport(c, ix, from, impPkg, impSubpath)...)
 		}
+	}
+
+	return results
+}
+
+// findPackageImport resolves a bare package specifier to its label(s),
+// preferring a self-reference through 'exports' over a node_modules package,
+// aligning with the node resolution algorithm.
+func (ts *typeScriptLang) findPackageImport(c *config.Config, ix *resolve.RuleIndex, from, impPkg, impSubpath string) []resolve.FindResult {
+	if selfRefs := ts.findPackageSelfReference(c, ix, from, impPkg, impSubpath); len(selfRefs) > 0 {
+		return selfRefs
+	}
+	if pkg := ts.findPackage(from, impPkg); pkg != nil {
+		return []resolve.FindResult{{Label: *pkg}}
+	}
+	return nil
+}
+
+// findPackageSelfReference resolves a node-style self-reference: a package
+// importing its own package.json 'name', resolved through its own 'exports' field.
+// See https://nodejs.org/api/packages.html#self-referencing-a-package-using-its-name
+func (ts *typeScriptLang) findPackageSelfReference(c *config.Config, ix *resolve.RuleIndex, from, impPkg, impSubpath string) []resolve.FindResult {
+	fromProject := ts.pnpmProjects.GetProject(from)
+	if fromProject == nil {
+		return nil
+	}
+
+	// Parse errors are reported when generating rules for the package.
+	packageJson, err := ts.getPackageJson(c, fromProject.Pkg())
+	if packageJson == nil || err != nil || packageJson.Name != impPkg {
+		return nil
+	}
+
+	// Self-references only resolve subpaths declared by the 'exports' field.
+	var results []resolve.FindResult
+	for _, file := range packageJson.ResolveExport(impSubpath) {
+		fileSpec := resolve.ImportSpec{Lang: LanguageName, Imp: path.Join(fromProject.Pkg(), file)}
+		results = append(results, ix.FindRulesByImport(fileSpec, LanguageName)...)
 	}
 
 	return results

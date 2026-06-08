@@ -1,0 +1,18 @@
+# Test exports-based self-references with lazy indexing AND recursion disabled
+# (-index=lazy -r=false lib/pkg). Only //lib/pkg is (re)generated; every other
+# package keeps its committed BUILD file and is only reached if //lib/pkg asks
+# gazelle to lazily index it.
+#
+# The npm_package target is disabled (see lib/pkg/BUILD.in) so the
+# self-references are resolved purely from the source ts_project. Under lazy
+# indexing the "@lib/pkg/sub" and "@lib/pkg/feat/*" target directories
+# (lib/pkg/sub, lib/pkg/feat) are only indexed when //lib/pkg declares them in
+# GenerateResult.RelsToIndex, so resolution must expand the package.json
+# "exports" targets into rels-to-index (tsPackageInfoToRelsToIndex). Without
+# that the self-references mis-resolve to the package's own npm link
+# (//:node_modules/@lib/pkg), a circular dependency.
+# https://nodejs.org/api/packages.html#self-referencing-a-package-using-its-name
+#
+#  * "@lib/pkg/sub" -> ./sub/main.js resolves to //lib/pkg/sub
+#  * "@lib/pkg/feat/x" matches the "./feat/*" pattern -> //lib/pkg/feat
+workspace(name = "pnpm_workspace_exports_lazy_norecurse")

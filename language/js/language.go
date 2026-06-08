@@ -1,6 +1,7 @@
 package gazelle
 
 import (
+	node "github.com/aspect-build/aspect-gazelle/language/js/node"
 	pnpm "github.com/aspect-build/aspect-gazelle/language/js/pnpm"
 	"github.com/aspect-build/aspect-gazelle/language/js/typescript"
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -32,6 +33,11 @@ type typeScriptLang struct {
 	// Possibly pnpm projects, possibly just package.json files.
 	packageJsonDirs map[string]struct{}
 
+	// Parsed package.json data memoized by directory. package.json content is
+	// stable for the run, so each is parsed at most once even when the parser
+	// cache is the noop (default) cache.
+	packageJsons map[string]*node.PackageJson
+
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
 }
@@ -50,6 +56,7 @@ func NewLanguage() language.Language {
 		moduleTypes:     make(map[string][]*label.Label),
 		pnpmProjects:    pnpmProjects,
 		packageJsonDirs: packageJsonDirs,
+		packageJsons:    make(map[string]*node.PackageJson),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found
