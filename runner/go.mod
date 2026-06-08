@@ -9,7 +9,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260603031412-023e0271bd43
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260603031412-023e0271bd43
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260520000513-6aad8828e826
-	github.com/bazelbuild/bazel-gazelle v0.51.1 // NOTE: keep in sync with MODULE.bazel
+	github.com/bazelbuild/bazel-gazelle v0.51.3 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6
 	github.com/bufbuild/rules_buf v0.5.4 // NOTE: keep in sync with MODULE.bazel
 	github.com/fatih/color v1.19.0
