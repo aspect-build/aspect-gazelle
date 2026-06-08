@@ -54,7 +54,7 @@ require (
 	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
-	github.com/mikefarah/yq/v4 v4.53.2 // indirect
+	github.com/mikefarah/yq/v4 v4.53.3 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
@@ -63,7 +63,7 @@ require (
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/otel/metric v1.44.0 // indirect
-	go.starlark.net v0.0.0-20260521175807-f5d928020cb8 // indirect
+	go.starlark.net v0.0.0-20260522144826-ec58d4b459e2 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.4 // indirect
 	golang.org/x/mod v0.36.0 // indirect
 	golang.org/x/net v0.55.0 // indirect

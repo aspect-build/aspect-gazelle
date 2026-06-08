@@ -9,8 +9,8 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/itchyny/gojq v0.12.19
-	github.com/mikefarah/yq/v4 v4.53.2
-	go.starlark.net v0.0.0-20260521175807-f5d928020cb8
+	github.com/mikefarah/yq/v4 v4.53.3
+	go.starlark.net v0.0.0-20260522144826-ec58d4b459e2
 	golang.org/x/sync v0.20.0
 )
 
