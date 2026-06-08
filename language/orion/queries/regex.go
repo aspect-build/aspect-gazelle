@@ -2,12 +2,16 @@ package queries
 
 import (
 	"regexp"
+	"sync"
 
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 	"golang.org/x/sync/errgroup"
 )
 
-func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+	results := make(plugin.QueryResults, len(queries))
+	var mu sync.Mutex
+
 	eg := errgroup.Group{}
 	eg.SetLimit(10)
 
@@ -16,15 +20,18 @@ func runRegexQueries(sourceCode []byte, queries plugin.NamedQueries, queryResult
 		key := key
 		q := q
 		eg.Go(func() error {
-			queryResults <- &plugin.QueryProcessorResult{
-				Key:    key,
-				Result: runRegexQuery(sourceCode, q.(*plugin.RegexQuery).ExpressionRe()),
-			}
+			r := runRegexQuery(sourceCode, q.(*plugin.RegexQuery).ExpressionRe())
+			mu.Lock()
+			results[key] = r
+			mu.Unlock()
 			return nil
 		})
 	}
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func runRegexQuery(sourceCode []byte, re *regexp.Regexp) plugin.QueryMatches {

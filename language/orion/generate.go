@@ -58,9 +58,10 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	//  - iterating over source files by plugin file group
 	pluginSourceFiles, sourceFilePlugins, pluginSourceGroupFiles := host.collectSourceFilesByPlugin(cfg, args.Config, args.RegularFiles)
 
-	// Run queries on source files and collect results
+	// Run queries on source files. Cap concurrency at MaxWorkerCount: more
+	// in-flight blocking opens just churn the scheduler spinning up OS threads.
 	eg := errgroup.Group{}
-	eg.SetLimit(100)
+	eg.SetLimit(MaxWorkerCount)
 
 	// Stage 2:
 	// Parse and query source files and collect results
@@ -407,7 +408,7 @@ func (host *GazelleHost) runSourceQueries(queryCache cache.Cache, queries plugin
 	var qr plugin.QueryResults
 
 	r, _, err := queryCache.LoadOrStoreFile(baseDir, f, queriesHash, func(p string, sourceCode []byte) (any, error) {
-		return host.runSourceCodeQueries(queries, sourceCode, f)
+		return queryRunner.RunQueries(f, sourceCode, queries)
 	})
 
 	if r != nil {
@@ -415,44 +416,6 @@ func (host *GazelleHost) runSourceQueries(queryCache cache.Cache, queries plugin
 	}
 
 	return qr, err
-}
-
-func (host *GazelleHost) runSourceCodeQueries(queries plugin.NamedQueries, sourceCode []byte, f string) (plugin.QueryResults, error) {
-	// Split queries by type to invoke in batches
-	queriesByType := make(map[plugin.QueryType]plugin.NamedQueries)
-	for key, query := range queries {
-		queryType := query.QueryType()
-		if queriesByType[queryType] == nil {
-			queriesByType[queryType] = make(plugin.NamedQueries)
-		}
-		queriesByType[queryType][key] = query
-	}
-
-	queryResultsChan := make(chan *plugin.QueryProcessorResult)
-	eg := errgroup.Group{}
-
-	for queryType, queries := range queriesByType {
-		// Capture loop variables for goroutine
-		queryType := queryType
-		queries := queries
-		eg.Go(func() error {
-			return queryRunner.RunQueries(queryType, f, sourceCode, queries, queryResultsChan)
-		})
-	}
-
-	var err error
-	go func() {
-		err = eg.Wait()
-		close(queryResultsChan)
-	}()
-
-	// Read the result channel and collect the results
-	queryResults := make(plugin.QueryResults, len(queries))
-	for result := range queryResultsChan {
-		queryResults[result.Key] = result.Result
-	}
-
-	return queryResults, err
 }
 
 // Collect source files managed by this BUILD and batch them by plugins interested in them.
