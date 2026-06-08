@@ -14,8 +14,6 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/apparentlymart/go-textseg/v15 v15.0.0 h1:uYvfpb3DyLSCGWnctWKGj857c6ew1u1fNQOlOtuGxQY=
 github.com/apparentlymart/go-textseg/v15 v15.0.0/go.mod h1:K8XmNZdhEBkdlyDdvbmmsvpAG721bKi0joRfFdHIWJ4=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d h1:5F7bdG/Qut5fgShgftmMjys48pSWvom32n01iOeyknw=
-github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d/go.mod h1:nvx06Do6pkAAdHTG4EgtxyaiUlEROqAsktHv1/90MAc=
 github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260603031412-023e0271bd43 h1:+gYsGLmqCnYSgZTxJXg6v0Jdsw78xlfbWKkM4lDf48U=
 github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260603031412-023e0271bd43/go.mod h1:CXlgRKoF5qbyJ31JNtBPRxXQFFRNwK8q3DfHq/1C0ec=
 github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260603031412-023e0271bd43 h1:QwXu5FSN8p65hdaShpFQwwRifg5WPaE8qYPVtzd7IfQ=
@@ -110,6 +108,8 @@ github.com/mikefarah/yq/v4 v4.53.3 h1:S0kwPkINdOjgPskW5CfYTGo/Vt7c3gUnUkKSp7CNqD
 github.com/mikefarah/yq/v4 v4.53.3/go.mod h1:4mvgujMtSAB3lA27+lwg8eIud/4QUQw2/1rLbxgiauw=
 github.com/mitchellh/go-wordwrap v1.0.1 h1:TLuKupo69TCn6TQSyGxwI1EblZZEsQ0vMlAFQflz0v0=
 github.com/mitchellh/go-wordwrap v1.0.1/go.mod h1:R62XHJLzvMFRBbcrT7m7WgmE1eOyTSsCt+hzestvNj0=
+github.com/odvcencio/gotreesitter v0.20.2 h1:oWxGgy0WzLJKeiZB8EFzXDDlHYG/hqiZmWrW+81uwy4=
+github.com/odvcencio/gotreesitter v0.20.2/go.mod h1:hBVkghd0paaYAVwd2087vfwdeU984bQbMo9LvpE0moo=
 github.com/pelletier/go-toml/v2 v2.3.1 h1:MYEvvGnQjeNkRF1qUuGolNtNExTDwct51yp7olPtrEc=
 github.com/pelletier/go-toml/v2 v2.3.1/go.mod h1:2gIqNv+qfxSVS7cM2xJQKtLSTLUE9V8t9Stt+h56mCY=
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e h1:aoZm08cpOy4WuID//EZDgcC4zIxODThtZNPirFr42+A=
@@ -123,8 +123,8 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/rs/zerolog v1.35.1 h1:m7xQeoiLIiV0BCEY4Hs+j2NG4Gp2o2KPKmhnnLiazKI=
 github.com/rs/zerolog v1.35.1/go.mod h1:EjML9kdfa/RMA7h/6z6pYmq1ykOuA8/mjWaEvGI+jcw=
-github.com/odvcencio/gotreesitter v0.20.2 h1:oWxGgy0WzLJKeiZB8EFzXDDlHYG/hqiZmWrW+81uwy4=
-github.com/odvcencio/gotreesitter v0.20.2/go.mod h1:hBVkghd0paaYAVwd2087vfwdeU984bQbMo9LvpE0moo=
+github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 h1:6C8qej6f1bStuePVkLSFxoU22XBS165D3klxlzRg8F4=
+github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82/go.mod h1:xe4pgH49k4SsmkQq5OT8abwhWmnzkhpgnXeekbx2efw=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
