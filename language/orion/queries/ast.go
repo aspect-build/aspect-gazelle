@@ -18,11 +18,11 @@ import (
 	"github.com/aspect-build/aspect-gazelle/treesitter/typescript"
 )
 
-func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	lang := toTreeLanguage(fileName, queries)
 	ast, err := treeutils.ParseSourceCode(lang, fileName, sourceCode)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer ast.Close()
 
@@ -39,24 +39,22 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 	// Tree.cachedNode uses a plain map that is not safe for concurrent access
 	// when collecting AST nodes for captures.
 	// NOTE: could potentially split initial query execution vs capture collection?
+	results := make(plugin.QueryResults, len(queries))
 	for key, query := range queries {
 		treeQuery, err := treeutils.GetQuery(lang, query.(*plugin.AstQuery).Query)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		matches := plugin.QueryMatches(nil)
-		for r := range ast.Query(treeQuery) {
-			matches = append(matches, plugin.NewQueryMatch(r.Captures(), nil))
+		for captures := range ast.Query(treeQuery) {
+			matches = append(matches, plugin.NewQueryMatch(captures, nil))
 		}
 
-		queryResults <- &plugin.QueryProcessorResult{
-			Key:    key,
-			Result: matches,
-		}
+		results[key] = matches
 	}
 
-	return nil
+	return results, nil
 }
 
 func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Language {

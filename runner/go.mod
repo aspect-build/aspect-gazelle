@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/EngFlow/gazelle_cc v0.5.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260604054315-b4e02944755d
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260608080138-47c8330afbc8
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260603031412-023e0271bd43
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260603031412-023e0271bd43
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260603031412-023e0271bd43

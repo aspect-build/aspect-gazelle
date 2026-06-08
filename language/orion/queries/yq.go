@@ -2,6 +2,7 @@ package queries
 
 import (
 	"bytes"
+	"sync"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
@@ -9,16 +10,19 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	decoder := yqlib.NewYamlDecoder(yqlib.ConfiguredYamlPreferences)
 	err := decoder.Init(bytes.NewReader(sourceCode))
 	if err != nil {
-		return err
+		return nil, err
 	}
 	node, err := decoder.Decode()
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	results := make(plugin.QueryResults, len(queries))
+	var mu sync.Mutex
 
 	eg := errgroup.Group{}
 	eg.SetLimit(10)
@@ -33,15 +37,17 @@ func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 				return err
 			}
 
-			queryResults <- &plugin.QueryProcessorResult{
-				Key:    key,
-				Result: r,
-			}
+			mu.Lock()
+			results[key] = r
+			mu.Unlock()
 			return nil
 		})
 	}
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func runYamlQuery(node *yqlib.CandidateNode, query string) (interface{}, error) {

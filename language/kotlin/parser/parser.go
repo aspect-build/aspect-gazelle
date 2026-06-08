@@ -75,10 +75,9 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		if err != nil {
 			BazelLog.Fatalf("Failed to create kotlin 'importsQuery': %v", err)
 		}
-		for queryResult := range tree.Query(q) {
-			BazelLog.Tracef("Kotlin AST Query %q: %v", filePath, queryResult)
+		for caps := range tree.Query(q) {
+			BazelLog.Tracef("Kotlin AST Query %q: %v", filePath, caps)
 
-			caps := queryResult.Captures()
 			if from, isFrom := caps["from"]; isFrom {
 				if _, isFromWild := caps["from-wild"]; !isFromWild {
 					if lastDot := strings.LastIndex(from, "."); lastDot != -1 {
@@ -95,7 +94,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			} else if _, isMain := caps["equals-main"]; isMain {
 				result.HasMain = true
 			} else {
-				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, queryResult)
+				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, caps)
 			}
 		}
 

@@ -10,12 +10,15 @@ import (
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
-func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	var doc interface{}
 	err := json.Unmarshal(sourceCode, &doc)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	results := make(plugin.QueryResults, len(queries))
+	var mu sync.Mutex
 
 	eg := errgroup.Group{}
 	eg.SetLimit(10)
@@ -30,15 +33,17 @@ func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 				return err
 			}
 
-			queryResults <- &plugin.QueryProcessorResult{
-				Key:    key,
-				Result: r,
-			}
+			mu.Lock()
+			results[key] = r
+			mu.Unlock()
 			return nil
 		})
 	}
 
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+	return results, nil
 }
 
 func runJsonQuery(doc interface{}, query string) (interface{}, error) {

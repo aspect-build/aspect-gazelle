@@ -5,41 +5,76 @@ import (
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
-func RunQueries(queryType plugin.QueryType, fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func RunQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	// Content gate: a query with a ContentFilter only runs if the source matches
-	// it. Queries gated out get an empty result; if that leaves nothing to run,
-	// the handler (and its parse) is skipped entirely.
-	active := make(plugin.NamedQueries, len(queries))
+	// it. Queries gated out get an empty result; that may leave a type with no
+	// active queries, skipping its handler (and its parse) entirely. Surviving
+	// queries are grouped by type to run as a single batch per type.
+	var gated plugin.QueryResults
+	activeByType := make(map[plugin.QueryType]plugin.NamedQueries)
 	for key, q := range queries {
+		queryType := q.QueryType()
 		if !q.MatchContent(sourceCode) {
-			queryResults <- &plugin.QueryProcessorResult{
-				Key:    key,
-				Result: emptyResult(queryType),
+			if gated == nil {
+				gated = make(plugin.QueryResults)
 			}
+			gated[key] = emptyResult(queryType)
 			continue
 		}
-		active[key] = q
-	}
-	if len(active) == 0 {
-		return nil
+		if activeByType[queryType] == nil {
+			activeByType[queryType] = make(plugin.NamedQueries)
+		}
+		activeByType[queryType][key] = q
 	}
 
+	var results plugin.QueryResults
+	for queryType, active := range activeByType {
+		batch, err := runQueryBatch(queryType, fileName, sourceCode, active)
+		if err != nil {
+			return nil, err
+		}
+
+		if results == nil {
+			results = batch
+		} else {
+			for key, r := range batch {
+				results[key] = r
+			}
+		}
+	}
+
+	// Fold the gated empties in, adopting their map if no batch produced one.
+	if results == nil {
+		results = gated
+	} else {
+		for key, r := range gated {
+			results[key] = r
+		}
+	}
+	if results == nil {
+		results = plugin.QueryResults{}
+	}
+	return results, nil
+}
+
+// runQueryBatch runs the active queries of a single type.
+func runQueryBatch(queryType plugin.QueryType, fileName string, sourceCode []byte, active plugin.NamedQueries) (plugin.QueryResults, error) {
 	switch queryType {
 	case plugin.QueryTypeAst:
-		return runPluginTreeQueries(fileName, sourceCode, active, queryResults)
+		return runPluginTreeQueries(fileName, sourceCode, active)
 	case plugin.QueryTypeRegex:
-		return runRegexQueries(sourceCode, active, queryResults)
+		return runRegexQueries(sourceCode, active)
 	case plugin.QueryTypeJson:
-		return runJsonQueries(fileName, sourceCode, active, queryResults)
+		return runJsonQueries(fileName, sourceCode, active)
 	case plugin.QueryTypeYaml:
-		return runYamlQueries(fileName, sourceCode, active, queryResults)
+		return runYamlQueries(fileName, sourceCode, active)
 	case plugin.QueryTypeToml:
-		return runTomlQueries(fileName, sourceCode, active, queryResults)
+		return runTomlQueries(fileName, sourceCode, active)
 	case plugin.QueryTypeRaw:
-		return runRawQueries(fileName, sourceCode, active, queryResults)
+		return runRawQueries(fileName, sourceCode, active)
 	default:
 		BazelLog.Fatalf("Unknown query type: %v", queryType)
-		return nil
+		return nil, nil
 	}
 }
 
@@ -56,13 +91,11 @@ func emptyResult(queryType plugin.QueryType) any {
 	}
 }
 
-func runRawQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries, queryResults chan *plugin.QueryProcessorResult) error {
+func runRawQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	sourceCodeStr := string(sourceCode)
+	results := make(plugin.QueryResults, len(queries))
 	for key := range queries {
-		queryResults <- &plugin.QueryProcessorResult{
-			Key:    key,
-			Result: sourceCodeStr,
-		}
+		results[key] = sourceCodeStr
 	}
-	return nil
+	return results, nil
 }
