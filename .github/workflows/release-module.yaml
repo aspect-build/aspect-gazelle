@@ -65,6 +65,11 @@ jobs:
       release_files: ${{ inputs.release_files != '' && inputs.release_files || format('aspect-gazelle-{0}*.tar.gz', inputs.tag_prefix) }}
       # Bypass rerunning the tests - CI already covers this so only run 'true'
       bazel_test_command: "true"
+      # release_prep.sh emits a changelog scoped to this module's subtree and
+      # diffed against the previous <prefix> tag. GitHub's auto-generated notes
+      # would diff against the previous tag of any prefix and list every repo
+      # PR, so disable them and use only our changelog.
+      generate_release_notes: false
       # Draft so publish-to-bcr can upload attestations before the release is
       # finalized (immutable releases reject later asset uploads).
       draft: true
