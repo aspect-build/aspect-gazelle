@@ -99,9 +99,11 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			}
 		}
 
-		treeErrors := tree.QueryErrors()
-		if treeErrors != nil {
-			errs = append(errs, treeErrors...)
+		if BazelLog.IsTraceEnabled() {
+			treeErrors := tree.QueryErrors()
+			if treeErrors != nil {
+				BazelLog.Tracef("Kotlin TreeSitter query errors: %v", treeErrors)
+			}
 		}
 	}
 

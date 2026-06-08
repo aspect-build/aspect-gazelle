@@ -1,14 +1,10 @@
 package ruby
 
-//#include "tree_sitter/parser.h"
-//TSLanguage *tree_sitter_ruby();
-import "C"
 import (
-	"unsafe"
-
-	sitter "github.com/smacker/go-tree-sitter"
+	sitter "github.com/odvcencio/gotreesitter"
+	"github.com/odvcencio/gotreesitter/grammars"
 )
 
 func NewLanguage() *sitter.Language {
-	return sitter.NewLanguage(unsafe.Pointer(C.tree_sitter_ruby()))
+	return grammars.RubyLanguage()
 }

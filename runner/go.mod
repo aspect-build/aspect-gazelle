@@ -56,6 +56,7 @@ require (
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mikefarah/yq/v4 v4.53.3 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
+	github.com/odvcencio/gotreesitter v0.20.2 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
@@ -76,3 +77,5 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace github.com/aspect-build/aspect-gazelle/common => ../common

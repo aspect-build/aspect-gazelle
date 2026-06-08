@@ -289,6 +289,52 @@ func TestMultiplePredicates_allMustPass(t *testing.T) {
 	}
 }
 
+func TestAnyOfPredicate(t *testing.T) {
+	ast := mustParseGo(t, goFunctions)
+	q := mustQuery(t, `(function_declaration name: (identifier) @name
+		(#any-of? @name "Foo" "Bar"))`)
+
+	got := collectCaptures(ast, q, "name")
+	want := []string{"Foo", "Bar"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestNotHasParentPredicate(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+// top-level
+func Foo() {
+	// nested
+}
+`)
+	q := mustQuery(t, `((comment) @comment
+		(#not-has-parent? @comment function_declaration block statement_list))`)
+
+	got := collectCaptures(ast, q, "comment")
+	want := []string{"// top-level"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func TestHasParentPredicate(t *testing.T) {
+	ast := mustParseGo(t, `package foo
+// top-level
+func Foo() {
+	// nested
+}
+`)
+	q := mustQuery(t, `((comment) @comment
+		(#has-parent? @comment function_declaration block statement_list))`)
+
+	got := collectCaptures(ast, q, "comment")
+	want := []string{"// nested"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
 func TestQueryErrors_validSource(t *testing.T) {
 	ast := mustParseGo(t, goFunctions)
 
@@ -300,24 +346,33 @@ func TestQueryErrors_validSource(t *testing.T) {
 
 func TestQueryErrors_errorFormat(t *testing.T) {
 	ast := mustParseGo(t, `package foo
-
-)
+func Foo() { if }
 `)
 	errs := ast.QueryErrors()
 	if len(errs) == 0 {
 		t.Fatal("expected parse errors, got none")
 	}
 
-	msg := errs[0].Error()
+	var msg string
+	for _, err := range errs {
+		if strings.Contains(err.Error(), "func Foo() { if") {
+			msg = err.Error()
+			break
+		}
+	}
+	if msg == "" {
+		t.Fatalf("expected function body error, got: %v", errs)
+	}
+
 	lines := strings.SplitN(msg, "\n", 2)
 	if len(lines) != 2 {
 		t.Fatalf("expected two-line error, got: %q", msg)
 	}
-	if lines[0] != "     3: )" {
-		t.Errorf("error line: got %q, want %q", lines[0], "     3: )")
+	if lines[0] != "     2: func Foo() { if" {
+		t.Errorf("error line: got %q, want %q", lines[0], "     2: func Foo() { if")
 	}
-	if lines[1] != "        ^" {
-		t.Errorf("caret line: got %q, want %q", lines[1], "        ^")
+	if lines[1] != "                   ^" {
+		t.Errorf("caret line: got %q, want %q", lines[1], "                   ^")
 	}
 }
 

@@ -14,14 +14,6 @@ use_repo(go_deps, "com_github_aspect_build_aspect_gazelle_common", "com_github_b
 
 ####### Dev dependencies ########
 
-# Go module patching. Dev only and must be done manually if this MODULE is consumed elsewhere.
-go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
-go_deps_dev.module_override(
-    patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
-    path = "github.com/smacker/go-tree-sitter",
-)
-
 local_path_override(
     module_name = "aspect_treesitter_grammars",
     path = "../../treesitter",
