@@ -1,0 +1,19 @@
+# Test node-style subpath imports (package.json 'imports') with lazy indexing
+# (-index=lazy lib/pkg). Recursion is on, so //lib/pkg and its subdirectories
+# are generated; packages outside the target (root, lib/other) keep their
+# committed BUILD files and are only indexed if //lib/pkg lazily reaches them.
+# Companion to pnpm_workspace_imports-lazy_norecurse, which runs the same target
+# with -r=false; the only difference between the two is the recursion flag.
+#
+# The npm_package target is disabled (see lib/pkg/BUILD.in) so the '#' subpath
+# imports are resolved purely from the source ts_project, which is the code path
+# that must declare the subpath import target directories for lazy indexing
+# (tsPackageInfoToRelsToIndex).
+# https://nodejs.org/api/packages.html#subpath-imports
+#
+#  * '#sub' -> ./sub/main.js resolves to //lib/pkg/sub
+#  * '#ext' -> @lib/other resolves to :node_modules/@lib/other (pnpm, not index)
+#  * '#internal/*' -> ./internal/*.js resolves '#internal/util' to //lib/pkg/internal
+#  * '#~db' (odd alias) -> ./db/client.js resolves to //lib/pkg/db, a dependency
+#    reached ONLY via the 'imports' field
+workspace(name = "pnpm_workspace_imports_lazy")

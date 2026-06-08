@@ -1,0 +1,16 @@
+# Test node-style subpath imports (package.json 'imports') under lazy indexing
+# when the gazelle target is a SUBDIRECTORY of the pnpm project, with recursion
+# disabled (-index=lazy -r=false lib/pkg/consumer).
+#
+# lib/pkg/consumer is not itself a pnpm project; its '#' subpath imports are
+# resolved by the enclosing project's lib/pkg/package.json. Only //lib/pkg/consumer
+# is generated and the import target directories are outside the update set, so
+# lazy indexing must consult the project root's package.json (project.Pkg(), NOT
+# the generated directory) to expand the 'imports' targets into rels-to-index.
+# This guards both the fix and the use of project.Pkg() over args.Rel.
+# https://nodejs.org/api/packages.html#subpath-imports
+#
+#  * '#sub' -> ./sub/main.js resolves to //lib/pkg/sub
+#  * '#internal/util' ('#internal/*' pattern) resolves to //lib/pkg/internal
+#  * '#~db' (odd alias) resolves to //lib/pkg/db
+workspace(name = "pnpm_workspace_imports_lazy_subdir")

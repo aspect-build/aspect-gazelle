@@ -1,0 +1,5 @@
+{
+  "name": "@lib/other",
+  "private": true,
+  "main": "index.js"
+}

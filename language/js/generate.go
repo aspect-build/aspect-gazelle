@@ -115,8 +115,11 @@ func (ts *typeScriptLang) GenerateRules(args language.GenerateArgs) language.Gen
 func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args language.GenerateArgs, info *TsProjectInfo) []string {
 	i := []string{}
 
-	if p := ts.pnpmProjects.GetProject(cfg.rel); p != nil {
-		for _, pkg := range p.GetLocalReferences() {
+	// The pnpm project (if any) this package belongs to, used to expand both
+	// workspace references and node-style subpath imports below.
+	project := ts.pnpmProjects.GetProject(cfg.rel)
+	if project != nil {
+		for _, pkg := range project.GetLocalReferences() {
 			i = append(i, pkg)
 		}
 	}
@@ -129,6 +132,17 @@ func (ts *typeScriptLang) tsPackageInfoToRelsToIndex(cfg *JsGazelleConfig, args 
 
 		// Might require tsconfig path expansion (rootDir[s], paths etc.)
 		i = append(i, ts.tsconfig.ExpandPaths(impt.SourcePath, impt.Imp, info.groupName)...)
+
+		// Might be a node-style '#' subpath import mapped to package files via package.json 'imports'
+		if project != nil && node.IsSubpathImport(impt.Imp) {
+			if packageJson, _ := ts.getPackageJson(args.Config, project.Pkg()); packageJson != nil {
+				for _, target := range packageJson.ResolveImport(impt.Imp) {
+					if strings.HasPrefix(target, "./") {
+						i = append(i, path.Join(project.Pkg(), target))
+					}
+				}
+			}
+		}
 	}
 
 	return i

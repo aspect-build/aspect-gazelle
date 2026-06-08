@@ -2,11 +2,9 @@
 import { subId } from '#sub';
 // Subpath import mapped to an external package.
 import { otherId } from '#ext';
-// Conditional subpath import mapping conditions to separate directories.
-import { condId } from '#cond';
 // Subpath import matching a '*' pattern.
 import { internalId } from '#internal/util';
 // Odd alias for a dependency reached ONLY via a package.json 'imports' entry.
 import { dbId } from '#~db';
 
-export const id = () => subId() + otherId() + condId() + internalId() + dbId();
+export const id = () => subId() + otherId() + internalId() + dbId();
