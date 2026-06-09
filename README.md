@@ -100,4 +100,4 @@ See [prebuilt](./prebuilt) for details, including verifying BUILD files in CI wi
 ## Developing
 
 To release, just press the button on
-https://github.com/aspect-build/aspect-gazelle/actions/workflows/release.yaml
+https://github.com/aspect-build/aspect-gazelle/actions/workflows/release-prebuilt.yaml

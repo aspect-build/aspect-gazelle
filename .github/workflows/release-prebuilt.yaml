@@ -1,0 +1,25 @@
+# Release + publish aspect_gazelle_prebuilt to the BCR (own prebuilt-v* version
+# line). Thin trigger over release-module.yaml; unlike the source-only modules,
+# the prebuilt archive also ships compiled binaries, so this passes release_files
+# to upload the artifacts/ produced by release_prep.sh.
+name: Release (prebuilt)
+on:
+  push:
+    tags:
+      - 'prebuilt-v*.*.*'
+permissions:
+  id-token: write
+  attestations: write
+  contents: write
+jobs:
+  release:
+    uses: ./.github/workflows/release-module.yaml
+    with:
+      tag_prefix: "prebuilt-v"
+      module_root: "prebuilt"
+      module_name: "aspect_gazelle_prebuilt"
+      release_files: |
+        artifacts/*
+        aspect-gazelle-prebuilt-v*.tar.gz
+    secrets:
+      BCR_PUBLISH_TOKEN: ${{ secrets.BCR_PUBLISH_TOKEN }}
