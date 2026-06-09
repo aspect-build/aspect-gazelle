@@ -123,22 +123,19 @@ func (c *diskCache) write() {
 }
 
 func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (any, bool, error) {
-	content, err := os.ReadFile(path.Join(root, p))
-	if err != nil {
-		return nil, false, err
-	}
+	return withFileContent(path.Join(root, p), func(content []byte) (any, bool, error) {
+		contentHash := computeCacheKey(content)
 
-	contentHash := computeCacheKey(content)
-
-	// Invalidate the cached entry if the file content has changed.
-	if existingHash, found := c.contentHashes.Load(p); found {
-		if existingHash.(string) != contentHash {
-			c.FileComputeCache.Invalidate([]string{p})
+		// Invalidate the cached entry if the file content has changed.
+		if existingHash, found := c.contentHashes.Load(p); found {
+			if existingHash.(string) != contentHash {
+				c.FileComputeCache.Invalidate([]string{p})
+			}
 		}
-	}
-	c.contentHashes.Store(p, contentHash)
+		c.contentHashes.Store(p, contentHash)
 
-	return c.loadOrStore(p, key, content, loader)
+		return c.loadOrStore(p, key, content, loader)
+	})
 }
 
 func (c *diskCache) Persist() {

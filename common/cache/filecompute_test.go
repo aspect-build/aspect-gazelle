@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
@@ -135,6 +136,165 @@ func TestFileComputeCache_Persistence(t *testing.T) {
 	}
 	if *calls2 != 0 {
 		t.Errorf("expected 0 compute calls after reload, got %d", *calls2)
+	}
+}
+
+// noopCache reads the file and runs the loader, always reporting a miss.
+func TestNoopCache_ReadsAndMisses(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "file.go", "content")
+
+	c := &noopCache{}
+	compute, calls := makeCompute(t)
+
+	v, hit, err := c.LoadOrStoreFile(dir, "file.go", "key", compute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hit {
+		t.Error("noop cache must never report a hit")
+	}
+	if v.(string) != "content" {
+		t.Errorf("expected %q, got %q", "content", v)
+	}
+	if *calls != 1 {
+		t.Errorf("expected 1 compute call, got %d", *calls)
+	}
+}
+
+// noopCache re-reads on every call: a changed file is reflected immediately and
+// the loader runs again (the opposite of FileComputeCache's stale-hit behavior).
+func TestNoopCache_AlwaysReReads(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "file.go", "v1")
+
+	c := &noopCache{}
+	compute, calls := makeCompute(t)
+
+	c.LoadOrStoreFile(dir, "file.go", "key", compute)
+	writeTestFile(t, dir, "file.go", "v2")
+
+	v, _, err := c.LoadOrStoreFile(dir, "file.go", "key", compute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.(string) != "v2" {
+		t.Errorf("expected fresh %q, got %q", "v2", v)
+	}
+	if *calls != 2 {
+		t.Errorf("expected 2 compute calls, got %d", *calls)
+	}
+}
+
+// A file larger than the pool's default buffer capacity exercises the
+// read-loop's grow path and must round-trip its content exactly.
+func TestNoopCache_LargeFileGrows(t *testing.T) {
+	dir := t.TempDir()
+	big := strings.Repeat("abcd", 64*1024) // 256 KiB, well past the 64 KiB default
+	writeTestFile(t, dir, "big.txt", big)
+
+	c := &noopCache{}
+	compute, _ := makeCompute(t)
+
+	v, _, err := c.LoadOrStoreFile(dir, "big.txt", "key", compute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if v.(string) != big {
+		t.Errorf("large file round-trip mismatch: got %d bytes, want %d", len(v.(string)), len(big))
+	}
+}
+
+// Reusing one noopCache (and thus the shared buffer pool) across files of
+// varying sizes — including large-then-small — must return each file's exact
+// content, proving the recycled buffer is correctly resliced and not leaked
+// between reads.
+func TestNoopCache_PooledBufferReuse(t *testing.T) {
+	dir := t.TempDir()
+	contents := []string{
+		strings.Repeat("X", 200*1024), // forces a grow
+		"tiny",                        // reuses the grown buffer; must reslice down
+		"",                            // empty file
+		strings.Repeat("Y", 100*1024),
+		"medium content here",
+	}
+	for i, want := range contents {
+		writeTestFile(t, dir, fmt.Sprintf("f%d", i), want)
+	}
+
+	c := &noopCache{}
+	compute, _ := makeCompute(t)
+
+	// Two passes to ensure buffers returned to the pool by the first pass are
+	// reused by the second without carrying over stale bytes.
+	for pass := 0; pass < 2; pass++ {
+		for i, want := range contents {
+			v, _, err := c.LoadOrStoreFile(dir, fmt.Sprintf("f%d", i), "key", compute)
+			if err != nil {
+				t.Fatalf("pass %d file %d: %v", pass, i, err)
+			}
+			if v.(string) != want {
+				t.Errorf("pass %d file %d: got %d bytes, want %d", pass, i, len(v.(string)), len(want))
+			}
+		}
+	}
+}
+
+// Concurrent reads through the shared pool must each get their own buffer and
+// return the correct content (run under -race to catch buffer sharing).
+func TestNoopCache_ConcurrentReuse(t *testing.T) {
+	dir := t.TempDir()
+	const n = 64
+	want := make([]string, n)
+	for i := 0; i < n; i++ {
+		want[i] = strings.Repeat(fmt.Sprintf("%02d", i), (i+1)*512) // distinct, varied sizes
+		writeTestFile(t, dir, fmt.Sprintf("f%d", i), want[i])
+	}
+
+	c := &noopCache{}
+	// A stateless loader: makeCompute's shared counter would itself race,
+	// masking what this test checks (that the pooled buffer is not shared).
+	compute := func(_ string, content []byte) (any, error) { return string(content), nil }
+
+	var wg sync.WaitGroup
+	errs := make([]error, n)
+	for i := 0; i < n; i++ {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+			for r := 0; r < 20; r++ {
+				v, _, err := c.LoadOrStoreFile(dir, fmt.Sprintf("f%d", i), "key", compute)
+				if err != nil {
+					errs[i] = err
+					return
+				}
+				if v.(string) != want[i] {
+					errs[i] = fmt.Errorf("file %d: got %d bytes, want %d", i, len(v.(string)), len(want[i]))
+					return
+				}
+			}
+		}(i)
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			t.Error(err)
+		}
+	}
+}
+
+// A missing file surfaces the open error and does not run the loader.
+func TestNoopCache_MissingFile(t *testing.T) {
+	c := &noopCache{}
+	compute, calls := makeCompute(t)
+
+	_, _, err := c.LoadOrStoreFile(t.TempDir(), "does-not-exist", "key", compute)
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+	if *calls != 0 {
+		t.Errorf("expected loader not to run, got %d calls", *calls)
 	}
 }
 

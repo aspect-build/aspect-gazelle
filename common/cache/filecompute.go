@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"encoding/hex"
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"sync"
@@ -12,6 +13,95 @@ import (
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/bazel-gazelle/config"
 )
+
+// fileReadBufPool recycles file-content buffers across reads. Every cache
+// implementation reads a file's bytes and hands them to a loader; without
+// pooling each read allocates a fresh []byte sized to the file — the dominant
+// source of allocation and GC pressure, especially for the noop cache (which
+// re-reads on every call) and the disk cache (which reads on every call to
+// hash the content). Buffers are reused between reads and grow to the largest
+// file seen.
+//
+// Storing *[]byte (not []byte) avoids boxing the slice header into an interface
+// on every Put (staticcheck SA6002).
+var fileReadBufPool = sync.Pool{
+	New: func() any {
+		b := make([]byte, 0, 64*1024)
+		return &b
+	},
+}
+
+// maxPooledBuf bounds the capacity we retain. Buffers grown past this (e.g. by a
+// large generated file or lockfile) are dropped to GC instead of pinning that
+// much memory per pool slot.
+const maxPooledBuf = 1 << 20 // 1 MiB
+
+// withFileContent reads name into a pooled buffer, invokes fn with the content,
+// and returns the buffer to the pool after fn returns.
+//
+// fn MUST NOT retain content beyond its return: the buffer is reused for the
+// next read. All current callers satisfy this — loaders copy what they keep
+// (the JS parser into ParseResult; the orion query path into capture strings,
+// Close()-ing its tree before returning), and the disk cache only hashes the
+// content. A loader that returned a value aliasing content (an unsafe
+// string-over-bytes, or an un-Closed tree-sitter AST) would corrupt it.
+func withFileContent(name string, fn func(content []byte) (any, bool, error)) (any, bool, error) {
+	bufPtr := fileReadBufPool.Get().(*[]byte)
+	defer func() {
+		if cap(*bufPtr) <= maxPooledBuf {
+			*bufPtr = (*bufPtr)[:0]
+			fileReadBufPool.Put(bufPtr)
+		}
+	}()
+
+	content, err := readFileInto(name, bufPtr)
+	if err != nil {
+		return nil, false, err
+	}
+	return fn(content)
+}
+
+// readFileInto reads the whole named file into the buffer pointed to by bufPtr,
+// growing it (and updating *bufPtr) if the file is larger than its current
+// capacity, and returns the populated slice. It mirrors os.ReadFile's
+// grow-and-read loop so it tolerates files whose size changes between stat and
+// read.
+func readFileInto(name string, bufPtr *[]byte) ([]byte, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	buf := (*bufPtr)[:0]
+
+	// Size hint from stat: pre-grow once so the read loop avoids repeated
+	// reallocation. +1 (like os.ReadFile) so the final zero-byte read at EOF
+	// doesn't force another grow.
+	if info, statErr := f.Stat(); statErr == nil {
+		if size := info.Size(); size > 0 && int64(int(size)) == size {
+			if need := int(size) + 1; cap(buf) < need {
+				buf = make([]byte, 0, need)
+			}
+		}
+	}
+
+	for {
+		if len(buf) == cap(buf) {
+			// Grow: append forces a larger backing array, then reslice to len.
+			buf = append(buf, 0)[:len(buf)]
+		}
+		n, readErr := f.Read(buf[len(buf):cap(buf)])
+		buf = buf[:len(buf)+n]
+		if readErr != nil {
+			*bufPtr = buf // publish any grown buffer so the pool retains it
+			if readErr == io.EOF {
+				return buf, nil
+			}
+			return buf, readErr
+		}
+	}
+}
 
 // FilePath returns ASPECT_GAZELLE_CACHE if set, otherwise a per-repo, per-worktree file under os.TempDir.
 func FilePath(cfg *config.Config) string {
@@ -150,11 +240,9 @@ func (c *FileComputeCache) LoadOrStoreFile(root, p, key string, loader FileCompu
 		}
 	}
 
-	content, err := os.ReadFile(path.Join(root, p))
-	if err != nil {
-		return nil, false, err
-	}
-	return c.loadOrStore(p, key, content, loader)
+	return withFileContent(path.Join(root, p), func(content []byte) (any, bool, error) {
+		return c.loadOrStore(p, key, content, loader)
+	})
 }
 
 // loadOrStore is the inner implementation for callers that have already read
