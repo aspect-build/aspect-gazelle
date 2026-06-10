@@ -189,7 +189,7 @@ func (re *GazelleHost) resolveImports(
 	var errs []error
 
 	for _, imp := range imports {
-		resolutionType, dep, err := re.resolveImport(c, ix, pluginId, imp, from)
+		resolutionType, resolved, err := re.resolveImport(c, ix, pluginId, imp, from)
 		if err != nil {
 			return nil, err
 		}
@@ -211,8 +211,8 @@ func (re *GazelleHost) resolveImports(
 			continue
 		}
 
-		if dep != nil {
-			deps.Add(dep)
+		for i := range resolved {
+			deps.Add(&resolved[i])
 		}
 	}
 
@@ -225,71 +225,117 @@ func (host *GazelleHost) resolveImport(
 	pluginId plugin.PluginId,
 	impt plugin.TargetImport,
 	from label.Label,
-) (ResolutionType, *label.Label, error) {
+) (ResolutionType, []label.Label, error) {
 	// TODO: "native" imports
 	// if IsNativeImport(impt.Imp) {
 	// 	return Resolution_Native, nil, nil
 	// }
 
-	// One spec for ordinary imports, or one spec per pkg in the importer's chain (importing pkg through root) for Ancestor imports.
-	// Each spec is tried against gazelle overrides and the rule index in turn.
+	// One spec for ordinary imports, or one spec per pkg in the importer's chain (importing pkg through root)
+	// for Ancestor imports. Each spec is tried against gazelle overrides and the rule index in turn.
+	//
+	// A `multiple` import unions matches from every source (the rule index and the symbol db) rather than
+	// returning the first; `collected` accumulates them. `multiple` is mutually exclusive with `ancestor`,
+	// so a `multiple` import always has exactly one spec.
+	var collected []label.Label
+
+	// matchedSelfOnly records that a `multiple` import found the Symbol but every match was a self-import.
+	// Like a non-multiple self import, that resolves to nothing (Resolution_None) rather than erroring as
+	// an unknown dependency.
+	matchedSelfOnly := false
+
 	for importSpec := range importSpecsToTry(impt, from.Pkg) {
-		// Gazelle overrides
+		// A gazelle override replaces the entire resolution, including a multiple collection.
 		if override, ok := resolve.FindRuleWithOverride(c, importSpec, GazelleLanguageName); ok {
-			return Resolution_Label, &override, nil
+			return Resolution_Label, []label.Label{override}, nil
 		}
 
-		if matches := ix.FindRulesByImportWithConfig(c, importSpec, GazelleLanguageName); len(matches) > 0 {
-			filtered := make([]label.Label, 0, len(matches))
-			for _, match := range matches {
-				if !match.IsSelfImport(from) {
-					filtered = append(filtered, match.Label)
-				}
-			}
+		matches := ix.FindRulesByImportWithConfig(c, importSpec, GazelleLanguageName)
+		if len(matches) == 0 {
+			continue
+		}
 
-			// Too many results, don't know which is correct
-			// TODO: resolution conflicts must be solved by plugins
-			if len(filtered) > 1 {
-				return Resolution_Error, nil, fmt.Errorf(
-					"Import %q from %q (%s) resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
-					impt.Id, impt.From, pluginId, targetListFromResults(matches))
+		filtered := make([]label.Label, 0, len(matches))
+		for _, match := range matches {
+			if !match.IsSelfImport(from) {
+				filtered = append(filtered, match.Label)
 			}
+		}
 
-			if len(filtered) == 1 {
-				match := filtered[0]
-				return Resolution_Label, &match, nil
+		if impt.Multiple {
+			// Collect the rule-index matches, then fall through to also union symbol-db matches.
+			collected = append(collected, filtered...)
+			if len(filtered) == 0 {
+				// Matches existed but were all self-imports.
+				matchedSelfOnly = true
 			}
+			break
+		}
 
-			// All self-imports: non-ancestor stops; ancestor walks up to the next level.
-			if !impt.Ancestor {
-				return Resolution_None, nil, nil
-			}
+		if len(filtered) > 1 {
+			// Too many results and no way to choose - the plugin must disambiguate.
+			return Resolution_Error, nil, fmt.Errorf(
+				"Import %q from %q (%s) resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
+				impt.Id, impt.From, pluginId, targetListFromResults(matches))
+		}
+		if len(filtered) == 1 {
+			return Resolution_Label, filtered, nil
+		}
+
+		// All matches were self-imports: non-ancestor stops; ancestor walks up.
+		if !impt.Ancestor {
+			return Resolution_None, nil, nil
 		}
 	}
 
-	// Lookup symbols across plugins in the symbol db
-	// TODO: ambiguity handling when multiple providers match
+	// Look up symbols registered across plugins in the symbol db.
 	if symbols := host.database.LookupSymbols(impt.Id); len(symbols) > 0 {
-		// Prefer a symbol of the imported provider type, falling back to the first
-		// symbol of any provider type for cross-plugin imports (eg a "kt" import
-		// satisfied by "java_info" symbols from the maven plugin).
-		s := symbols[0]
-		for _, candidate := range symbols {
-			if candidate.Provider == impt.Provider {
-				s = candidate
-				break
+		// Symbols of the imported provider type.
+		matched := make([]plugin.TargetSymbol, 0, len(symbols))
+		for _, s := range symbols {
+			if s.Provider == impt.Provider {
+				matched = append(matched, s)
 			}
 		}
-		l := label.Label{
-			Repo:     s.Label.Repo,
-			Pkg:      s.Label.Pkg,
-			Name:     s.Label.Name,
-			Relative: false,
+
+		if impt.Multiple {
+			// A multiple import collects every same-provider symbol. It does NOT fall back
+			// across provider types: an empty same-provider set means "none here", not
+			// "every symbol of every provider".
+			for _, s := range matched {
+				collected = append(collected, symbolLabel(s))
+			}
+		} else {
+			// A single import takes one symbol, preferring the imported provider type but
+			// falling back to any provider type for cross-plugin imports (eg a "kt" import
+			// satisfied by "java_info" symbols from the maven plugin).
+			if len(matched) == 0 {
+				matched = symbols
+			}
+			return Resolution_Label, []label.Label{symbolLabel(matched[0])}, nil
 		}
-		return Resolution_Label, &l, nil
+	}
+
+	if len(collected) > 0 {
+		return Resolution_Label, collected, nil
+	}
+
+	// The Symbol was provided only by the importer itself: resolved, but nothing to add.
+	if matchedSelfOnly {
+		return Resolution_None, nil, nil
 	}
 
 	return Resolution_NotFound, nil, nil
+}
+
+// symbolLabel converts a symbol-db entry's label into an absolute label.
+func symbolLabel(s plugin.TargetSymbol) label.Label {
+	return label.Label{
+		Repo:     s.Label.Repo,
+		Pkg:      s.Label.Pkg,
+		Name:     s.Label.Name,
+		Relative: false,
+	}
 }
 
 // importSpecsToTry yields one spec for ordinary imports, or `impt.Id` prefixed with `fromPkg`

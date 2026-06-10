@@ -1,0 +1,3 @@
+load("@multiple-index-test//:rules.bzl", "widget_library")
+
+widget_library(name = "widget")

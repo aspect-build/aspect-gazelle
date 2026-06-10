@@ -1,0 +1,42 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@multiple-self-test//:rules.bzl",
+    "ResolveAttrs": ["deps"],
+})
+
+PROVIDER = "demo"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+# The only target providing the "widget" Symbol is the same target that imports
+# it. A multiple=True import whose matches are all self-imports resolves to
+# nothing - the self-reference is dropped and no error is raised, mirroring a
+# non-multiple import that only matches self (rather than erroring as an
+# unknown dependency).
+def declare(ctx):
+    if ctx.sources:
+        ctx.targets.add(
+            name = "widget",
+            kind = "widget_library",
+            symbols = [aspect.Symbol(
+                id = "widget",
+                provider = PROVIDER,
+            )],
+            attrs = {
+                "deps": [
+                    aspect.Import(
+                        id = "widget",
+                        provider = PROVIDER,
+                        multiple = True,
+                    ),
+                ],
+            },
+        )
+
+aspect.orion_extension(
+    id = "multiple-self",
+    prepare = prepare,
+    declare = declare,
+)

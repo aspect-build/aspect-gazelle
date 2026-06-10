@@ -1,0 +1,9 @@
+load("@multiple-index-test//:rules.bzl", "collect_all")
+
+collect_all(
+    name = "all-widgets",
+    srcs = [
+        "//a:widget",
+        "//b:widget",
+    ],
+)

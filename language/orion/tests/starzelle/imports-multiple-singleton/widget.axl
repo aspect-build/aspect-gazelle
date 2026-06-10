@@ -1,0 +1,48 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@multiple-singleton-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("collect_one", {
+    "From": "@multiple-singleton-test//:rules.bzl",
+    "ResolveAttrs": ["dep"],
+})
+
+PROVIDER = "demo"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+# "dep" is a singleton (non-list) attribute. A multiple=True import that resolves
+# to more than one target cannot be assigned to it, so generation fails rather
+# than silently picking one of the matches.
+def declare(ctx):
+    if ctx.sources:
+        ctx.targets.add(
+            name = "widget",
+            kind = "widget_library",
+            symbols = [aspect.Symbol(
+                id = "widget",
+                provider = PROVIDER,
+            )],
+        )
+
+    if ctx.rel == "":
+        ctx.targets.add(
+            name = "one-widget",
+            kind = "collect_one",
+            attrs = {
+                "dep": aspect.Import(
+                    id = "widget",
+                    provider = PROVIDER,
+                    multiple = True,
+                ),
+            },
+        )
+
+aspect.orion_extension(
+    id = "multiple-singleton",
+    prepare = prepare,
+    declare = declare,
+)

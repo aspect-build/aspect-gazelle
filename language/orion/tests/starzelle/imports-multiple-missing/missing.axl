@@ -1,0 +1,27 @@
+aspect.gazelle_rule_kind("collect_all", {
+    "From": "@multiple-missing-test//:rules.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+PROVIDER = "demo"
+
+def declare(ctx):
+    # A non-optional multiple import that resolves to zero targets is still an error.
+    ctx.targets.add(
+        name = "all-widgets",
+        kind = "collect_all",
+        attrs = {
+            "srcs": [
+                aspect.Import(
+                    id = "no-such-symbol",
+                    provider = PROVIDER,
+                    multiple = True,
+                ),
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "multiple-missing",
+    declare = declare,
+)

@@ -1,0 +1,1 @@
+Attribute "dep" on one-widget has resolved to multiple values: [//a:widget, //b:widget]

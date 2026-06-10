@@ -1,0 +1,8 @@
+load("@multiple-resolve-test//:rules.bzl", "collect_all")
+
+# gazelle:resolve demo orion widget @pinned//:widgets
+
+collect_all(
+    name = "all-widgets",
+    srcs = ["@pinned//:widgets"],
+)

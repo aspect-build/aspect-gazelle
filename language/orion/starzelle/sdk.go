@@ -455,7 +455,7 @@ func readSourceFilter(v starlark.Value) (plugin.SourceFilter, error) {
 
 func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var id, provider, from starlark.String
-	var optional, ancestor starlark.Bool
+	var optional, ancestor, multiple starlark.Bool
 
 	err := starlark.UnpackArgs(
 		"Import",
@@ -466,6 +466,7 @@ func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		"src?", &from,
 		"optional?", &optional,
 		"ancestor?", &ancestor,
+		"multiple?", &multiple,
 	)
 	if err != nil {
 		return nil, err
@@ -475,6 +476,13 @@ func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		return nil, fmt.Errorf("import id and provider cannot be empty")
 	}
 
+	// ancestor (find the nearest single provider by walking up) and multiple
+	// (collect every provider) pull in opposite directions; their combination has
+	// no coherent meaning, so reject it rather than resolve it surprisingly.
+	if bool(ancestor.Truth()) && bool(multiple.Truth()) {
+		return nil, fmt.Errorf("import cannot be both ancestor and multiple")
+	}
+
 	return plugin.TargetImport{
 		Symbol: plugin.Symbol{
 			Id:       id.GoString(),
@@ -482,6 +490,7 @@ func newImport(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwa
 		},
 		Optional: bool(optional.Truth()),
 		Ancestor: bool(ancestor.Truth()),
+		Multiple: bool(multiple.Truth()),
 		From:     from.GoString(),
 	}, nil
 }

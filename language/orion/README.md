@@ -290,12 +290,20 @@ will be resolved after the declare stage and potentially be replaced with a Baze
 If the import is resolved to the same target (a self reference) it will be removed from the attribute.
 If the import is not resolved an error will be thrown unless the import is declared as optional.
 
+By default a Symbol provided by more than one target is a resolution error. Use `multiple = True` to instead
+collect every target providing the Symbol — useful for "collect all X" patterns or where multiple definitions
+are merged.
+
+A `# gazelle:resolve` override applies first and replaces the entire resolution, including a `multiple = True`
+collection, with the single overridden label.
+
 Args:
 * `id`: the symbol identifier
 * `provider`: the symbol type being imported. Imported symbols must have the same symbol type as the rule defining the symbols such as `js` for the JS/TS `configure` extension.
 * `optional`: whether the import is optional and should be ignored if not found
+* `multiple`: whether multiple results are accepted. Resolving to zero targets is still an error unless `optional = True`. Cannot be combined with `ancestor`.
 * `src`: the source of the import (optional). Only used for debugging and error messages.
-* `ancestor`: when `True`, the resolver searches for `join(parent, id)` at the importing rule's package and each ancestor directory up to the workspace root, returning the first match (eg for `id = "tsconfig.json"` from `//a/b`: tries `a/b/tsconfig.json`, `a/tsconfig.json`, then `tsconfig.json`).
+* `ancestor`: when `True`, the resolver searches for `join(parent, id)` at the importing rule's package and each ancestor directory up to the workspace root, returning the first match (eg for `id = "tsconfig.json"` from `//a/b`: tries `a/b/tsconfig.json`, `a/tsconfig.json`, then `tsconfig.json`). Cannot be combined with `multiple`.
 
 ## Query Types
 
