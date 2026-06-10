@@ -36,9 +36,9 @@ func runPluginTreeQueries(fileName string, sourceCode []byte, queries plugin.Nam
 	}
 
 	// Queries must run sequentially on the same AST because go-tree-sitter's
-	// Tree.cachedNode uses a plain map that is not safe for concurrent access
-	// when collecting AST nodes for captures.
-	// NOTE: could potentially split initial query execution vs capture collection?
+	// Tree.cachedNode uses a plain map that is not safe for concurrent access.
+	// The unsafe write happens inside QueryCursor.NextMatch (it caches a *Node
+	// per capture), so deferring capture collection would not make it safe.
 	results := make(plugin.QueryResults, len(queries))
 	for key, query := range queries {
 		treeQuery, err := treeutils.GetQuery(lang, query.(*plugin.AstQuery).Query)
