@@ -64,6 +64,15 @@ func (s *LabelSet) Empty() bool {
 	return s.labels.Empty()
 }
 
+// String renders the set as a sorted, comma-separated label list.
+func (s *LabelSet) String() string {
+	labels := make([]string, 0, s.labels.Size())
+	for it := s.labels.Iterator(); it.Next(); {
+		labels = append(labels, it.Value().String())
+	}
+	return "[" + strings.Join(labels, ", ") + "]"
+}
+
 func (s *LabelSet) Labels() iter.Seq[label.Label] {
 	return func(yield func(label.Label) bool) {
 		for it := s.labels.Iterator(); it.Next(); {
