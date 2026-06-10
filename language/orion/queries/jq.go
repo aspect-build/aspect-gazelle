@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/itchyny/gojq"
-	"golang.org/x/sync/errgroup"
 
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
@@ -18,30 +17,12 @@ func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQuer
 	}
 
 	results := make(plugin.QueryResults, len(queries))
-	var mu sync.Mutex
-
-	eg := errgroup.Group{}
-	eg.SetLimit(10)
-
 	for key, q := range queries {
-		// Capture loop variables for goroutine
-		key := key
-		q := q
-		eg.Go(func() error {
-			r, err := runJsonQuery(doc, q.(*plugin.JsonQuery).Query)
-			if err != nil {
-				return err
-			}
-
-			mu.Lock()
-			results[key] = r
-			mu.Unlock()
-			return nil
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		return nil, err
+		r, err := runJsonQuery(doc, q.(*plugin.JsonQuery).Query)
+		if err != nil {
+			return nil, err
+		}
+		results[key] = r
 	}
 	return results, nil
 }
