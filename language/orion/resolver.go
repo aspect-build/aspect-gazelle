@@ -268,9 +268,18 @@ func (host *GazelleHost) resolveImport(
 	}
 
 	// Lookup symbols across plugins in the symbol db
-	// TODO: only match correct "providers"; ambiguity handling
+	// TODO: ambiguity handling when multiple providers match
 	if symbols := host.database.LookupSymbols(impt.Id); len(symbols) > 0 {
+		// Prefer a symbol of the imported provider type, falling back to the first
+		// symbol of any provider type for cross-plugin imports (eg a "kt" import
+		// satisfied by "java_info" symbols from the maven plugin).
 		s := symbols[0]
+		for _, candidate := range symbols {
+			if candidate.Provider == impt.Provider {
+				s = candidate
+				break
+			}
+		}
 		l := label.Label{
 			Repo:     s.Label.Repo,
 			Pkg:      s.Label.Pkg,
