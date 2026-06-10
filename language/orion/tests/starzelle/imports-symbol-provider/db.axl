@@ -1,0 +1,38 @@
+aspect.gazelle_rule_kind("lib", {
+    "From": "@symbol-provider-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("consumer", {
+    "From": "@symbol-provider-test//:rules.bzl",
+    "ResolveAttrs": ["dep"],
+})
+
+# Two targets register the same symbol id "shared" under different provider
+# types. "a" (provider "one") is registered before "c" (provider "two").
+def declare(ctx):
+    if ctx.rel != "":
+        return
+
+    ctx.targets.add(name = "a", kind = "lib")
+    ctx.targets.add(name = "c", kind = "lib")
+
+    ctx.add_symbol(id = "shared", provider_type = "one", label = aspect.Label(name = "a"))
+    ctx.add_symbol(id = "shared", provider_type = "two", label = aspect.Label(name = "c"))
+
+    # A single import of provider "two" must resolve to "c". The buggy resolver
+    # returns symbols[0] ("a") regardless of the requested provider.
+    ctx.targets.add(
+        name = "consumer",
+        kind = "consumer",
+        attrs = {
+            "dep": aspect.Import(
+                id = "shared",
+                provider = "two",
+            ),
+        },
+    )
+
+aspect.orion_extension(
+    id = "symbol-provider",
+    declare = declare,
+)

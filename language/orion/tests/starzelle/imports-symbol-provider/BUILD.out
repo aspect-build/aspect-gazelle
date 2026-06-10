@@ -1,0 +1,10 @@
+load("@symbol-provider-test//:rules.bzl", "consumer", "lib")
+
+lib(name = "a")
+
+lib(name = "c")
+
+consumer(
+    name = "consumer",
+    dep = "//:c",
+)
