@@ -1,0 +1,17 @@
+load("@symbol-db-test//:rules.bzl", "db_consumer", "db_lib")
+
+db_lib(name = "a")
+
+db_lib(name = "b")
+
+db_lib(name = "c")
+
+db_consumer(
+    name = "consumer",
+    fallback_dep = "//:a",
+    one_deps = [
+        "//:a",
+        "//:b",
+    ],
+    two_dep = "//:c",
+)

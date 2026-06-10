@@ -1,0 +1,50 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@multiple-index-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("collect_all", {
+    "From": "@multiple-index-test//:rules.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+PROVIDER = "demo"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+# Each subdirectory provides the "widget" Symbol via the rule index (its target's
+# `symbols`). A multiple=True import at the root collects every providing target
+# directly from the rule index (no symbol db, no resolve override involved).
+def declare(ctx):
+    if ctx.sources:
+        ctx.targets.add(
+            name = "widget",
+            kind = "widget_library",
+            symbols = [aspect.Symbol(
+                id = "widget",
+                provider = PROVIDER,
+            )],
+        )
+
+    if ctx.rel == "":
+        ctx.targets.add(
+            name = "all-widgets",
+            kind = "collect_all",
+            attrs = {
+                "srcs": [
+                    aspect.Import(
+                        id = "widget",
+                        provider = PROVIDER,
+                        multiple = True,
+                    ),
+                ],
+            },
+        )
+
+aspect.orion_extension(
+    id = "multiple-index",
+    prepare = prepare,
+    declare = declare,
+)

@@ -1,0 +1,64 @@
+aspect.gazelle_rule_kind("db_lib", {
+    "From": "@symbol-db-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("db_consumer", {
+    "From": "@symbol-db-test//:rules.bzl",
+    "ResolveAttrs": ["one_deps", "two_dep", "fallback_dep", "three_deps"],
+})
+
+# Symbols registered via ctx.add_symbol() share an id across different provider
+# types. A single import prefers symbols of its own provider type, falling back
+# to any provider type when none match (cross-plugin imports). A multiple import
+# collects only same-provider symbols and does NOT fall back across providers.
+def declare(ctx):
+    if ctx.rel != "":
+        return
+
+    for n in ["a", "b", "c"]:
+        ctx.targets.add(name = n, kind = "db_lib")
+
+    ctx.add_symbol(id = "shared", provider_type = "one", label = aspect.Label(name = "a"))
+    ctx.add_symbol(id = "shared", provider_type = "one", label = aspect.Label(name = "b"))
+    ctx.add_symbol(id = "shared", provider_type = "two", label = aspect.Label(name = "c"))
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "db_consumer",
+        attrs = {
+            # Collects every provider of "shared" with type "one" - not "two".
+            "one_deps": [
+                aspect.Import(
+                    id = "shared",
+                    provider = "one",
+                    multiple = True,
+                ),
+            ],
+            # A single import of type "two" skips the type "one" symbols.
+            "two_dep": aspect.Import(
+                id = "shared",
+                provider = "two",
+            ),
+            # No "three" symbols exist: a single import falls back to the first
+            # symbol of any type.
+            "fallback_dep": aspect.Import(
+                id = "shared",
+                provider = "three",
+            ),
+            # A multiple import of "three" does NOT fall back across providers: it
+            # collects nothing and (being optional) the attribute is dropped.
+            "three_deps": [
+                aspect.Import(
+                    id = "shared",
+                    provider = "three",
+                    multiple = True,
+                    optional = True,
+                ),
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "symbol-db",
+    declare = declare,
+)

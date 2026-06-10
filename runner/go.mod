@@ -4,10 +4,10 @@ go 1.26.4
 
 require (
 	github.com/EngFlow/gazelle_cc v0.6.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260608080138-47c8330afbc8
-	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260603031412-023e0271bd43
-	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260603031412-023e0271bd43
-	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260603031412-023e0271bd43
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260610195456-ee1b877d4e99
+	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260610195456-ee1b877d4e99
+	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260610195456-ee1b877d4e99
+	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260610195456-ee1b877d4e99
 	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260520000513-6aad8828e826
 	github.com/bazelbuild/bazel-gazelle v0.51.3 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6

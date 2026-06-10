@@ -8,6 +8,9 @@ type Symbol struct {
 type TargetImport struct {
 	Symbol
 
+	// Multiple resolves the Symbol to every label that provides it instead of requiring a single match.
+	Multiple bool
+
 	// Optional imports will not be treated as resolution errors when not found.
 	Optional bool
 

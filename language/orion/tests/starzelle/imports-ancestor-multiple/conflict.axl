@@ -1,0 +1,27 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@ancestor-multiple-test//:rules.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+# ancestor (nearest single provider) and multiple (collect every provider) are
+# contradictory; constructing such an import is a hard error.
+def declare(ctx):
+    ctx.targets.add(
+        name = "widget",
+        kind = "widget_library",
+        attrs = {
+            "srcs": [
+                aspect.Import(
+                    id = "widget",
+                    provider = "demo",
+                    ancestor = True,
+                    multiple = True,
+                ),
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "ancestor-multiple",
+    declare = declare,
+)

@@ -1,0 +1,44 @@
+aspect.gazelle_rule_kind("lib", {
+    "From": "@multiple-union-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("consumer", {
+    "From": "@multiple-union-test//:rules.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+PROVIDER = "demo"
+
+# The Symbol "shared" is provided two ways: "idx" provides it through the rule
+# index (via its `symbols`), while "dbonly" is registered in the symbol db via
+# ctx.add_symbol. A multiple=True import unions matches from both sources.
+def declare(ctx):
+    if ctx.rel != "":
+        return
+
+    ctx.targets.add(
+        name = "idx",
+        kind = "lib",
+        symbols = [aspect.Symbol(id = "shared", provider = PROVIDER)],
+    )
+    ctx.targets.add(name = "dbonly", kind = "lib")
+    ctx.add_symbol(id = "shared", provider_type = PROVIDER, label = aspect.Label(name = "dbonly"))
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "consumer",
+        attrs = {
+            "srcs": [
+                aspect.Import(
+                    id = "shared",
+                    provider = PROVIDER,
+                    multiple = True,
+                ),
+            ],
+        },
+    )
+
+aspect.orion_extension(
+    id = "multiple-union",
+    declare = declare,
+)

@@ -1,0 +1,13 @@
+load("@multiple-union-test//:rules.bzl", "consumer", "lib")
+
+lib(name = "idx")
+
+lib(name = "dbonly")
+
+consumer(
+    name = "consumer",
+    srcs = [
+        ":idx",
+        "//:dbonly",
+    ],
+)

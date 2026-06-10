@@ -1,0 +1,3 @@
+load("@multiple-resolve-test//:rules.bzl", "widget_library")
+
+widget_library(name = "widget")

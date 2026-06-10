@@ -1,0 +1,49 @@
+aspect.gazelle_rule_kind("widget_library", {
+    "From": "@multiple-resolve-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("collect_all", {
+    "From": "@multiple-resolve-test//:rules.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+PROVIDER = "demo"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".widget")],
+    )
+
+# A gazelle "resolve" override applies before collection: it replaces the
+# entire multiple=True collection with the single overridden label.
+def declare(ctx):
+    if ctx.sources:
+        ctx.targets.add(
+            name = "widget",
+            kind = "widget_library",
+            symbols = [aspect.Symbol(
+                id = "widget",
+                provider = PROVIDER,
+            )],
+        )
+
+    if ctx.rel == "":
+        ctx.targets.add(
+            name = "all-widgets",
+            kind = "collect_all",
+            attrs = {
+                "srcs": [
+                    aspect.Import(
+                        id = "widget",
+                        provider = PROVIDER,
+                        multiple = True,
+                    ),
+                ],
+            },
+        )
+
+aspect.orion_extension(
+    id = "multiple-resolve",
+    prepare = prepare,
+    declare = declare,
+)
