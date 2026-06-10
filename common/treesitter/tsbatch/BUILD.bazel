@@ -1,0 +1,33 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+# The vendored runtime header is re-synced + drift-checked by the dev-only
+# //treesitter/tsbatch/apisync package (kept out of this BUILD so consumers that
+# load this package via go_deps don't need the dev-only @bazel_lib dep).
+exports_files(
+    ["tree_sitter/api.h"],
+    visibility = ["//treesitter/tsbatch:__subpackages__"],
+)
+
+go_library(
+    name = "tsbatch",
+    srcs = [
+        "shim.c",
+        "shim.h",
+        "tree_sitter/api.h",  # keep: vendored tree-sitter runtime header (subdir, not auto-detected)
+        "tsbatch.go",
+    ],
+    cgo = True,
+    importpath = "github.com/aspect-build/aspect-gazelle/common/treesitter/tsbatch",
+    visibility = ["//visibility:public"],
+    deps = ["@com_github_smacker_go_tree_sitter//:go-tree-sitter"],
+)
+
+go_test(
+    name = "tsbatch_test",
+    srcs = ["tsbatch_test.go"],
+    embed = [":tsbatch"],
+    deps = [
+        "@aspect_treesitter_grammars//golang",
+        "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
+    ],
+)

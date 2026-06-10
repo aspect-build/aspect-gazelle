@@ -1,0 +1,17 @@
+# Dev-only: re-vendor and drift-check //treesitter/tsbatch's tree-sitter runtime
+# header against the pinned smacker module. Kept in its own package so the
+# library package (//treesitter/tsbatch) carries no @bazel_lib load — consumers
+# fetch that package via go_deps and don't have the dev-only @bazel_lib dep.
+#
+# Re-vendor after a smacker bump:
+#   bazel run //treesitter/tsbatch/apisync:api_h
+# The generated :api_h_test fails if the checked-in copy drifts.
+load("@bazel_lib//lib:write_source_files.bzl", "write_source_file")
+
+write_source_file(
+    name = "api_h",
+    # out_file is in the sibling tsbatch package, not here.
+    check_that_out_file_exists = False,
+    in_file = "@com_github_smacker_go_tree_sitter//:api.h",
+    out_file = "//treesitter/tsbatch:tree_sitter/api.h",
+)

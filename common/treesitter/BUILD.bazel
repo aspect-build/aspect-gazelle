@@ -3,6 +3,7 @@ load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 go_library(
     name = "treesitter",
     srcs = [
+        "batch.go",
         "filters.go",
         "parser.go",
         "queries.go",
@@ -13,15 +14,17 @@ go_library(
     deps = [
         "//:common",
         "//logger",
+        "//treesitter/tsbatch",
         "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
     ],
 )
 
 go_test(
     name = "treesitter_test",
-    srcs = ["filters_test.go"],
-    deps = [
-        ":treesitter",
-        "@aspect_treesitter_grammars//golang",
+    srcs = [
+        "batch_test.go",
+        "filters_test.go",
     ],
+    embed = [":treesitter"],
+    deps = ["@aspect_treesitter_grammars//golang"],
 )
