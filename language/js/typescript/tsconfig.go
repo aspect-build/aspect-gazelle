@@ -357,7 +357,7 @@ func parseTsConfigJSONFile(parsed map[string]*TsConfig, resolver TsConfigResolve
 	// Reserve the slot with the invalid sentinel so any extends cycle is detected.
 	parsed[tsconfig] = &InvalidTsconfig
 
-	tsconfigFile, err := os.OpenFile(path.Join(root, tsconfig), os.O_RDONLY, os.FileMode(os.O_RDONLY))
+	tsconfigFile, err := os.Open(path.Join(root, tsconfig))
 	if err != nil {
 		return nil, err
 	}
