@@ -101,7 +101,7 @@ configure:
 		os.Exit(1)
 	}
 
-	return *mode, languages, plugins, flag.Args()
+	return *mode, languages, plugins, args.Args()
 }
 
 // Simplified Aspect CLI config file parser
