@@ -150,10 +150,11 @@ func (c *FileComputeCache) LoadOrStoreFile(root, p, key string, loader FileCompu
 		}
 	}
 
-	content, err := os.ReadFile(path.Join(root, p))
+	content, release, err := readFile(path.Join(root, p))
 	if err != nil {
 		return nil, false, err
 	}
+	defer release()
 	return c.loadOrStore(p, key, content, loader)
 }
 

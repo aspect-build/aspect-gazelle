@@ -1,10 +1,46 @@
 package cache
 
 import (
+	"bytes"
 	"os"
 	"path/filepath"
 	"testing"
 )
+
+// readFile must return identical bytes across sizes (including empty files and
+// files larger than a recycled buffer's capacity), and release() must always be
+// safe to call. Running several sizes in sequence also exercises buffer reuse
+// from the pool, including growing a smaller pooled buffer for a larger file.
+func TestReadFile(t *testing.T) {
+	dir := t.TempDir()
+
+	sizes := map[string]int{
+		"empty": 0,
+		"small": 64,
+		"large": 64 * 1024,
+	}
+	for name, size := range sizes {
+		t.Run(name, func(t *testing.T) {
+			want := make([]byte, size)
+			for i := range want {
+				want[i] = byte('a' + i%26)
+			}
+			p := filepath.Join(dir, name)
+			if err := os.WriteFile(p, want, 0644); err != nil {
+				t.Fatal(err)
+			}
+
+			got, release, err := readFile(p)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer release()
+			if !bytes.Equal(got, want) {
+				t.Errorf("size %d: content mismatch (got %d bytes)", size, len(got))
+			}
+		})
+	}
+}
 
 func writeTestFile(t *testing.T, dir, name, content string) {
 	t.Helper()

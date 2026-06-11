@@ -123,10 +123,11 @@ func (c *diskCache) write() {
 }
 
 func (c *diskCache) LoadOrStoreFile(root, p, key string, loader FileCompute) (any, bool, error) {
-	content, err := os.ReadFile(path.Join(root, p))
+	content, release, err := readFile(path.Join(root, p))
 	if err != nil {
 		return nil, false, err
 	}
+	defer release()
 
 	contentHash := computeCacheKey(content)
 
