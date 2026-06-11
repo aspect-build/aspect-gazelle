@@ -1,0 +1,3 @@
+load("@is-local-test//:rules.bzl", "mark_target")
+
+mark_target(name = "inherited-mark")

@@ -1,0 +1,5 @@
+load("@is-local-test//:rules.bzl", "mark_target")
+
+# gazelle:mark true
+
+mark_target(name = "local-mark")

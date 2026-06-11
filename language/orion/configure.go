@@ -94,25 +94,32 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 }
 
 func configToPrepareContext(p plugin.Plugin, cfg *BUILDConfig) plugin.PrepareContext {
+	props := p.Properties()
 	ctx := plugin.PrepareContext{
-		RepoName:   cfg.repoName,
-		Rel:        cfg.rel,
-		Properties: plugin.NewPropertyValues(),
+		RepoName: cfg.repoName,
+		Rel:      cfg.rel,
+		// Defaults are resolved lazily at read time; only record directive-set values.
+		Properties: plugin.NewPropertyValues(props),
 	}
 
-	for k, p := range p.Properties() {
-		pValue := p.Default
-
-		if v, found := cfg.getRawValue(p.Name, true); found {
-			parsedValue, parseErr := parsePropertyValue(p, v)
-			if parseErr != nil {
-				BazelLog.Warnf("Failed to parse property %q: %v", p.Name, parseErr)
-			} else {
-				pValue = parsedValue
-			}
+	for k, p := range props {
+		// `local` marks a property set by a directive in this directory's own BUILD
+		// file (not inherited), letting plugins detect where a marker is declared.
+		v, found, local := cfg.getRawValue(p.Name)
+		if !found {
+			continue
 		}
 
-		ctx.Properties.Add(k, pValue)
+		// A present-but-unparseable directive keeps the default value, but the
+		// property still counts as set (and local) at this directory.
+		value := p.Default
+		if parsedValue, parseErr := parsePropertyValue(p, v); parseErr != nil {
+			BazelLog.Warnf("Failed to parse property %q: %v", p.Name, parseErr)
+		} else {
+			value = parsedValue
+		}
+
+		ctx.Properties.Add(k, value, local)
 	}
 
 	return ctx

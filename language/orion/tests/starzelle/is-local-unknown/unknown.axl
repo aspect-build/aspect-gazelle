@@ -1,0 +1,11 @@
+# ctx.properties.is_local() queries whether a property was set by a directive in
+# this directory's own BUILD file. Asking about a property the plugin never
+# declared is a hard error rather than silently returning False.
+def prepare(ctx):
+    ctx.properties.is_local("no-such-property")
+    return aspect.PrepareResult(sources = [])
+
+aspect.orion_extension(
+    id = "is-local-unknown",
+    prepare = prepare,
+)

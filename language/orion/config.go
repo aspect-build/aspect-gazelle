@@ -63,23 +63,26 @@ func (p *BUILDConfig) appendDirectiveValue(key, value string) {
 }
 
 func (c *BUILDConfig) IsPluginEnabled(pluginId plugin.PluginId) bool {
-	if val, exists := c.getRawValue(string(pluginId), true); exists {
+	if val, exists, _ := c.getRawValue(string(pluginId)); exists {
 		return val[len(val)-1] == "enabled"
 	}
 	return true
 }
 
-func (c *BUILDConfig) getRawValue(key string, inherit bool) ([]string, bool) {
-	value, exists := c.directiveRawValues[key]
-	if exists {
-		return value, true
+// getRawValue returns the directive values for `key`, walking up to ancestors.
+// `local` reports whether the match came from this directory's own BUILD file
+// rather than being inherited from an ancestor.
+func (c *BUILDConfig) getRawValue(key string) (value []string, found bool, local bool) {
+	if v, exists := c.directiveRawValues[key]; exists {
+		return v, true, true
 	}
 
-	if inherit && c.parent != nil {
-		return c.parent.getRawValue(key, true)
+	if c.parent != nil {
+		v, f, _ := c.parent.getRawValue(key)
+		return v, f, false
 	}
 
-	return nil, false
+	return nil, false, false
 }
 
 // An extension of PrepareContext+Result to add internal utils
