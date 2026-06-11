@@ -28,7 +28,6 @@ const (
 	Resolution_NotFound
 	Resolution_Label
 	Resolution_Native
-	Resolution_Override
 )
 
 func (*GazelleHost) Name() string {

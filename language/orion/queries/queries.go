@@ -65,13 +65,13 @@ func runQueryBatch(queryType plugin.QueryType, fileName string, sourceCode []byt
 	case plugin.QueryTypeRegex:
 		return runRegexQueries(sourceCode, active)
 	case plugin.QueryTypeJson:
-		return runJsonQueries(fileName, sourceCode, active)
+		return runJsonQueries(sourceCode, active)
 	case plugin.QueryTypeYaml:
-		return runYamlQueries(fileName, sourceCode, active)
+		return runYamlQueries(sourceCode, active)
 	case plugin.QueryTypeToml:
-		return runTomlQueries(fileName, sourceCode, active)
+		return runTomlQueries(sourceCode, active)
 	case plugin.QueryTypeRaw:
-		return runRawQueries(fileName, sourceCode, active)
+		return runRawQueries(sourceCode, active)
 	default:
 		BazelLog.Fatalf("Unknown query type: %v", queryType)
 		return nil, nil
@@ -91,7 +91,7 @@ func emptyResult(queryType plugin.QueryType) any {
 	}
 }
 
-func runRawQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+func runRawQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	sourceCodeStr := string(sourceCode)
 	results := make(plugin.QueryResults, len(queries))
 	for key := range queries {

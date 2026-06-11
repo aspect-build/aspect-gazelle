@@ -78,7 +78,6 @@ func extractArg(flag string, defaultValue string, args []string) (string, []stri
 	if !hasEqual {
 		if len(args) <= i+1 {
 			log.Fatalf("ERROR: %s flag requires an argument", usedFlag)
-			return defaultValue, args
 		}
 		value := args[i+1]
 		args = slices.Delete(args, i, i+2)

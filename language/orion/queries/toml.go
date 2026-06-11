@@ -7,7 +7,7 @@ import (
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 )
 
-func runTomlQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+func runTomlQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	decoder := yqlib.NewTomlDecoder()
 	err := decoder.Init(bytes.NewReader(sourceCode))
 	if err != nil {

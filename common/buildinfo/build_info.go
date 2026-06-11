@@ -32,14 +32,6 @@ const (
 	NoReleaseVersion      = "unknown [not built with --stamp]"
 )
 
-type VersionFormat int
-
-const (
-	// VersionFormat
-	ConventionalFormat VersionFormat = iota
-	GNUFormat
-)
-
 type BuildInfo struct {
 	BuildTime string
 	HostName  string

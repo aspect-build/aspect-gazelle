@@ -9,7 +9,7 @@ import (
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
-func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+func runJsonQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	var doc interface{}
 	err := json.Unmarshal(sourceCode, &doc)
 	if err != nil {
