@@ -26,7 +26,6 @@ const (
 	progressPhaseIndex     progressPhase = "Index"
 	progressPhaseResolve   progressPhase = "Resolve"
 	progressPhaseWrite     progressPhase = "Update"
-	progressPhaseDone      progressPhase = "\n"
 )
 
 func NewLanguage() language.Language {
