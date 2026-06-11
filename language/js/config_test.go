@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestRenderTsConfigName(t *testing.T) {
+	c := newRootConfig()
+	for _, tc := range []struct {
+		in   string
+		want string
+	}{
+		{in: "tsconfig.json", want: "tsconfig"},
+		// Stems ending in characters from {'.','j','s','o','n'} must not be mangled.
+		{in: "options.json", want: "options"},
+		{in: "common.json", want: "common"},
+		{in: "tsconfig.options.json", want: "tsconfig_options"},
+		{in: "some/dir/options.json", want: "options"},
+	} {
+		if got := c.RenderTsConfigName(tc.in); got != tc.want {
+			t.Errorf("RenderTsConfigName(%q) = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
 func TestAddTargetGlobNormalization(t *testing.T) {
 	for _, tc := range []struct {
 		name string

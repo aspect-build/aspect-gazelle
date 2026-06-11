@@ -600,7 +600,7 @@ func (c *JsGazelleConfig) RenderTsProtoLibraryName(protoLibraryName string) stri
 }
 
 func (c *JsGazelleConfig) RenderTsConfigName(tsconfigName string) string {
-	return strings.ReplaceAll(strings.TrimRight(path.Base(tsconfigName), ".json"), ".", "_")
+	return strings.ReplaceAll(strings.TrimSuffix(path.Base(tsconfigName), ".json"), ".", "_")
 }
 
 // Returns the ts_project target name by performing all substitutions.

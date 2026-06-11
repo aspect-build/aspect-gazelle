@@ -1,0 +1,19 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Test: a tsconfig file whose basename stem ends in characters from the set
+# {'.', 'j', 's', 'o', 'n'} ("options" ends in 's'). The rendered ts_config
+# rule name must be "tsconfig_options", trimming only the ".json" suffix —
+# not "tsconfig_opti" from trimming the trailing character set.
+# gazelle:js_tsconfig_file tsconfig.options.json
+
+ts_project(
+    name = "name_trim",
+    srcs = ["main.ts"],
+    tsconfig = ":tsconfig_options",
+)
+
+ts_config(
+    name = "tsconfig_options",
+    src = "tsconfig.options.json",
+    visibility = [":__subpackages__"],
+)
