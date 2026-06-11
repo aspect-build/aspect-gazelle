@@ -3,8 +3,6 @@ package gazelle
 import (
 	_ "embed"
 	"strings"
-
-	"github.com/emirpasic/gods/v2/sets/treeset"
 )
 
 //go:embed std_modules.list
@@ -12,16 +10,20 @@ var nativeModulesJson []byte
 
 var nativeModulesSet = createNativeModulesSet()
 
-func createNativeModulesSet() *treeset.Set[string] {
-	set := treeset.NewWith(strings.Compare)
+func createNativeModulesSet() map[string]struct{} {
+	set := make(map[string]struct{})
 
 	for m := range strings.SplitSeq(strings.TrimSpace(string(nativeModulesJson)), "\n") {
-		set.Add(m)
+		set[m] = struct{}{}
 	}
 
 	return set
 }
 
 func IsNodeImport(imprt string) bool {
-	return strings.HasPrefix(imprt, "node:") || nativeModulesSet.Contains(imprt)
+	if strings.HasPrefix(imprt, "node:") {
+		return true
+	}
+	_, ok := nativeModulesSet[imprt]
+	return ok
 }
