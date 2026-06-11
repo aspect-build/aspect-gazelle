@@ -1,0 +1,3 @@
+# gazelle:js_tsconfig_ignore not_a_ts_project_attribute
+# gazelle:js_ignore_imports [bad-glob
+# gazelle:js_resolve [bad-glob //lib:lib

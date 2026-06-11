@@ -2,6 +2,7 @@ package gazelle
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"slices"
 	"strings"
@@ -444,7 +445,7 @@ func (c *JsGazelleConfig) AddIgnoredTsConfig(groupName, propName string) {
 		}
 	}
 
-	fmt.Printf("Unknown ts_project attribute to ignore: %q\n\nIgnored attributes must be the ts_project attribute, not the tsconfig.json option name\n", propName)
+	fmt.Fprintf(os.Stderr, "Unknown ts_project attribute to ignore: %q\n\nIgnored attributes must be the ts_project attribute, not the tsconfig.json option name\n", propName)
 }
 
 func (c *JsGazelleConfig) IsTsConfigIgnored(groupName, propName string) bool {
@@ -462,7 +463,7 @@ func (c *JsGazelleConfig) IsTsConfigIgnored(groupName, propName string) bool {
 func (c *JsGazelleConfig) AddIgnoredImport(impGlob string) {
 	ge, err := common.ParseGlobExpression(impGlob)
 	if err != nil {
-		fmt.Println("Invalid js ignore import glob: ", impGlob)
+		fmt.Fprintf(os.Stderr, "Invalid js ignore import glob: %s\n", impGlob)
 		return
 	}
 
@@ -489,7 +490,7 @@ func (c *JsGazelleConfig) IsImportIgnored(impt string) bool {
 func (c *JsGazelleConfig) AddResolve(imprt string, label *label.Label) {
 	expr, err := common.ParseGlobExpression(imprt)
 	if err != nil {
-		fmt.Println("Invalid js resolve glob: ", imprt)
+		fmt.Fprintf(os.Stderr, "Invalid js resolve glob: %s\n", imprt)
 		return
 	}
 

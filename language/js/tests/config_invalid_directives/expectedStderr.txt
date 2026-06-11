@@ -1,0 +1,5 @@
+Unknown ts_project attribute to ignore: "not_a_ts_project_attribute"
+
+Ignored attributes must be the ts_project attribute, not the tsconfig.json option name
+Invalid js ignore import glob: [bad-glob
+Invalid js resolve glob: [bad-glob
