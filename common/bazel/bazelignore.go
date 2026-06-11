@@ -62,5 +62,9 @@ func loadBazelIgnore(repoRoot string) ([]string, error) {
 		excludes = append(excludes, ignore)
 	}
 
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf(".bazelignore exists but couldn't be read: %v", err)
+	}
+
 	return excludes, nil
 }
