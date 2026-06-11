@@ -1,3 +1,3 @@
-Error in aspect.SourceGlobs: invalid glob pattern: **/[
+Failed to invoke bad-sourceglob-test:Prepare(): Error in aspect.SourceGlobs: invalid glob pattern: **/[
 Traceback (most recent call last):
   bad-sourceglob/bad-sourceglob.axl:4:37: in lambda

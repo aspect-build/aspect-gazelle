@@ -1,3 +1,3 @@
-Error in aspect.RawQuery: invalid glob pattern: [
+Failed to invoke bad-glob-test:Prepare(): Error in aspect.RawQuery: invalid glob pattern: [
 Traceback (most recent call last):
   query-bad-glob/bad-glob.axl:8:33: in lambda
