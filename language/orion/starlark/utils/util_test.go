@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"testing"
 
@@ -110,6 +111,36 @@ func TestReadWrite(t *testing.T) {
 		}
 		if v != 123.45 {
 			t.Errorf("Expected 123.45")
+		}
+	})
+
+	t.Run("[]byte <=> Bytes", func(t *testing.T) {
+		if Write([]byte("hello")) != starlark.Bytes("hello") {
+			t.Errorf("Expected hello")
+		}
+
+		// Bytes must not fall through to the Indexable case: Bytes.Index
+		// returns another Bytes, so that path would never terminate.
+		v, err := Read(starlark.Bytes("hello"))
+		if err != nil {
+			t.Errorf("Unexpected error: %v", err)
+		}
+		b, isBytes := v.([]byte)
+		if !isBytes {
+			t.Fatalf("Expected []byte, got %T", v)
+		}
+		if string(b) != "hello" {
+			t.Errorf("Expected hello, got %q", b)
+		}
+	})
+
+	t.Run("Int overflowing int64 => error", func(t *testing.T) {
+		_, err := Read(starlark.MakeUint64(math.MaxUint64))
+		if err == nil {
+			t.Fatal("Expected an error")
+		}
+		if !strings.Contains(err.Error(), "does not fit in int64") {
+			t.Errorf("Expected overflow error, got %v", err)
 		}
 	})
 
