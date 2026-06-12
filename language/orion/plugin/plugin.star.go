@@ -181,7 +181,7 @@ func (t TargetSourceList) Index(i int) starlark.Value {
 var _ starlark.Value = (*TargetSources)(nil)
 
 func (c TargetSources) String() string {
-	return fmt.Sprintf("DeclareTargetsContext.Sources{%v}", maps.Keys(c))
+	return fmt.Sprintf("DeclareTargetsContext.Sources{%v}", slices.Sorted(maps.Keys(c)))
 }
 func (c TargetSources) Type() string { return "DeclareTargetsContext.Sources" }
 func (c TargetSources) Freeze()      {}

@@ -268,7 +268,7 @@ func (nq NamedQueries) Get(k starlark.Value) (v starlark.Value, found bool, err 
 	r, found := nq[key]
 
 	if !found {
-		return nil, false, fmt.Errorf("no query named %q, queries: %v", key, maps.Keys(nq))
+		return nil, false, fmt.Errorf("no query named %q, queries: %v", key, slices.Sorted(maps.Keys(nq)))
 	}
 
 	// Pure primitive query results
