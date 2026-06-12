@@ -17,6 +17,7 @@ import (
 // ---------------- PropertyValues
 var _ starlark.Value = (*PropertyValues)(nil)
 var _ starlark.Mapping = (*PropertyValues)(nil)
+var _ starlark.HasAttrs = (*PropertyValues)(nil)
 
 func (p PropertyValues) String() string {
 	return fmt.Sprintf("PropertyValues{values: %v}", p.values)
@@ -32,13 +33,40 @@ func (p PropertyValues) Get(k starlark.Value) (v starlark.Value, found bool, err
 		return nil, false, fmt.Errorf("invalid key type, expected string")
 	}
 	key := k.(starlark.String).GoString()
-	r, found := p.values[key]
 
-	if !found {
-		return nil, false, fmt.Errorf("no property named: %s", key)
+	// A directive-set value wins; otherwise fall back to the declared default.
+	if r, ok := p.values[key]; ok {
+		return starUtils.Write(r), true, nil
+	}
+	if def, ok := p.defs[key]; ok {
+		return starUtils.Write(def.Default), true, nil
 	}
 
-	return starUtils.Write(r), true, nil
+	return nil, false, fmt.Errorf("no property named: %s", key)
+}
+
+var propertyValuesIsLocal = starlark.NewBuiltin("is_local", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var name string
+	if err := starlark.UnpackArgs("is_local", args, kwargs, "name", &name); err != nil {
+		return nil, err
+	}
+
+	pv := b.Receiver().(PropertyValues)
+	if _, exists := pv.defs[name]; !exists {
+		return nil, fmt.Errorf("no property named: %s", name)
+	}
+	return starlark.Bool(pv.IsLocal(name)), nil
+})
+
+func (p PropertyValues) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "is_local":
+		return propertyValuesIsLocal.BindReceiver(p), nil
+	}
+	return nil, fmt.Errorf("no such attribute: %s on %s", name, p.Type())
+}
+func (p PropertyValues) AttrNames() []string {
+	return []string{"is_local"}
 }
 
 // ---------------- PrepareContext

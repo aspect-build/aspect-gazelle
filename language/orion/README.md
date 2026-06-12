@@ -141,6 +141,12 @@ Each stage has access to the extension properties using `ctx.properties`.
 
 Property values are inherited from parent packages.
 
+`ctx.properties.is_local(name)` returns `True` when the property `name` was set by a directive in the current
+directory's own `BUILD` file (as opposed to inherited from an ancestor). This lets a plugin detect where a
+marker directive is declared, eg to anchor a scope at that directory. Note `is_local` is true wherever the
+directive is written regardless of its value - including `# gazelle:{name} false` - so check the value as
+well when a falsy value means "opt out". An unknown property name is an error.
+
 **aspect.Property(type, default)**:
 
 Construct a property definition.

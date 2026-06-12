@@ -1,0 +1,25 @@
+aspect.gazelle_rule_kind("mark_target", {
+    "From": "@is-local-test//:rules.bzl",
+})
+
+MARK = "mark"
+
+# is_local distinguishes a directive set in THIS directory's BUILD file from the
+# same directive inherited from an ancestor. The property VALUE is identical in
+# both (inheritance), so only is_local can tell them apart.
+def declare(ctx):
+    if not ctx.properties[MARK]:
+        return
+
+    if ctx.properties.is_local(MARK):
+        ctx.targets.add(name = "local-mark", kind = "mark_target")
+    else:
+        ctx.targets.add(name = "inherited-mark", kind = "mark_target")
+
+aspect.orion_extension(
+    id = "is-local",
+    properties = {
+        MARK: aspect.Property(type = "bool", default = False),
+    },
+    declare = declare,
+)

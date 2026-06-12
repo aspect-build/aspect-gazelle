@@ -80,17 +80,44 @@ type Property struct {
 }
 
 type PropertyValues struct {
+	// defs are the plugin's property declarations, used to resolve defaults and
+	// validate names at read time. Shared and read-only.
+	defs map[string]Property
+
+	// values holds only the properties set by a directive (in this directory or
+	// inherited); unset properties fall back to their default at read time.
 	values map[string]any
+
+	// localKeys holds the names of properties set by a directive in this exact
+	// directory's BUILD file (as opposed to inherited from an ancestor). This lets
+	// a plugin detect where a marker directive is declared, eg to anchor a scope.
+	localKeys map[string]bool
 }
 
-func NewPropertyValues() PropertyValues {
-	return PropertyValues{
-		values: make(map[string]any),
+func NewPropertyValues(defs map[string]Property) PropertyValues {
+	return PropertyValues{defs: defs}
+}
+
+// Add records property `name`'s directive-set value. `local` marks it as set by a
+// directive in this directory's own BUILD file (as opposed to inherited).
+func (pv *PropertyValues) Add(name string, value any, local bool) {
+	if pv.values == nil {
+		pv.values = make(map[string]any)
+	}
+	pv.values[name] = value
+
+	if local {
+		if pv.localKeys == nil {
+			pv.localKeys = make(map[string]bool)
+		}
+		pv.localKeys[name] = true
 	}
 }
 
-func (pv *PropertyValues) Add(name string, value any) {
-	pv.values[name] = value
+// IsLocal reports whether `name` was set by a directive in this directory's own
+// BUILD file (not inherited from an ancestor).
+func (pv *PropertyValues) IsLocal(name string) bool {
+	return pv.localKeys[name]
 }
 
 // The context for an extension to prepare for generating targets.
