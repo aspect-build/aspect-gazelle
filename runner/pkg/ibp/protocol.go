@@ -273,14 +273,14 @@ func (p *aspectBazelProtocol) acceptNegotiation(ctx context.Context) error {
 	if negResp["kind"] != "NEGOTIATE_RESPONSE" {
 		return fmt.Errorf("Expected NEGOTIATE_RESPONSE, got %v", negResp)
 	}
-	if negResp["version"] == nil {
-		return fmt.Errorf("Received NEGOTIATE_RESPONSE without version: %v", negResp)
+	rawVersion, isFloat := negResp["version"].(float64)
+	if !isFloat {
+		return fmt.Errorf("Received NEGOTIATE_RESPONSE without valid version: %v", negResp)
 	}
-	if !slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(negResp["version"].(float64))) {
+	version := ProtocolVersion(rawVersion)
+	if !slices.Contains(abazelSupportedProtocolVersions, version) {
 		return fmt.Errorf("Received NEGOTIATE_RESPONSE with unsupported version %v, expected one of %v", negResp["version"], abazelSupportedProtocolVersions)
 	}
-
-	version := ProtocolVersion(negResp["version"].(float64))
 
 	if version.HasCapMessage() {
 		if err := p.negotiateCapabilities(ctx, version); err != nil {
