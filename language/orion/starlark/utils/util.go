@@ -139,7 +139,7 @@ func ReadRecurse(v starlark.Value, read func(v starlark.Value) (any, error)) (an
 	case starlark.Sequence:
 		return readIterable(v, v.Len(), read)
 	case starlark.Iterable:
-		return readIterable(v, -1, read)
+		return readIterable(v, 0, read)
 	case starlark.Indexable:
 		return readIndexable(v, read)
 	}

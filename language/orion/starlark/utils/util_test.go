@@ -2,11 +2,45 @@ package starlark
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
 	"go.starlark.net/starlark"
 )
+
+// iterableOnly is a starlark.Iterable that is NOT a starlark.Sequence
+// (it has no Len), so its length is unknown to readers.
+type iterableOnly struct {
+	items []starlark.Value
+}
+
+var _ starlark.Iterable = (*iterableOnly)(nil)
+
+func (it *iterableOnly) String() string        { return "iterableOnly" }
+func (it *iterableOnly) Type() string          { return "iterableOnly" }
+func (it *iterableOnly) Freeze()               {}
+func (it *iterableOnly) Truth() starlark.Bool  { return starlark.True }
+func (it *iterableOnly) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable: iterableOnly") }
+func (it *iterableOnly) Iterate() starlark.Iterator {
+	return &iterableOnlyIterator{items: it.items}
+}
+
+type iterableOnlyIterator struct {
+	items []starlark.Value
+	i     int
+}
+
+func (it *iterableOnlyIterator) Next(p *starlark.Value) bool {
+	if it.i >= len(it.items) {
+		return false
+	}
+	*p = it.items[it.i]
+	it.i++
+	return true
+}
+
+func (it *iterableOnlyIterator) Done() {}
 
 func TestReadWrite(t *testing.T) {
 	t.Run("nil <=> None", func(t *testing.T) {
@@ -119,6 +153,36 @@ func TestReadWrite(t *testing.T) {
 		l1, isString := l.Index(1).(starlark.String)
 		if !isString || a[1] != l1.GoString() {
 			t.Errorf("Expected %v to be String", l1)
+		}
+	})
+
+	t.Run("Iterable without Len => []interface{}", func(t *testing.T) {
+		it := &iterableOnly{items: []starlark.Value{
+			starlark.MakeInt(1),
+			starlark.String("hello"),
+			starlark.Bool(true),
+		}}
+
+		av, err := Read(it)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+
+		a, isSlice := av.([]any)
+		if !isSlice {
+			t.Fatalf("Expected []any, got %T", av)
+		}
+		if len(a) != 3 {
+			t.Fatalf("Expected 3 elements, got %d", len(a))
+		}
+		if a[0] != int64(1) {
+			t.Errorf("Expected 1, got %v", a[0])
+		}
+		if a[1] != "hello" {
+			t.Errorf("Expected hello, got %v", a[1])
+		}
+		if a[2] != true {
+			t.Errorf("Expected true, got %v", a[2])
 		}
 	})
 
