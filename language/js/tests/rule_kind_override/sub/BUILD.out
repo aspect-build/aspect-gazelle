@@ -1,0 +1,13 @@
+load("@aspect_rules_js//js:defs.bzl", "js_test")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "sub",
+    srcs = ["lib.ts"],
+)
+
+js_test(
+    name = "sub_tests",
+    srcs = ["lib.spec.ts"],
+    deps = [":sub"],
+)
