@@ -1,4 +1,4 @@
-package gazelle
+package node
 
 import (
 	"slices"

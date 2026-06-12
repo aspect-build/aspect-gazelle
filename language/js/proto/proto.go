@@ -1,4 +1,4 @@
-package gazelle
+package proto
 
 import (
 	"bytes"
