@@ -1,3 +1,3 @@
-Error in is_local: no property named: no-such-property
+Failed to invoke is-local-unknown:Prepare(): Error in is_local: no property named: no-such-property
 Traceback (most recent call last):
   is-local-unknown/unknown.axl:5:28: in prepare

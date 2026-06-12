@@ -9,10 +9,16 @@ import (
 )
 
 func ErrorStr(pre string, err error) string {
+	var msg string
 	if ee, isEvalError := err.(*starlark.EvalError); isEvalError {
-		return evalErrorBacktrace(ee)
+		msg = evalErrorBacktrace(ee)
+	} else {
+		msg = err.Error()
 	}
-	return err.Error()
+	if pre == "" {
+		return msg
+	}
+	return pre + ": " + msg
 }
 
 // Modified version of starlark.EvalError.Backtrace(), starlark.CallStack.String() ...

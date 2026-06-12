@@ -1,6 +1,8 @@
 package starlark
 
 import (
+	"errors"
+	"strings"
 	"testing"
 
 	"go.starlark.net/starlark"
@@ -145,6 +147,45 @@ func TestReadWrite(t *testing.T) {
 		l2, isBool := l.Index(2).(starlark.Bool)
 		if !isBool || a[2] != (l2.Truth() == starlark.True) {
 			t.Errorf("Expected %v to be Bool", l2)
+		}
+	})
+}
+
+func TestErrorStr(t *testing.T) {
+	t.Run("plain error includes pre context", func(t *testing.T) {
+		s := ErrorStr("Failed to invoke myplugin:Prepare()", errors.New("boom"))
+		if !strings.Contains(s, "Failed to invoke myplugin:Prepare()") {
+			t.Errorf("Expected pre context in %q", s)
+		}
+		if !strings.Contains(s, "boom") {
+			t.Errorf("Expected error message in %q", s)
+		}
+	})
+
+	t.Run("EvalError includes pre context and backtrace", func(t *testing.T) {
+		_, err := starlark.ExecFile(&starlark.Thread{}, "test.star", "fail(\"boom\")", nil)
+		if err == nil {
+			t.Fatal("Expected an error")
+		}
+		if _, isEvalError := err.(*starlark.EvalError); !isEvalError {
+			t.Fatalf("Expected *starlark.EvalError, got %T", err)
+		}
+
+		s := ErrorStr("Failed to invoke myplugin:Analyze()", err)
+		if !strings.Contains(s, "Failed to invoke myplugin:Analyze()") {
+			t.Errorf("Expected pre context in %q", s)
+		}
+		if !strings.Contains(s, "boom") {
+			t.Errorf("Expected error message in %q", s)
+		}
+		if !strings.Contains(s, "Traceback") {
+			t.Errorf("Expected backtrace in %q", s)
+		}
+	})
+
+	t.Run("empty pre returns error message only", func(t *testing.T) {
+		if s := ErrorStr("", errors.New("boom")); s != "boom" {
+			t.Errorf("Expected %q, got %q", "boom", s)
 		}
 	})
 }

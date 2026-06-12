@@ -1,3 +1,3 @@
-Error in aspect.SourceGlobs: at least one include glob pattern is required
+Failed to invoke bad-sourceglob-no-include-test:Prepare(): Error in aspect.SourceGlobs: at least one include glob pattern is required
 Traceback (most recent call last):
   bad-sourceglob-no-include/bad-sourceglob-no-include.axl:4:37: in lambda
