@@ -58,8 +58,16 @@ const (
 	Python                      = "python"
 )
 
-type Language any
+// Language is an opaque grammar handle, sealed to this package so the
+// parsing backend can change without affecting callers.
+type Language interface {
+	Grammar() LanguageGrammar
 
+	// sitterLang seals the interface to in-package implementations.
+	sitterLang() *sitter.Language
+}
+
+// NewLanguage wraps a raw tree-sitter grammar (`const TSLanguage *`).
 func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 	return &treeLanguage{
 		grammar: grammar,
@@ -70,6 +78,16 @@ func NewLanguage(grammar LanguageGrammar, langPtr unsafe.Pointer) Language {
 type treeLanguage struct {
 	grammar LanguageGrammar
 	lang    *sitter.Language
+}
+
+var _ Language = (*treeLanguage)(nil)
+
+func (tree *treeLanguage) Grammar() LanguageGrammar {
+	return tree.grammar
+}
+
+func (tree *treeLanguage) sitterLang() *sitter.Language {
+	return tree.lang
 }
 
 func (tree *treeLanguage) String() string {
@@ -91,7 +109,7 @@ type AST interface {
 	Close()
 }
 type treeAst struct {
-	lang       *treeLanguage
+	lang       Language
 	filePath   string
 	sourceCode []byte
 
@@ -111,7 +129,7 @@ func (tree *treeAst) Close() {
 }
 
 func (tree *treeAst) String() string {
-	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.grammar, tree.filePath, tree.sitterTree.RootNode().String())
+	return fmt.Sprintf("treeAst{\n lang: %q,\n filePath: %q,\n AST:\n  %v\n}", tree.lang.Grammar(), tree.filePath, tree.sitterTree.RootNode().String())
 }
 
 func PathToLanguage(p string) LanguageGrammar {
@@ -185,12 +203,12 @@ func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, er
 
 	parser := sitter.NewParser()
 	defer parser.Close()
-	parser.SetLanguage(lang.(*treeLanguage).lang)
+	parser.SetLanguage(lang.sitterLang())
 
 	tree, err := parser.ParseCtx(ctx, nil, sourceCode)
 	if err != nil {
 		return nil, err
 	}
 
-	return &treeAst{lang: lang.(*treeLanguage), filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
+	return &treeAst{lang: lang, filePath: filePath, sourceCode: sourceCode, sitterTree: tree}, nil
 }

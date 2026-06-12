@@ -23,6 +23,8 @@ type sitterQuery struct {
 
 var _ TreeQuery = (*sitterQuery)(nil)
 
+func (q *sitterQuery) sealedQuery() {}
+
 func newSitterQuery(lang *sitter.Language, query string) (*sitterQuery, error) {
 	q, err := sitter.NewQuery([]byte(query), lang)
 	if err != nil {
