@@ -1,20 +1,18 @@
 package common
 
 import (
-	"math"
+	"runtime"
 	"sync"
 )
 
-const (
-	// MaxWorkerCount is the maximum number of parallel workers
-	MaxWorkerCount = 12
-)
+// MaxWorkerCount is the maximum number of parallel workers
+var MaxWorkerCount = runtime.GOMAXPROCS(0)
 
 // Parallelize an action over a set of string values.
 // Returns a channel that emits results as they are produced.
 func Parallelize[T any](values []string, process func(string) T) chan T {
 	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
+	workerCount := min(MaxWorkerCount, 1+len(values)/2)
 
 	// The channel of inputs
 	valuesCh := make(chan string, workerCount)

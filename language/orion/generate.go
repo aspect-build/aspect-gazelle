@@ -24,11 +24,6 @@ import (
 )
 
 const (
-	// TODO: move to common
-	MaxWorkerCount = 12
-)
-
-const (
 	targetAttrValues     = "__target_attr_values"
 	targetDeclarationKey = "__target_declaration"
 	targetPluginKey      = "__target_plugin"
@@ -61,7 +56,7 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	// Run queries on source files. Cap concurrency at MaxWorkerCount: more
 	// in-flight blocking opens just churn the scheduler spinning up OS threads.
 	eg := errgroup.Group{}
-	eg.SetLimit(MaxWorkerCount)
+	eg.SetLimit(common.MaxWorkerCount)
 
 	// Stage 2:
 	// Parse and query source files and collect results
