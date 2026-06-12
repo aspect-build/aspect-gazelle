@@ -3,6 +3,7 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "python",
     srcs = ["binding.go"],
+    cgo = True,
     importpath = "github.com/aspect-build/aspect-gazelle/treesitter/python",
     visibility = ["//visibility:public"],
     deps = [
@@ -11,7 +12,6 @@ go_library(
         # links com_github_smacker_go_tree_sitter//python, so adding a second
         # copy of the same C sources (parser.c / scanner.c) causes duplicate
         # symbol errors at link time in the runner binary.
-        "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
         "@com_github_smacker_go_tree_sitter//python",
     ],
 )

@@ -62,27 +62,27 @@ func toTreeLanguage(fileName string, queries plugin.NamedQueries) treesitter.Lan
 
 	switch lang {
 	case treesitter.Go:
-		return treesitter.NewLanguageFromSitter(treesitter.Go, golang.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Go, golang.LanguagePtr())
 	case treesitter.HCL:
-		return treesitter.NewLanguageFromSitter(treesitter.HCL, hcl.NewLanguage())
+		return treesitter.NewLanguage(treesitter.HCL, hcl.LanguagePtr())
 	case treesitter.Java:
-		return treesitter.NewLanguageFromSitter(treesitter.Java, java.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Java, java.LanguagePtr())
 	case treesitter.JSON:
-		return treesitter.NewLanguageFromSitter(treesitter.JSON, json.NewLanguage())
+		return treesitter.NewLanguage(treesitter.JSON, json.LanguagePtr())
 	case treesitter.Kotlin:
-		return treesitter.NewLanguageFromSitter(treesitter.Kotlin, kotlin.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Kotlin, kotlin.LanguagePtr())
 	case treesitter.Python:
-		return treesitter.NewLanguageFromSitter(treesitter.Python, python.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Python, python.LanguagePtr())
 	case treesitter.Ruby:
-		return treesitter.NewLanguageFromSitter(treesitter.Ruby, ruby.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Ruby, ruby.LanguagePtr())
 	case treesitter.Rust:
-		return treesitter.NewLanguageFromSitter(treesitter.Rust, rust.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Rust, rust.LanguagePtr())
 	case treesitter.Starlark:
-		return treesitter.NewLanguageFromSitter(treesitter.Starlark, starlark.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Starlark, starlark.LanguagePtr())
 	case treesitter.Typescript:
-		return treesitter.NewLanguageFromSitter(treesitter.Typescript, typescript.NewLanguage())
+		return treesitter.NewLanguage(treesitter.Typescript, typescript.LanguagePtr())
 	case treesitter.TypescriptX:
-		return treesitter.NewLanguageFromSitter(treesitter.TypescriptX, tsx.NewLanguage())
+		return treesitter.NewLanguage(treesitter.TypescriptX, tsx.LanguagePtr())
 	}
 
 	BazelLog.Fatalf("Unknown LanguageGrammar %q", lang)

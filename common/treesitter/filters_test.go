@@ -9,7 +9,7 @@ import (
 	golang "github.com/aspect-build/aspect-gazelle/treesitter/golang"
 )
 
-var goLang = treesitter.NewLanguageFromSitter(treesitter.Go, golang.NewLanguage())
+var goLang = treesitter.NewLanguage(treesitter.Go, golang.LanguagePtr())
 
 func mustParseGo(t *testing.T, src string) treesitter.AST {
 	t.Helper()

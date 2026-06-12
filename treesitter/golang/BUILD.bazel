@@ -10,5 +10,4 @@ go_library(
     copts = ["-Iexternal/*tree-sitter-go"],
     importpath = "github.com/aspect-build/aspect-gazelle/treesitter/golang",
     visibility = ["//visibility:public"],
-    deps = ["@com_github_smacker_go_tree_sitter//:go-tree-sitter"],
 )
