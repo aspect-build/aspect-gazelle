@@ -345,12 +345,8 @@ func convertPluginAttribute(pkg string, val interface{}) ([]interface{}, []plugi
 		var i []plugin.TargetImport
 		for _, v := range a {
 			newR, newI, _ := convertPluginAttribute(pkg, v)
-			if newR != nil {
-				r = append(r, newR...)
-			}
-			if newI != nil {
-				i = append(i, newI...)
-			}
+			r = append(r, newR...)
+			i = append(i, newI...)
 		}
 		return r, i, true
 	}

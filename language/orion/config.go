@@ -54,12 +54,7 @@ func (c *BUILDConfig) NewChildConfig(rel string) *BUILDConfig {
 }
 
 func (p *BUILDConfig) appendDirectiveValue(key, value string) {
-	values, valueExists := p.directiveRawValues[key]
-	if !valueExists {
-		p.directiveRawValues[key] = []string{value}
-	} else {
-		p.directiveRawValues[key] = append(values, value)
-	}
+	p.directiveRawValues[key] = append(p.directiveRawValues[key], value)
 }
 
 func (c *BUILDConfig) IsPluginEnabled(pluginId plugin.PluginId) bool {

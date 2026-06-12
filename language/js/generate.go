@@ -760,10 +760,8 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	for _, f := range sourceFiles {
 		info.sources.Add(f)
 	}
-	if genFiles != nil {
-		for _, f := range genFiles {
-			info.sources.Add(f)
-		}
+	for _, f := range genFiles {
+		info.sources.Add(f)
 	}
 
 	// Parse source files, do not parse generated files that are not source files.
@@ -1257,10 +1255,6 @@ func (ts *typeScriptLang) addFileLabel(importPath string, label *label.Label) {
 }
 
 func (ts *typeScriptLang) addModuleDeclaration(module string, moduleLabel *label.Label) {
-	if ts.moduleTypes[module] == nil {
-		ts.moduleTypes[module] = make([]*label.Label, 0, 1)
-	}
-
 	ts.moduleTypes[module] = append(ts.moduleTypes[module], moduleLabel)
 }
 

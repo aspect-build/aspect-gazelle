@@ -38,21 +38,21 @@ func (*kotlinLang) Name() string {
 func (kt *kotlinLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
 	BazelLog.Debugf("Imports(%s): '%s:%s'", LanguageName, f.Pkg, r.Name())
 
-	if r.PrivateAttr(packagesKey) != nil {
-		target, isLib := r.PrivateAttr(packagesKey).(*KotlinLibTarget)
-		if isLib {
-			provides := make([]resolve.ImportSpec, 0, target.Packages.Size())
-			for _, pkg := range target.Packages.Values() {
-				provides = append(provides, resolve.ImportSpec{
-					Lang: LanguageName,
-					Imp:  pkg,
-				})
-			}
+	target, isLib := r.PrivateAttr(packagesKey).(*KotlinLibTarget)
+	if !isLib {
+		return nil
+	}
 
-			if len(provides) > 0 {
-				return provides
-			}
-		}
+	provides := make([]resolve.ImportSpec, 0, target.Packages.Size())
+	for _, pkg := range target.Packages.Values() {
+		provides = append(provides, resolve.ImportSpec{
+			Lang: LanguageName,
+			Imp:  pkg,
+		})
+	}
+
+	if len(provides) > 0 {
+		return provides
 	}
 
 	return nil
