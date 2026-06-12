@@ -6,15 +6,87 @@ set -o errexit -o nounset -o pipefail
 
 TAG=${1}
 
+# ---- Changelog ------------------------------------------------------------
+# GitHub's auto-generated notes are disabled in the release workflows
+# (generate_release_notes: false) because they (a) diff against the previous
+# tag of ANY prefix and (b) list every PR in the repo regardless of which
+# artifact it touched. We generate the changelog ourselves instead so it
+# contains exactly the changes to THIS artifact since the previous release on
+# the SAME version line.
+#
+#   emit_changelog <tag-prefix> [pathspec...]
+#
+# <tag-prefix> selects the version line (e.g. "js-v", "prebuilt-v"); the
+# previous release is the next-lower tag sharing that prefix. The optional
+# pathspecs restrict the log to the artifact's subtree (omit to include the
+# whole repo, e.g. the prebuilt binary which is built from all of it).
+emit_changelog() {
+	local prefix="$1"
+	shift
+	local paths=("$@")
+
+	# Release runners often check out shallow / without tags; deepen so the
+	# tag list and the prev..TAG range are complete. Best-effort, offline-safe.
+	git fetch --tags --quiet 2>/dev/null || true
+	git fetch --tags --unshallow --quiet 2>/dev/null || true
+
+	# Previous release on the same version line: version-sort the tags sharing
+	# this prefix, find TAG, and take the entry just below it.
+	local prev
+	prev=$(git tag --list "${prefix}*" --sort=-version:refname |
+		grep -x -F -A1 -- "$TAG" | tail -n1)
+
+	local range
+	if [[ -z "$prev" || "$prev" == "$TAG" ]]; then
+		range="$TAG" # First release on this line: full history up to the tag.
+		prev=""
+	else
+		range="${prev}..${TAG}"
+	fi
+
+	local log
+	log=$(git log --no-merges --format='- %s' "$range" -- "${paths[@]}")
+
+	echo "## What's Changed"
+	echo
+	if [[ -n "$log" ]]; then
+		echo "$log"
+	else
+		echo "_No changes to this artifact since ${prev:-the initial commit}._"
+	fi
+	echo
+
+	if [[ -n "$prev" ]]; then
+		# Derive owner/repo from the origin remote for the compare link.
+		local remote owner_repo
+		remote=$(git config --get remote.origin.url || true)
+		owner_repo=$(sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##' <<<"$remote")
+		if [[ -n "$owner_repo" ]]; then
+			echo "**Full Changelog**: https://github.com/${owner_repo}/compare/${prev}...${TAG}"
+			echo
+		fi
+	fi
+}
+
 # ---- Source-module releases (aspect_gazelle_js, _orion, _runner, ...) ----
 # These ship no prebuilt binaries; the archive is just the module's subtree
 # hoisted to the archive root, with the module version patched in. Add a module
 # by adding a "<tag-prefix>*) <module root>" case below (and its .bcr templates).
+#
+# SRC_MODULE_DEPS lists the in-repo dirs the module depends on, so the changelog
+# also reports changes to those shared modules (e.g. common). Set it to the
+# module's actual deps: js uses common + the oxc Rust parser (no treesitter);
+# tree-sitter languages (orion, kotlin) would add treesitter.
 SRC_MODULE_ROOT=""
+SRC_MODULE_DEPS=""
 case "$TAG" in
-js-v*) SRC_MODULE_ROOT="language/js" ;;
-	# orion-v*) SRC_MODULE_ROOT="language/orion" ;;  # add when its .bcr/ templates exist
-	# runner-v*) SRC_MODULE_ROOT="runner" ;;          # add when its .bcr/ templates exist
+js-v*)
+	SRC_MODULE_ROOT="language/js"
+	SRC_MODULE_DEPS="common"
+	;;
+	# orion-v*)  SRC_MODULE_ROOT="language/orion";  SRC_MODULE_DEPS="common treesitter" ;;
+	# kotlin-v*) SRC_MODULE_ROOT="language/kotlin"; SRC_MODULE_DEPS="common treesitter" ;;
+	# runner-v*) SRC_MODULE_ROOT="runner";          SRC_MODULE_DEPS="common" ;;
 esac
 if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	# Tag carries the module's prefix (e.g. js-v1.2.3), so the archive is
@@ -90,6 +162,11 @@ common --@llvm//config:experimental_stub_libgcc_s=True
 common --linkopt=-no-pie
 \`\`\`
 EOF
+
+	# Changes under this module's subtree and its in-repo deps (e.g. common),
+	# since the previous <prefix> tag.
+	echo
+	emit_changelog "${TAG%%-v*}-v" "$SRC_MODULE_ROOT" $SRC_MODULE_DEPS
 	exit 0
 fi
 
@@ -193,3 +270,13 @@ aspect_gazelle(
 )
 \`\`\`
 EOF
+
+# Changes that affect the prebuilt binary, since the previous prebuilt-v tag.
+# The binary is compiled from the runtime source dirs (runner + all language
+# plugins + treesitter + common); the prebuilt module wiring and root build/dep
+# files (MODULE.bazel, go.work*) also determine what ships. Pure-docs, CI and
+# build-tooling changes are intentionally excluded as they don't alter the binary.
+echo
+emit_changelog "prebuilt-v" \
+	prebuilt runner language treesitter common \
+	MODULE.bazel BUILD.bazel go.work go.work.sum
