@@ -40,6 +40,12 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 
 	// Parse all source files and group information into target(s)
 	for p := range kt.parseFiles(args, sourceFiles) {
+		// A nil result means the file could not be read (the error was already
+		// printed by the parse worker); skip it rather than panic.
+		if p == nil {
+			continue
+		}
+
 		var target *KotlinTarget
 
 		if p.HasMain {
