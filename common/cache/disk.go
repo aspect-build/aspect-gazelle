@@ -17,10 +17,8 @@ import (
  * (see VerifyCacheVersion).
  */
 func NewDiskCache(cacheFilePath string) Cache {
-	c := &diskCache{
-		FileComputeCache: NewFileComputeCache(),
-		file:             cacheFilePath,
-	}
+	c := &diskCache{FileComputeCache: NewFileComputeCache()}
+	c.file = cacheFilePath
 	c.read()
 	return c
 }
@@ -40,10 +38,8 @@ func init() {
 var _ Cache = (*diskCache)(nil)
 
 type diskCache struct {
+	// FileComputeCache, including the `file` field where the cache is persisted.
 	*FileComputeCache
-
-	// Where the cache is persisted to disk.
-	file string
 
 	// Maps file path → content hash, used to detect stale entries.
 	contentHashes sync.Map

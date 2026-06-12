@@ -162,6 +162,21 @@ func TestDiskCache_MultipleOpsPerFile(t *testing.T) {
 	}
 }
 
+// Guards against diskCache re-declaring a `file` field that shadows the
+// embedded FileComputeCache.file: with two same-named fields, `c.file`
+// resolves to the shallow one and the embedded FileComputeCache's path is
+// left permanently empty. There must be exactly one live `file` field, on
+// FileComputeCache, holding the configured path.
+func TestDiskCache_FilePathOnEmbeddedFileComputeCache(t *testing.T) {
+	dir := t.TempDir()
+	cacheFile := filepath.Join(dir, "cache")
+
+	c := NewDiskCache(cacheFile).(*diskCache)
+	if c.FileComputeCache.file != cacheFile {
+		t.Errorf("FileComputeCache.file = %q, want %q (diskCache must not shadow the embedded field)", c.FileComputeCache.file, cacheFile)
+	}
+}
+
 // Entries written to disk are available after constructing a new cache instance.
 func TestDiskCache_Persistence(t *testing.T) {
 	dir := t.TempDir()
