@@ -1,0 +1,43 @@
+# dir(ctx) is built from each context's AttrNames, pinning the
+# starlark-visible attribute surface. A name missing there is invisible to
+# dir() and typo suggestions even when the attribute itself works - e.g.
+# add_symbol was once absent from the DeclareTargetsContext listing.
+aspect.gazelle_rule_kind("ctx_attrs", {
+    "From": "@ctx-test//:rules.bzl",
+    "ResolveAttrs": ["analyze_ctx_attrs"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".txt")],
+    )
+
+def analyze(ctx):
+    # Surface dir(ctx) of the AnalyzeContext through the symbol database: the
+    # declare import below only resolves if this id matches exactly.
+    ctx.add_symbol(
+        id = " ".join(dir(ctx)),
+        provider_type = "ctx-attrs",
+        label = aspect.Label(name = "analyze_ctx"),
+    )
+
+def declare(ctx):
+    ctx.targets.add(
+        name = "ctx",
+        kind = "ctx_attrs",
+        attrs = {
+            "declare_ctx_attrs": dir(ctx),
+            "analyze_ctx_attrs": aspect.Import(
+                id = "add_symbol properties rel repo_name source",
+                provider = "ctx-attrs",
+                optional = True,
+            ),
+        },
+    )
+
+aspect.orion_extension(
+    id = "context-attrs-test",
+    prepare = prepare,
+    analyze = analyze,
+    declare = declare,
+)

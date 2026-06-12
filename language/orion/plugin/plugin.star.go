@@ -123,7 +123,7 @@ func (ctx DeclareTargetsContext) String() string {
 	return fmt.Sprintf("DeclareTargetsContext{PrepareContext: %v, sources: %v, targets: %v}", ctx.PrepareContext, ctx.Sources, ctx.Targets)
 }
 func (ctx DeclareTargetsContext) AttrNames() []string {
-	return []string{"repo_name", "rel", "properties", "sources", "targets"}
+	return append(ctx.PrepareContext.AttrNames(), "sources", "targets", "add_symbol")
 }
 func (ctx DeclareTargetsContext) Type() string { return "DeclareTargetsContext" }
 
@@ -504,7 +504,7 @@ func (a AnalyzeContext) Attr(name string) (starlark.Value, error) {
 }
 
 func (a AnalyzeContext) AttrNames() []string {
-	return []string{"repo_name", "rel", "properties", "source", "add_symbol"}
+	return append(a.PrepareContext.AttrNames(), "source", "add_symbol")
 }
 func (a AnalyzeContext) Freeze() {}
 func (a AnalyzeContext) Hash() (uint32, error) {
