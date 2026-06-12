@@ -1,6 +1,7 @@
 ########################
 # Import bazelrc presets
 import %workspace%/../../tools/preset.bazelrc
+import %workspace%/../../tools/buildbuddy.bazelrc
 
 # Override the preset's `--lockfile_mode=error` on CI: we don't commit
 # MODULE.bazel.lock (see the root .gitignore), so there's nothing to enforce

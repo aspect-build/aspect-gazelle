@@ -1,0 +1,5 @@
+# Use BuildBuddy's free anonymous tier as a CDN for external downloads.
+# Bazel only enables the remote downloader alongside a gRPC remote cache.
+common --remote_cache=grpcs://remote.buildbuddy.io
+common --experimental_remote_downloader=grpcs://remote.buildbuddy.io
+common --experimental_remote_downloader_local_fallback=true
