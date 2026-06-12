@@ -1,0 +1,12 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sa",
+    srcs = ["sa.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/common/bazel/go/sa",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@co_honnef_go_tools//staticcheck",
+        "@org_golang_x_tools//go/analysis",
+    ],
+)
