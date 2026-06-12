@@ -2,6 +2,7 @@ package typescript
 
 import (
 	"fmt"
+	"os"
 	"path"
 	"strings"
 	"sync"
@@ -56,7 +57,7 @@ func (tc *TsWorkspace) SetTsConfigFile(root, rel, groupName, fileName string) {
 	}
 
 	if c := tc.cm.configFiles[rel][groupName]; c != nil {
-		fmt.Printf("Duplicate tsconfig file %s: %s and %s", path.Join(rel, fileName), c.rel, c.fileName)
+		fmt.Fprintf(os.Stderr, "Duplicate tsconfig file %s: %s and %s\n", path.Join(rel, fileName), c.rel, c.fileName)
 		return
 	}
 
@@ -93,7 +94,7 @@ func (tc *TsWorkspace) getTsConfigFromPath(p *workspacePath) *TsConfig {
 
 		var err error
 		if c, err = parseTsConfigJSONFile(tc.cm.configs, tc.tsConfigResolver, p.root, filePath); err != nil {
-			fmt.Printf("Failed to parse tsconfig file %s: %v\n", filePath, err)
+			fmt.Fprintf(os.Stderr, "Failed to parse tsconfig file %s: %v\n", filePath, err)
 			return nil
 		}
 	}
