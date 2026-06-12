@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_asset_files *.png
+
+ts_project(
+    name = "override",
+    srcs = ["main.ts"],
+    assets = ["pixel.png"],
+)

@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_asset_files *.css
+
+ts_project(
+    name = "overlap",
+    srcs = ["lib.tsx"],
+    assets = ["both.css"],
+)

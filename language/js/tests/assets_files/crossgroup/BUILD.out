@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_files styles styles.ts
+# gazelle:js_asset_files styles *.css
+
+ts_project(
+    name = "crossgroup",
+    srcs = ["main.ts"],
+    deps = [":styles"],
+)
+
+ts_project(
+    name = "styles",
+    srcs = ["styles.ts"],
+    assets = ["theme.css"],
+)

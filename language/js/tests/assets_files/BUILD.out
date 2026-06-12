@@ -1,0 +1,22 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+
+# gazelle:js_asset_files *.svg
+# gazelle:js_files mygroup *.my.ts
+# gazelle:js_asset_files mygroup data/**
+
+ts_project(
+    name = "root",
+    srcs = ["main.ts"],
+    assets = [
+        "logo.svg",
+        "styles.css",
+    ],
+)
+
+ts_project(
+    name = "mygroup",
+    srcs = ["lib.my.ts"],
+    assets = ["data/sample.json"],
+)

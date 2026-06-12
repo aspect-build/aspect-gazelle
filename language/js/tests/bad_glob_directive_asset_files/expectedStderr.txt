@@ -1,0 +1,1 @@
+directive "js_asset_files": Invalid target ({dirname}) asset glob "[broken": invalid glob pattern: [broken

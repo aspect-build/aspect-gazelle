@@ -1,0 +1,7 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# An existing asset-only group (no source files) must be removed.
+ts_project(
+    name = "assetonly",
+    assets = ["logo.svg"],
+)
