@@ -29,6 +29,8 @@ func Write(v any) starlark.Value {
 		return starlark.MakeInt64(v)
 	case float64:
 		return starlark.Float(v)
+	case []byte:
+		return starlark.Bytes(v)
 	case []string:
 		return WriteList(v, WriteString)
 	case []any:
@@ -128,10 +130,17 @@ func ReadRecurse(v starlark.Value, read func(v starlark.Value) (any, error)) (an
 	case starlark.String:
 		return v.GoString(), nil
 	case starlark.Int:
-		i, _ := v.Int64()
+		i, ok := v.Int64()
+		if !ok {
+			return nil, fmt.Errorf("integer %v does not fit in int64", v)
+		}
 		return i, nil
 	case starlark.Float:
 		return float64(v), nil
+	// Bytes must be matched before the Indexable case: Bytes.Index returns
+	// another Bytes, which would recurse without terminating.
+	case starlark.Bytes:
+		return []byte(v), nil
 	case *starlark.List:
 		return ReadList(v, read)
 	case *starlark.Dict:
