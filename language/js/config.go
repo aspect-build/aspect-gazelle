@@ -397,10 +397,6 @@ func (c *JsGazelleConfig) SetProtoMode(mode ProtoMode) {
 	c.protoMode = mode
 }
 
-func (c *JsGazelleConfig) GetProtoMode() ProtoMode {
-	return c.protoMode
-}
-
 // If ts_proto_library() target generation is enabled.
 func (c *JsGazelleConfig) ProtoTsTargetGenerationEnabled() bool {
 	return c.generationEnabled && c.protoMode == ProtoModeEnabled

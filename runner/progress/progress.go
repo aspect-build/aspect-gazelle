@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"syscall"
-	"time"
 
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -42,7 +41,6 @@ var _ language.LifecycleManager = (*progressLang)(nil)
 type progressStatus struct {
 	phase progressPhase
 	what  string
-	when  time.Time
 }
 
 type progressLang struct {
@@ -88,7 +86,6 @@ func (p *progressLang) send(phase progressPhase, what string) {
 	msg := &progressStatus{
 		phase: phase,
 		what:  what,
-		when:  time.Now(),
 	}
 
 	select {

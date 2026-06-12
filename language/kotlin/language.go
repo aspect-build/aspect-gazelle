@@ -28,8 +28,7 @@ var _ language.Language = (*kotlinLang)(nil)
 // Configurer and Resolver types.
 type kotlinLang struct {
 	// TODO: extend rules_jvm extension instead of duplicating?
-	mavenResolver    *jvm_maven.Resolver
-	mavenInstallFile string
+	mavenResolver *jvm_maven.Resolver
 }
 
 var _ language.Language = (*kotlinLang)(nil)

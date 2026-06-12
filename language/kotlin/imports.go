@@ -58,7 +58,3 @@ func (jpn *javaFullyQualifiedName) Parent() *javaFullyQualifiedName {
 	}
 	return &javaFullyQualifiedName{jpn.parts[0 : len(jpn.parts)-1]}
 }
-
-func importAsFQN(is *ImportStatement) *javaFullyQualifiedName {
-	return &javaFullyQualifiedName{strings.Split(is.Imp, ".")}
-}

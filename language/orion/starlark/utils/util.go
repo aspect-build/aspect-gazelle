@@ -61,10 +61,6 @@ func WriteMap[K any](m map[string]K, f func(v K) starlark.Value) starlark.Value 
 	return d
 }
 
-func WriteStringMap(m map[string]string) starlark.Value {
-	return WriteMap(m, WriteString)
-}
-
 func ReadBool(v starlark.Value) (bool, error) {
 	bo, ok := v.(starlark.Bool)
 	if !ok {

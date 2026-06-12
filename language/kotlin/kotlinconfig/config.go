@@ -11,9 +11,6 @@ const Directive_KotlinExtension = "kotlin"
 type KotlinConfig struct {
 	*javaconfig.Config
 
-	parent *KotlinConfig
-	rel    string
-
 	generationEnabled bool
 }
 
@@ -23,15 +20,12 @@ func New(repoRoot string) *KotlinConfig {
 	return &KotlinConfig{
 		Config:            javaconfig.New(repoRoot),
 		generationEnabled: true,
-		parent:            nil,
 	}
 }
 
 func (c *KotlinConfig) NewChild(childPath string) *KotlinConfig {
 	cCopy := *c
 	cCopy.Config = c.Config.NewChild()
-	cCopy.rel = childPath
-	cCopy.parent = c
 	return &cCopy
 }
 

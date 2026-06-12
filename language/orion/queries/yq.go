@@ -8,7 +8,7 @@ import (
 	"github.com/mikefarah/yq/v4/pkg/yqlib"
 )
 
-func runYamlQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+func runYamlQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
 	decoder := yqlib.NewYamlDecoder(yqlib.ConfiguredYamlPreferences)
 	err := decoder.Init(bytes.NewReader(sourceCode))
 	if err != nil {

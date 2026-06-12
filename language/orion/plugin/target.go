@@ -48,12 +48,10 @@ type TargetDeclaration struct {
 type TargetAction any
 
 type AddTargetAction struct {
-	TargetAction
 	TargetDeclaration
 }
 
 type RemoveTargetAction struct {
-	TargetAction
 	Name string
 	Kind string
 }

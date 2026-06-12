@@ -29,7 +29,6 @@ const (
 	Resolution_NotFound
 	Resolution_Label
 	Resolution_NativeNode
-	Resolution_Override
 )
 
 type ResolutionType = int
@@ -677,11 +676,6 @@ func (ts *typeScriptLang) findPackage(from string, impPkg string) *label.Label {
 }
 
 func (ts *typeScriptLang) resolveImportTypes(c *config.Config, ix *resolve.RuleIndex, resolutionType ResolutionType, from label.Label, imp ImportStatement) []*label.Label {
-	// Overrides are not extended with additional types
-	if resolutionType == Resolution_Override {
-		return nil
-	}
-
 	// The package the @types are for
 	var typesPkg string
 	if resolutionType == Resolution_NativeNode {
