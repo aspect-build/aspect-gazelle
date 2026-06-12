@@ -1,4 +1,4 @@
-package starlark
+package stdlib
 
 import (
 	"fmt"
