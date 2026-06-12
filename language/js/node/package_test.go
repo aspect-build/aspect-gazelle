@@ -35,6 +35,24 @@ func TestParsePackageJson(t *testing.T) {
 		assertParsePackageJsonEntries(t, `{"exports":{"./subpath":123, "x": []}}`)
 	})
 
+	t.Run("package files", func(t *testing.T) {
+		assertParsePackageJsonFiles(t, `{}`)
+		assertParsePackageJsonFiles(t, `{"files":[]}`)
+		assertParsePackageJsonFiles(t, `{"files":["lib"]}`, "lib")
+		assertParsePackageJsonFiles(t, `{"files":["./lib/", "README.md"]}`, "lib", "README.md")
+		assertParsePackageJsonFiles(t, `{"files":["dist/**/*.js", "!dist/test"]}`, "dist/**/*.js", "!dist/test")
+		assertParsePackageJsonFiles(t, `{"files":["!./dist/test/"]}`, "!dist/test")
+
+		// Patterns escaping the package are dropped.
+		assertParsePackageJsonFiles(t, `{"files":[".", "..", "../sibling", "lib"]}`, "lib")
+
+		// A leading "/" anchors to the package root and is treated as relative.
+		assertParsePackageJsonFiles(t, `{"files":["/dist", "//lib/", "/../escape"]}`, "dist", "lib")
+
+		// 'files' patterns are not entry points.
+		assertParsePackageJsonEntries(t, `{"main":"start.js", "files":["lib", "docs/*.md"]}`, "start.js")
+	})
+
 	t.Run("package name", func(t *testing.T) {
 		pkg := parsePackageJson(t, `{"name":"@scope/pkg","main":"foo.js"}`)
 		if pkg.Name != "@scope/pkg" {
@@ -225,6 +243,21 @@ func assertParsePackageJsonEntries(t *testing.T, packageJson string, expectedEnt
 
 	if !slices.Equal(entries, expectedEntries) {
 		t.Errorf("ParsePackageJson(%q) expected entries %q, got %q", packageJson, expectedEntries, entries)
+	}
+}
+
+// assertParsePackageJsonFiles asserts the normalized 'files' patterns, order-sensitive.
+func assertParsePackageJsonFiles(t *testing.T, packageJson string, expectedFiles ...string) {
+	t.Helper()
+
+	files := parsePackageJson(t, packageJson).Files
+
+	if len(files) == 0 && len(expectedFiles) == 0 {
+		return
+	}
+
+	if !slices.Equal(files, expectedFiles) {
+		t.Errorf("ParsePackageJson(%q) expected files %q, got %q", packageJson, expectedFiles, files)
 	}
 }
 

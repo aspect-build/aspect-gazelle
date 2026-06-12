@@ -1,0 +1,9 @@
+{
+  "name": "files-not-found",
+  "private": true,
+  "files": [
+    "missing.js",
+    "missing-dir",
+    "*.tgz"
+  ]
+}

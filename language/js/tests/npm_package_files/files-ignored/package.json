@@ -1,0 +1,8 @@
+{
+  "name": "files-ignored",
+  "private": true,
+  "files": [
+    "secret.txt",
+    "public.txt"
+  ]
+}

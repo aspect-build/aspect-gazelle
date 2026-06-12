@@ -1,0 +1,6 @@
+genrule(
+    name = "build",
+    srcs = [],
+    outs = ["dist/bundle.js"],
+    cmd = "echo \"console.log(42)\" > \"$@\"",
+)

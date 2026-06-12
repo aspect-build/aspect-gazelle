@@ -26,6 +26,9 @@ type npmPackageJSON struct {
 	// types/typings: https://www.typescriptlang.org/docs/handbook/declaration-files/publishing.html#including-declarations-in-your-npm-package
 	Types   string `json:"types"`
 	Typings string `json:"typings"`
+
+	// files: https://docs.npmjs.com/cli/configuring-npm/package-json#files
+	Files []string `json:"files"`
 }
 
 // PackageJson is the package.json data relevant to gazelle such as the
@@ -36,6 +39,11 @@ type PackageJson struct {
 
 	// All entry point files such as the 'main' and 'exports' fields.
 	Entries []string
+
+	// The 'files' field: patterns of files published with the package, cleaned
+	// with no leading "./". A pattern naming a directory includes its contents.
+	// Negated patterns keep their leading "!".
+	Files []string
 
 	// Exact (non-pattern) subpath exports from the 'exports' field, keyed by normalized subpath, mapped to their sorted target files.
 	Exports map[string][]string
@@ -171,6 +179,22 @@ func ParsePackageJson(packageJsonReader io.Reader) (PackageJson, error) {
 	}
 	if c.Typings != "" {
 		pkg.addEntry(c.Typings)
+	}
+
+	// https://docs.npmjs.com/cli/configuring-npm/package-json#files
+	for _, f := range c.Files {
+		pattern, negated := strings.CutPrefix(f, "!")
+		// A leading "/" anchors the pattern to the package root; it is
+		// equivalent to the same pattern without the leading slash.
+		pattern = path.Clean(strings.TrimLeft(pattern, "/"))
+		if pattern == "." || pattern == ".." || strings.HasPrefix(pattern, "../") {
+			BazelLog.Warnf("Invalid package.json files pattern %q", f)
+			continue
+		}
+		if negated {
+			pattern = "!" + pattern
+		}
+		pkg.Files = append(pkg.Files, pattern)
 	}
 
 	// https://nodejs.org/api/packages.html#exports
