@@ -62,7 +62,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 
 	var errs []error
 
-	lang := treeutils.NewLanguageFromSitter(treeutils.Kotlin, kotlin.NewLanguage())
+	lang := treeutils.NewLanguage(treeutils.Kotlin, kotlin.LanguagePtr())
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
 	if err != nil {
 		errs = append(errs, err)
