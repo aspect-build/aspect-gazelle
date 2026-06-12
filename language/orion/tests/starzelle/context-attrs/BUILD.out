@@ -1,0 +1,14 @@
+load("@ctx-test//:rules.bzl", "ctx_attrs")
+
+ctx_attrs(
+    name = "ctx",
+    analyze_ctx_attrs = "//:analyze_ctx",
+    declare_ctx_attrs = [
+        "add_symbol",
+        "properties",
+        "rel",
+        "repo_name",
+        "sources",
+        "targets",
+    ],
+)
