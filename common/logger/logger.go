@@ -1,7 +1,6 @@
 package logger
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"log"
@@ -59,7 +58,7 @@ func init() {
 			log.Fatalf("CLI failed to create log file: %v\n", err)
 		}
 
-		logger.SetOutput(bufio.NewWriter(logfile))
+		logger.SetOutput(logfile)
 	}
 
 	// Override known noisy loggers
