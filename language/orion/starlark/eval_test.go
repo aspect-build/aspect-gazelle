@@ -1,4 +1,4 @@
-package starlark
+package stareval
 
 import (
 	"os"

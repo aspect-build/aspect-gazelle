@@ -10,7 +10,7 @@ import (
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
-	starEval "github.com/aspect-build/aspect-gazelle/language/orion/starlark"
+	stareval "github.com/aspect-build/aspect-gazelle/language/orion/starlark"
 	starUtils "github.com/aspect-build/aspect-gazelle/language/orion/starlark/utils"
 	"go.starlark.net/starlark"
 )
@@ -43,7 +43,7 @@ func LoadProxy(host plugin.PluginHost, pluginDir, pluginPath string) error {
 		"aspect": aspectModule,
 	}
 
-	_, err := starEval.Eval(pluginDir, pluginPath, libs, evalState)
+	_, err := stareval.Eval(pluginDir, pluginPath, libs, evalState)
 	if err != nil {
 		return err
 	}
