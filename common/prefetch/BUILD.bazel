@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "prefetch",
+    srcs = ["prefetch.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/common/prefetch",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//:common",
+        "//logger",
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//language",
+        "@bazel_gazelle//rule",
+        "@bazel_gazelle//walk",
+    ],
+)
+
+go_test(
+    name = "prefetch_test",
+    srcs = ["prefetch_test.go"],
+    embed = [":prefetch"],
+    deps = ["@bazel_gazelle//config"],
+)
