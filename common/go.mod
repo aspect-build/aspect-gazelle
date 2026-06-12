@@ -11,13 +11,16 @@ require (
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 	golang.org/x/tools v0.45.0
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473
+	honnef.co/go/tools v0.7.0
 )
 
 require (
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
 	github.com/bazelbuild/rules_go v0.60.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20231108232855-2478ac86f678 // indirect
 	golang.org/x/mod v0.36.0 // indirect
+	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 )

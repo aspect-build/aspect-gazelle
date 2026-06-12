@@ -46,16 +46,16 @@ type LanguageGrammar string
 
 const (
 	Kotlin      LanguageGrammar = "kotlin"
-	Starlark                    = "starlark"
-	Typescript                  = "typescript"
-	TypescriptX                 = "tsx"
-	JSON                        = "json"
-	Java                        = "java"
-	Go                          = "go"
-	Rust                        = "rust"
-	Ruby                        = "ruby"
-	HCL                         = "hcl"
-	Python                      = "python"
+	Starlark    LanguageGrammar = "starlark"
+	Typescript  LanguageGrammar = "typescript"
+	TypescriptX LanguageGrammar = "tsx"
+	JSON        LanguageGrammar = "json"
+	Java        LanguageGrammar = "java"
+	Go          LanguageGrammar = "go"
+	Rust        LanguageGrammar = "rust"
+	Ruby        LanguageGrammar = "ruby"
+	HCL         LanguageGrammar = "hcl"
+	Python      LanguageGrammar = "python"
 )
 
 // Language is an opaque grammar handle, sealed to this package so the

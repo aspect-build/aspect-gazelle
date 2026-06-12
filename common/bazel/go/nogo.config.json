@@ -7,5 +7,11 @@
       "cgo/": "exclude cgo",
       "$GOROOT/": "exclude GOROOT"
     }
+  },
+  "SA5011": {
+    "description": "nogo provides no facts for the stdlib, so staticcheck cannot know testing.T.Fatal is noreturn and false-positives on the `if x == nil { t.Fatal(...) }` guard idiom.",
+    "exclude_files": {
+      "_test\\.go$": "exclude tests; the t.Fatal guard idiom false-positives without stdlib facts"
+    }
   }
 }
