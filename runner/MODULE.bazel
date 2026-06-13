@@ -57,7 +57,7 @@ use_repo(go_deps, "bazel_gazelle_go_repository_config", "com_github_aspect_build
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk2.nogo(nogo = "@com_github_aspect_build_aspect_gazelle_common//bazel/go:nogo")
+go_sdk2.nogo(nogo = "@aspect_gazelle//tools/nogo")
 go_sdk2.from_file(
     name = "go_sdk",
     go_mod = "//:go.mod",
@@ -78,6 +78,13 @@ go_deps2.module_override(
     patch_strip = 1,
     patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
     path = "github.com/smacker/go-tree-sitter",
+)
+
+# The repo root module, used only for the shared @aspect_gazelle//tools/nogo.
+bazel_dep(name = "aspect_gazelle", version = "0.0.0", dev_dependency = True)
+local_path_override(
+    module_name = "aspect_gazelle",
+    path = "..",
 )
 
 # The LLVM and Rust toolchains (used for all cgo here, including the Rust js

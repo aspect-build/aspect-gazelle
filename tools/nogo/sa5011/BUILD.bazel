@@ -1,0 +1,9 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "sa5011",
+    srcs = ["sa5011.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/tools/nogo/sa5011",
+    visibility = ["//visibility:public"],
+    deps = ["//tools/nogo/sa"],
+)

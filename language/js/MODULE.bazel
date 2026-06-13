@@ -58,8 +58,15 @@ bazel_dep(name = "aspect_rules_js", version = "3.0.3", dev_dependency = True)
 
 # Go SDK version which can only be defined in a root MODULE
 go_sdk2 = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
-go_sdk2.nogo(nogo = "@com_github_aspect_build_aspect_gazelle_common//bazel/go:nogo")
+go_sdk2.nogo(nogo = "@aspect_gazelle//tools/nogo")
 go_sdk2.from_file(
     name = "go_sdk",
     go_mod = "//:go.mod",
+)
+
+# The repo root module, used only for the shared @aspect_gazelle//tools/nogo.
+bazel_dep(name = "aspect_gazelle", version = "0.0.0", dev_dependency = True)
+local_path_override(
+    module_name = "aspect_gazelle",
+    path = "../..",
 )

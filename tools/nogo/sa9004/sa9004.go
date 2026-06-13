@@ -2,6 +2,6 @@
 // group has an explicit type — as a nogo-compatible analyzer.
 package sa9004
 
-import "github.com/aspect-build/aspect-gazelle/common/bazel/go/sa"
+import "github.com/aspect-build/aspect-gazelle/tools/nogo/sa"
 
 var Analyzer = sa.MustFind("SA9004")

@@ -1,9 +1,0 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-
-go_library(
-    name = "sa5007",
-    srcs = ["sa5007.go"],
-    importpath = "github.com/aspect-build/aspect-gazelle/common/bazel/go/sa5007",
-    visibility = ["//visibility:public"],
-    deps = ["//bazel/go/sa"],
-)
