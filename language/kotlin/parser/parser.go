@@ -13,6 +13,9 @@ type ParseResult struct {
 	Imports []string
 	Package string
 	HasMain bool
+
+	// Parse errors
+	Errors []string
 }
 
 type Parser interface {
@@ -102,6 +105,11 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		if treeErrors != nil {
 			errs = append(errs, treeErrors...)
 		}
+	}
+
+	// Persist the errors as strings on the result so they survive caching.
+	for _, err := range errs {
+		result.Errors = append(result.Errors, err.Error())
 	}
 
 	return result, errs

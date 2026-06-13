@@ -35,6 +35,7 @@ go_library(
         "//kotlinconfig",
         "//parser",
         "@com_github_aspect_build_aspect_gazelle_common//:common",
+        "@com_github_aspect_build_aspect_gazelle_common//cache",
         "@com_github_aspect_build_aspect_gazelle_common//logger",
         "@com_github_aspect_build_aspect_gazelle_common//rule",
         "@com_github_emirpasic_gods_v2//maps/treemap",
