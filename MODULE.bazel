@@ -3,12 +3,19 @@ module(
     compatibility_level = 0,
 )
 
-bazel_dep(name = "rules_go", version = "0.60.0", dev_dependency = True)
+bazel_dep(name = "rules_go", version = "0.60.0")
+bazel_dep(name = "gazelle", version = "0.51.3")  # only for go_deps extension
 
-# Pin the Go SDK (@go_sdk) used by the gofmt formatter in //tools/format. The
-# root module has no first-party Go code — common, treesitter, language/* and
-# runner are sibling modules — so it needs no go_deps, nogo, or gazelle.
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "co_honnef_go_tools", "org_golang_x_tools")
+
+####### Dev dependencies ########
+
+# Pin the Go SDK (@go_sdk) used by the gofmt formatter in //tools/format and
+# the //tools/nogo analyzer packages.
 go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk", dev_dependency = True)
+go_sdk.nogo(nogo = "//tools/nogo")
 go_sdk.from_file(
     name = "go_sdk",
     go_mod = "//:go.mod",
@@ -16,5 +23,6 @@ go_sdk.from_file(
 use_repo(go_sdk, "go_sdk")
 
 bazel_dep(name = "aspect_rules_lint", version = "2.3.0", dev_dependency = True)
+bazel_dep(name = "bazel_skylib", version = "1.8.2", dev_dependency = True)  # for build_test
 bazel_dep(name = "bazelrc-preset.bzl", version = "1.9.2", dev_dependency = True)
 bazel_dep(name = "buildifier_prebuilt", version = "8.5.1.2", dev_dependency = True)

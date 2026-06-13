@@ -25,3 +25,6 @@ common --@llvm//config:experimental_stub_libgcc_s=True
 # - https://github.com/golang/go/pull/77601
 # - https://github.com/golang/go/pull/76858
 common --linkopt=-no-pie
+# Same for exec-config Go tools (e.g. the externally-linked nogo binary), which
+# --linkopt does not reach.
+common --host_linkopt=-no-pie

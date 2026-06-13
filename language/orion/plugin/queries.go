@@ -19,11 +19,11 @@ type QueryType = string
 
 const (
 	QueryTypeAst   QueryType = "ast"
-	QueryTypeRegex           = "regex"
-	QueryTypeJson            = "json"
-	QueryTypeYaml            = "yaml"
-	QueryTypeToml            = "toml"
-	QueryTypeRaw             = "raw"
+	QueryTypeRegex QueryType = "regex"
+	QueryTypeJson  QueryType = "json"
+	QueryTypeYaml  QueryType = "yaml"
+	QueryTypeToml  QueryType = "toml"
+	QueryTypeRaw   QueryType = "raw"
 )
 
 // A query to run on source files.

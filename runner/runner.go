@@ -83,7 +83,7 @@ type GazelleCommand = string
 
 const (
 	UpdateCmd GazelleCommand = "update"
-	FixCmd                   = "fix"
+	FixCmd    GazelleCommand = "fix"
 )
 
 // Gazelle --mode
@@ -91,8 +91,8 @@ type GazelleMode = string
 
 const (
 	Fix   GazelleMode = "fix"
-	Print             = "print"
-	Diff              = "diff"
+	Print GazelleMode = "print"
+	Diff  GazelleMode = "diff"
 )
 
 func New(workspaceDir string, showProgress bool) *GazelleRunner {

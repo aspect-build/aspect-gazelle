@@ -1,9 +1,9 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library")
 
 go_library(
     name = "sa",
     srcs = ["sa.go"],
-    importpath = "github.com/aspect-build/aspect-gazelle/common/bazel/go/sa",
+    importpath = "github.com/aspect-build/aspect-gazelle/tools/nogo/sa",
     visibility = ["//visibility:public"],
     deps = [
         "@co_honnef_go_tools//staticcheck",
