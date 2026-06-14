@@ -1,12 +1,13 @@
 package gazelle
 
 import (
+	"encoding/gob"
 	"fmt"
-	"os"
 	"path"
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
+	"github.com/aspect-build/aspect-gazelle/common/cache"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	ruleUtils "github.com/aspect-build/aspect-gazelle/common/rule"
 	"github.com/aspect-build/aspect-gazelle/language/kotlin/kotlinconfig"
@@ -16,6 +17,11 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/rule"
 	"github.com/emirpasic/gods/v2/maps/treemap"
 )
+
+func init() {
+	// TODO: don't expose 'gob' cache serialization here
+	gob.Register(parser.ParseResult{})
+}
 
 func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.GenerateResult {
 	// TODO: record args.GenFiles labels?
@@ -158,17 +164,21 @@ func (kt *kotlinLang) addBinaryRule(targetName string, target *KotlinBinTarget, 
 }
 
 func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) chan *parser.ParseResult {
+	parserCache := cache.Get(args.Config)
 	rootDir := args.Config.RepoRoot
 	rel := args.Rel
 
 	return common.Parallelize(sources, func(sourcePath string) *parser.ParseResult {
-		r, errs := parseFile(rootDir, rel, sourcePath)
+		r, err := parseFile(parserCache, rootDir, rel, sourcePath)
 
 		// Output errors to stdout
-		if len(errs) > 0 {
+		if err != nil {
+			fmt.Println(sourcePath, "parse error:", err)
+		}
+		if r != nil && len(r.Errors) > 0 {
 			fmt.Println(sourcePath, "parse error(s):")
-			for _, err := range errs {
-				fmt.Println(err)
+			for _, e := range r.Errors {
+				fmt.Println(e)
 			}
 		}
 
@@ -176,17 +186,24 @@ func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) c
 	})
 }
 
-// Parse the passed file for import statements.
-func parseFile(rootDir, rel, filePath string) (*parser.ParseResult, []error) {
-	BazelLog.Tracef("ParseImports(%s): %s", LanguageName, filePath)
+// Parse the passed file for import statements, caching the result
+func parseFile(parserCache cache.Cache, rootDir, rel, sourcePath string) (*parser.ParseResult, error) {
+	BazelLog.Tracef("ParseImports(%s): %s", LanguageName, sourcePath)
 
-	content, err := os.ReadFile(path.Join(rootDir, rel, filePath))
-	if err != nil {
-		return nil, []error{err}
+	var result *parser.ParseResult
+	r, _, err := parserCache.LoadOrStoreFile(rootDir, path.Join(rel, sourcePath), "kotlin.Parse", func(_ string, content []byte) (any, error) {
+		// The parse-relative file name (not the repo-relative cache path) is
+		// stored on the result, matching how targets reference their srcs.
+		p, _ := parser.NewParser().Parse(sourcePath, content)
+		return *p, nil
+	})
+
+	if r != nil {
+		p := r.(parser.ParseResult)
+		result = &p
 	}
 
-	p := parser.NewParser()
-	return p.Parse(filePath, content)
+	return result, err
 }
 
 func (kt *kotlinLang) collectSourceFiles(cfg *kotlinconfig.KotlinConfig, args language.GenerateArgs) []string {
