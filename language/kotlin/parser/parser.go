@@ -38,24 +38,33 @@ type ParseResult struct {
 	Errors []string
 }
 
+// ImportStatement represents a single parsed Kotlin import header, which may
+// optionally contain a wildcard (star import) or an import alias name.
 type ImportStatement struct {
 	identifier   *Identifier
 	isStarImport bool
 	alias        *SimpleIdentifier
 }
 
+// Identifier returns the structured import path identifier (e.g. com.example.Foo).
 func (i *ImportStatement) Identifier() *Identifier {
 	return i.identifier
 }
 
+// IsStarImport reports whether the import statement imports all symbols in a
+// package namespace using a wildcard star suffix (e.g. import com.example.*).
 func (i *ImportStatement) IsStarImport() bool {
 	return i.isStarImport
 }
 
+// Alias returns the custom local name alias (e.g. Baz in "import Foo as Baz")
+// if specified, or nil otherwise.
 func (i *ImportStatement) Alias() *SimpleIdentifier {
 	return i.alias
 }
 
+// String returns a human-readable string representation of the import statement,
+// formatting aliases (as Alias) and star imports (.*) if present.
 func (i *ImportStatement) String() string {
 	switch {
 	case i.Alias() != nil:
@@ -67,10 +76,13 @@ func (i *ImportStatement) String() string {
 	}
 }
 
+// Identifier represents a structured dot-separated identifier path (e.g. com.example.utils).
 type Identifier struct {
 	parts []*SimpleIdentifier
 }
 
+// Parent returns the parent identifier path by stripping the last segment.
+// Returns nil if the identifier has 1 or fewer segments.
 func (i *Identifier) Parent() *Identifier {
 	if len(i.parts) <= 1 {
 		return nil
@@ -78,6 +90,7 @@ func (i *Identifier) Parent() *Identifier {
 	return &Identifier{i.parts[0 : len(i.parts)-1]}
 }
 
+// Literal returns the raw, dot-separated string representation of the identifier path.
 func (i *Identifier) Literal() string {
 	strs := make([]string, len(i.parts))
 	for idx, part := range i.parts {
@@ -86,6 +99,7 @@ func (i *Identifier) Literal() string {
 	return strings.Join(strs, ".")
 }
 
+// Child constructs a new Identifier by appending a child identifier component to the path.
 func (i *Identifier) Child(childComponent *SimpleIdentifier) *Identifier {
 	childId := &Identifier{}
 	childId.parts = append(childId.parts, i.parts...)
@@ -93,10 +107,13 @@ func (i *Identifier) Child(childComponent *SimpleIdentifier) *Identifier {
 	return childId
 }
 
+// SimpleIdentifier represents a single valid segment of an identifier.
 type SimpleIdentifier struct {
 	literal string
 }
 
+// NewSimpleIdentifier parses a string and validates it against Kotlin unquoted identifier
+// syntax rules, returning a SimpleIdentifier or an error if invalid.
 func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
 	if kotlinUnquotedIdentifierRegexp.MatchString(value) {
 		return &SimpleIdentifier{value}, nil
@@ -104,10 +121,13 @@ func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
 	return nil, fmt.Errorf("NewSimpleIdentifier only supports identifiers that match %s; %q doesn't match", kotlinUnquotedIdentifierRegexp, value)
 }
 
+// Literal returns the raw string literal representing the identifier segment.
 func (si *SimpleIdentifier) Literal() string {
 	return si.literal
 }
 
+// Normalize strips surrounding backticks from the identifier literal if it is a valid
+// unquoted identifier segment underneath, otherwise returning the literal unmodified.
 func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
 	if !strings.HasPrefix(si.literal, "`") {
 		return si
@@ -119,6 +139,7 @@ func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
 	return si
 }
 
+// AsIdentifier wraps the SimpleIdentifier into a single-segment Identifier path.
 func (si *SimpleIdentifier) AsIdentifier() *Identifier {
 	return &Identifier{[]*SimpleIdentifier{si}}
 }
@@ -307,6 +328,8 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 	return result, errs
 }
 
+// ParseIdentifier parses a dot-separated string representation of a Kotlin identifier
+// path (e.g. "com.example.hello"), validating and constructing a structured Identifier.
 func ParseIdentifier(literal string) (*Identifier, error) {
 	partsStr := strings.Split(literal, ".")
 	parts := make([]*SimpleIdentifier, len(partsStr))
