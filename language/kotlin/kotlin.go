@@ -89,3 +89,35 @@ func toBinaryTargetName(mainFile string) string {
 	// TODO: move target name template to directive
 	return base + "_bin"
 }
+
+// KotlinTestTarget represents target information for a Kotlin test target,
+// containing the list of test source files, the package name, and the
+// fully-qualified test class name.
+type KotlinTestTarget struct {
+	KotlinTarget
+
+	Files     []string
+	Package   string
+	TestClass string
+}
+
+// NewKotlinTestTarget creates a new KotlinTestTarget with initialized import treeset.
+func NewKotlinTestTarget(files []string, pkg string, testClass string) *KotlinTestTarget {
+	return &KotlinTestTarget{
+		KotlinTarget: KotlinTarget{
+			Imports: treeset.NewWith(importStatementComparator),
+		},
+		Files:     files,
+		Package:   pkg,
+		TestClass: testClass,
+	}
+}
+
+// toTestTargetName returns the auto-generated target name for a Kotlin test rule
+// based on the test source file name.
+func toTestTargetName(mainFile string) string {
+	base := strings.ToLower(strings.TrimSuffix(path.Base(mainFile), path.Ext(mainFile)))
+
+	// TODO: move target name template to directive
+	return base + "_test"
+}

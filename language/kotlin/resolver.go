@@ -71,19 +71,36 @@ func (kt *kotlinLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 func (kt *kotlinLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importData interface{}, from label.Label) {
 	BazelLog.Debugf("Resolve(%s): //%s:%s", LanguageName, from.Pkg, r.Name())
 
-	if r.Kind() == KtJvmLibrary || r.Kind() == KtJvmBinary {
+	if r.Kind() == KtJvmLibrary || r.Kind() == KtJvmBinary || r.Kind() == KtJvmTest {
 		var target KotlinTarget
+		var testTarget *KotlinTestTarget
 
 		if r.Kind() == KtJvmLibrary {
 			target = importData.(*KotlinLibTarget).KotlinTarget
-		} else {
+		} else if r.Kind() == KtJvmBinary {
 			target = importData.(*KotlinBinTarget).KotlinTarget
+		} else {
+			testTarget = importData.(*KotlinTestTarget)
+			target = testTarget.KotlinTarget
 		}
 
 		deps, err := kt.resolveImports(c, ix, target.Imports, from)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution error %v\n", err)
 			return
+		}
+
+		if testTarget != nil && testTarget.Package != "" && len(testTarget.Files) > 0 {
+			pkgImpt := ImportStatement{
+				ImportSpec: resolve.ImportSpec{
+					Lang: LanguageName,
+					Imp:  testTarget.Package,
+				},
+				SourcePath: testTarget.Files[0],
+			}
+			if resolutionType, depLabel, err := kt.resolveImport(c, ix, pkgImpt, from); err == nil && resolutionType == Resolution_Label {
+				deps.Add(depLabel)
+			}
 		}
 
 		if !deps.Empty() {

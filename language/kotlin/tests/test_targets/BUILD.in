@@ -1,0 +1,2 @@
+# gazelle:resolve kotlin kotlin com.google.common.truth.Truth @example//goog_truth
+# gazelle:resolve kotlin kotlin org.junit @example//junit

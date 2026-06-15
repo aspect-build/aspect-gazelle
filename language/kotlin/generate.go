@@ -43,6 +43,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 	// TODO: multiple library targets (lib, test, ...)
 	libTarget := NewKotlinLibTarget()
 	binTargets := treemap.NewWith[string, *KotlinBinTarget](strings.Compare)
+	testTargets := treemap.NewWith[string, *KotlinTestTarget](strings.Compare)
 
 	// Parse all source files and group information into target(s)
 	for p := range kt.parseFiles(args, sourceFiles) {
@@ -59,7 +60,12 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 			pkgName = p.Package.Literal()
 		}
 
-		if p.HasMain {
+		if cfg.IsTestBaseName(path.Base(p.File)) {
+			testTarget := NewKotlinTestTarget([]string{p.File}, pkgName, guessClassName(p))
+			testTargets.Put(p.File, testTarget)
+
+			target = &testTarget.KotlinTarget
+		} else if p.HasMain {
 			binTarget := NewKotlinBinTarget(p.File, pkgName)
 			binTargets.Put(p.File, binTarget)
 
@@ -96,6 +102,11 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 	for _, binTarget := range binTargets.Values() {
 		binTargetName := toBinaryTargetName(binTarget.File)
 		kt.addBinaryRule(binTargetName, binTarget, args, &result)
+	}
+
+	for _, testTarget := range testTargets.Values() {
+		testTargetName := toTestTargetName(testTarget.Files[0])
+		kt.addTestRule(testTargetName, testTarget, args, &result)
 	}
 
 	return result
@@ -168,6 +179,26 @@ func (kt *kotlinLang) addBinaryRule(targetName string, target *KotlinBinTarget, 
 	result.Imports = append(result.Imports, target)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", ktBinary.Kind(), args.Rel, ktBinary.Name())
+}
+
+func (kt *kotlinLang) addTestRule(targetName string, target *KotlinTestTarget, args language.GenerateArgs, result *language.GenerateResult) {
+	ktTest := rule.NewRule(KtJvmTest, targetName)
+	ktTest.SetAttr("srcs", target.Files)
+	ktTest.SetAttr("test_class", target.TestClass)
+	ktTest.SetPrivateAttr(packagesKey, target)
+
+	result.Gen = append(result.Gen, ktTest)
+	result.Imports = append(result.Imports, target)
+
+	BazelLog.Infof("add rule '%s' '%s:%s'", ktTest.Kind(), args.Rel, ktTest.Name())
+}
+
+func guessClassName(p *parser.ParseResult) string {
+	lit := strings.TrimSuffix(path.Base(p.File), ".kt")
+	if p.Package == nil || p.Package.Literal() == "" {
+		return lit
+	}
+	return p.Package.Literal() + "." + lit
 }
 
 func (kt *kotlinLang) parseFiles(args language.GenerateArgs, sources []string) chan *parser.ParseResult {
