@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -8,15 +10,109 @@ import (
 	"github.com/aspect-build/aspect-gazelle/treesitter/kotlin"
 )
 
+// ParseResult holds the result of parsing a Kotlin file.
 type ParseResult struct {
-	File    string
-	Imports []string
-	Package string
+	File string
+
+	// The list of parsed import statements.
+	Imports []*ImportStatement
+
+	// Identifier for the package name.
+	Package *Identifier
+
+	// True if the file defines a main function.
 	HasMain bool
 
-	// Parse errors
-	Errors []string
+	// The identifiers of top level objects.
+	TopLevelIdentifiers []*SimpleIdentifier
 }
+
+type ImportStatement struct {
+	identifier   *Identifier
+	isStarImport bool
+	alias        *SimpleIdentifier
+}
+
+func (i *ImportStatement) Identifier() *Identifier {
+	return i.identifier
+}
+
+func (i *ImportStatement) IsStarImport() bool {
+	return i.isStarImport
+}
+
+func (i *ImportStatement) Alias() *SimpleIdentifier {
+	return i.alias
+}
+
+func (i *ImportStatement) String() string {
+	switch {
+	case i.Alias() != nil:
+		return i.Identifier().Literal() + " as " + i.Alias().Literal()
+	case i.IsStarImport():
+		return i.Identifier().Literal() + ".*"
+	default:
+		return i.Identifier().Literal()
+	}
+}
+
+type Identifier struct {
+	parts []*SimpleIdentifier
+}
+
+func (i *Identifier) Parent() *Identifier {
+	if len(i.parts) <= 1 {
+		return nil
+	}
+	return &Identifier{i.parts[0 : len(i.parts)-1]}
+}
+
+func (i *Identifier) Literal() string {
+	strs := make([]string, len(i.parts))
+	for idx, part := range i.parts {
+		strs[idx] = part.Literal()
+	}
+	return strings.Join(strs, ".")
+}
+
+func (i *Identifier) Child(childComponent *SimpleIdentifier) *Identifier {
+	childId := &Identifier{}
+	childId.parts = append(childId.parts, i.parts...)
+	childId.parts = append(childId.parts, childComponent)
+	return childId
+}
+
+type SimpleIdentifier struct {
+	literal string
+}
+
+func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
+	if kotlinUnquotedIdentifierRegexp.MatchString(value) {
+		return &SimpleIdentifier{value}, nil
+	}
+	return nil, fmt.Errorf("NewSimpleIdentifier only supports identifiers that match %s; %q doesn't match", kotlinUnquotedIdentifierRegexp, value)
+}
+
+func (si *SimpleIdentifier) Literal() string {
+	return si.literal
+}
+
+func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
+	if !strings.HasPrefix(si.literal, "`") {
+		return si
+	}
+	betweenQuoteMarks := si.literal[1 : len(si.literal)-1]
+	if kotlinUnquotedIdentifierRegexp.MatchString(betweenQuoteMarks) {
+		return &SimpleIdentifier{betweenQuoteMarks}
+	}
+	return si
+}
+
+func (si *SimpleIdentifier) AsIdentifier() *Identifier {
+	return &Identifier{[]*SimpleIdentifier{si}}
+}
+
+var kotlinUnquotedIdentifierRegexp = regexp.MustCompile(`[\p{L}_][\p{L}_\d]*`)
 
 type Parser interface {
 	Parse(filePath string, source []byte) (*ParseResult, []error)
@@ -28,20 +124,10 @@ type treeSitterParser struct {
 
 func NewParser() Parser {
 	p := treeSitterParser{}
-
 	return &p
 }
 
-const importsQuery = `
-	(source_file
-		(import_list
-			(import_header
-				(identifier) @from
-				(wildcard_import)? @from-wild
-			)
-		)
-	)
-
+const parserQuery = `
 	(source_file
 		(package_header
 			(identifier) @package
@@ -49,18 +135,59 @@ const importsQuery = `
 	)
 
 	(source_file
-		(function_declaration
-			(simple_identifier) @equals-main
+		(import_list
+			(import_header
+				(identifier) @import_name
+				(wildcard_import)? @import_wildcard
+				(import_alias (type_identifier) @import_alias)?
+			)
 		)
+	)
 
-		(#eq? @equals-main "main")
+	(source_file
+		(function_declaration
+			(simple_identifier) @equals_main
+		)
+		(#eq? @equals_main "main")
+	)
+
+	(source_file
+		(class_declaration
+			(type_identifier) @class_id
+		)
+	)
+
+	(source_file
+		(property_declaration
+			(variable_declaration
+				(simple_identifier) @property_id
+			)
+		)
+	)
+
+	(source_file
+		(function_declaration
+			(simple_identifier) @function_id
+		)
+	)
+
+	(source_file
+		(type_alias
+			(type_identifier) @type_alias_id
+		)
+	)
+
+	(source_file
+		(object_declaration
+			(type_identifier) @object_id
+		)
 	)
 `
 
 func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, []error) {
-	var result = &ParseResult{
+	result := &ParseResult{
 		File:    filePath,
-		Imports: []string{},
+		Imports: []*ImportStatement{},
 	}
 
 	var errs []error
@@ -71,46 +198,99 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		errs = append(errs, err)
 	}
 
-	if tree != nil {
-		defer tree.Close()
+	if tree == nil {
+		return result, errs
+	}
+	defer tree.Close()
 
-		q, err := treeutils.GetQuery(lang, importsQuery)
-		if err != nil {
-			BazelLog.Fatalf("Failed to create kotlin 'importsQuery': %v", err)
-		}
-		for caps := range tree.Query(q) {
-			BazelLog.Tracef("Kotlin AST Query %q: %v", filePath, caps)
+	q, err := treeutils.GetQuery(lang, parserQuery)
+	if err != nil {
+		BazelLog.Fatalf("Failed to create kotlin 'parserQuery': %v", err)
+	}
 
-			if from, isFrom := caps["from"]; isFrom {
-				if _, isFromWild := caps["from-wild"]; !isFromWild {
-					if lastDot := strings.LastIndex(from, "."); lastDot != -1 {
-						from = from[:lastDot]
-					}
-				}
-				result.Imports = append(result.Imports, from)
-			} else if pkg, isPackage := caps["package"]; isPackage {
-				if result.Package != "" {
-					BazelLog.Fatalf("Multiple package declarations found in %q: %s and %s", filePath, result.Package, pkg)
-				}
-
-				result.Package = pkg
-			} else if _, isMain := caps["equals-main"]; isMain {
-				result.HasMain = true
+	for caps := range tree.Query(q) {
+		if pkg, ok := caps["package"]; ok {
+			id, err := ParseIdentifier(pkg)
+			if err != nil {
+				errs = append(errs, err)
 			} else {
-				BazelLog.Fatalf("Unexpected query result for %q: %v", filePath, caps)
+				result.Package = id
 			}
 		}
 
-		treeErrors := tree.QueryErrors()
-		if treeErrors != nil {
-			errs = append(errs, treeErrors...)
+		if impName, ok := caps["import_name"]; ok {
+			id, err := ParseIdentifier(impName)
+			if err != nil {
+				errs = append(errs, err)
+				continue
+			}
+			isStar := false
+			if _, starOk := caps["import_wildcard"]; starOk {
+				isStar = true
+			}
+			var alias *SimpleIdentifier
+			if aliasName, aliasOk := caps["import_alias"]; aliasOk {
+				alias = &SimpleIdentifier{aliasName}
+			}
+			result.Imports = append(result.Imports, &ImportStatement{
+				identifier:   id,
+				isStarImport: isStar,
+				alias:        alias,
+			})
+		}
+
+		if _, ok := caps["equals_main"]; ok {
+			result.HasMain = true
+		}
+
+		// Top-level identifiers
+		var topLevelId string
+		if id, ok := caps["class_id"]; ok {
+			topLevelId = id
+		} else if id, ok := caps["property_id"]; ok {
+			topLevelId = id
+		} else if id, ok := caps["function_id"]; ok {
+			topLevelId = id
+		} else if id, ok := caps["type_alias_id"]; ok {
+			topLevelId = id
+		} else if id, ok := caps["object_id"]; ok {
+			topLevelId = id
+		}
+
+		if topLevelId != "" && topLevelId != "main" {
+			simpleId, err := NewSimpleIdentifier(topLevelId)
+			if err == nil {
+				found := false
+				for _, existing := range result.TopLevelIdentifiers {
+					if existing.Literal() == simpleId.Literal() {
+						found = true
+						break
+					}
+				}
+				if !found {
+					result.TopLevelIdentifiers = append(result.TopLevelIdentifiers, simpleId)
+				}
+			}
 		}
 	}
 
-	// Persist the errors as strings on the result so they survive caching.
-	for _, err := range errs {
-		result.Errors = append(result.Errors, err.Error())
+	treeErrors := tree.QueryErrors()
+	if treeErrors != nil {
+		errs = append(errs, treeErrors...)
 	}
 
 	return result, errs
+}
+
+func ParseIdentifier(literal string) (*Identifier, error) {
+	partsStr := strings.Split(literal, ".")
+	parts := make([]*SimpleIdentifier, len(partsStr))
+	for i, pStr := range partsStr {
+		si, err := NewSimpleIdentifier(pStr)
+		if err != nil {
+			return nil, err
+		}
+		parts[i] = si
+	}
+	return &Identifier{parts}, nil
 }
