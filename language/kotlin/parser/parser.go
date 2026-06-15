@@ -10,23 +10,31 @@ import (
 	"github.com/aspect-build/aspect-gazelle/treesitter/kotlin"
 )
 
-// ParseResult holds the result of parsing a Kotlin file.
+// ParseResult holds the result of parsing a Kotlin source file.
 type ParseResult struct {
+	// File is the package-relative path to the Kotlin source file
+	// (e.g. "Greeter.kt", not repository-relative or absolute).
+	// This matches how files are referenced in Bazel target srcs attributes.
 	File string
 
-	// The list of parsed import statements.
+	// Imports is the list of parsed import statements found in the file.
 	Imports []*ImportStatement
 
-	// Identifier for the package name.
+	// Package is the structured package identifier declared in the file,
+	// or nil if no package header is present (default package).
 	Package *Identifier
 
-	// True if the file defines a main function.
+	// HasMain is true if the file defines a top-level 'main' function,
+	// indicating this file can act as a binary entry point.
 	HasMain bool
 
-	// The identifiers of top level objects.
+	// TopLevelIdentifiers is the list of unique top-level declarations
+	// (classes, interfaces, singleton objects, functions, properties, and typealiases)
+	// defined in this file.
 	TopLevelIdentifiers []*SimpleIdentifier
 
-	// Parse/query errors.
+	// Errors is the list of parse or query error messages encountered
+	// during analysis, formatted as strings so they survive serialization/caching.
 	Errors []string
 }
 
