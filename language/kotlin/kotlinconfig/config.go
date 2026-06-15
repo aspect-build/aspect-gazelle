@@ -24,6 +24,9 @@ type GenericDirective interface {
 	Parse(dir rule.Directive, cfg *KotlinConfig) error
 }
 
+// Directive represents a Gazelle configuration directive for the Kotlin plugin.
+// It maps a specific directive key (e.g. "kotlin_library_suffix") to a parser function
+// and a setter function that updates the KotlinConfig accordingly.
 type Directive[ParsedType any] struct {
 	configKey string
 	parseFn   func(d rule.Directive) (ParsedType, error)
