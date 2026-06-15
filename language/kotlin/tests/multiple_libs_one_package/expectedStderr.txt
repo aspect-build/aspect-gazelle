@@ -1,0 +1,1 @@
+Resolution error Import "child3" from "lib2.kt" resolved to multiple targets (@simple_file//child3:library1, @simple_file//child3:library2) - this must be fixed using the "gazelle:resolve" directive

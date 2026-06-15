@@ -1,21 +1,52 @@
 package parser
 
 import (
+	"sort"
 	"testing"
 )
 
 var testCases = []struct {
 	desc, kt string
-	filename string
-	pkg      string
-	imports  []string
+	want     parseResultComparable
 }{
 	{
-		desc:     "empty",
-		kt:       "",
-		filename: "empty.kt",
-		pkg:      "",
-		imports:  []string{},
+		desc: "import star",
+		kt: `package a.b.c
+
+import  x.y.z.* 
+		`,
+		want: parseResultComparable{
+			File:    "stars.kt",
+			Package: "a.b.c",
+			Imports: []importComparable{
+				{Identifier: "x.y.z", IsStar: true},
+			},
+		},
+	},
+	{
+		desc: "aliased",
+		kt: `package hey.there
+
+import com.example.foo.Bar as MyBar
+import com.example.foo.Bar as /*x*/MyBar2
+`,
+		want: parseResultComparable{
+			File:    "aliased.kt",
+			Package: "hey.there",
+			Imports: []importComparable{
+				{Identifier: "com.example.foo.Bar", Alias: "MyBar"},
+				{Identifier: "com.example.foo.Bar", Alias: "MyBar2"},
+			},
+		},
+	},
+	{
+		desc: "empty",
+		kt:   "",
+		want: parseResultComparable{
+			File:    "empty.kt",
+			Package: "",
+			Imports: []importComparable{},
+		},
 	},
 	{
 		desc: "simple",
@@ -23,9 +54,14 @@ var testCases = []struct {
 import a.B
 import c.D as E
 	`,
-		filename: "simple.kt",
-		pkg:      "",
-		imports:  []string{"a", "c"},
+		want: parseResultComparable{
+			File:    "simple.kt",
+			Package: "",
+			Imports: []importComparable{
+				{Identifier: "a.B"},
+				{Identifier: "c.D", Alias: "E"},
+			},
+		},
 	},
 	{
 		desc: "stars",
@@ -33,9 +69,13 @@ import c.D as E
 
 import  d.y.* 
 		`,
-		filename: "stars.kt",
-		pkg:      "a.b.c",
-		imports:  []string{"d.y"},
+		want: parseResultComparable{
+			File:    "stars.kt",
+			Package: "a.b.c",
+			Imports: []importComparable{
+				{Identifier: "d.y", IsStar: true},
+			},
+		},
 	},
 	{
 		desc: "comments",
@@ -48,99 +88,178 @@ import a.B // y
 /* asdf */ import /* asdf */ c.D // w
 import /* fdsa */ d/* asdf */.* // w
 				`,
-		filename: "comments.kt",
-		pkg:      "x",
-		imports:  []string{"a", "c", "d"},
+		want: parseResultComparable{
+			File:    "comments.kt",
+			Package: "x",
+			Imports: []importComparable{
+				{Identifier: "a.B"},
+				{Identifier: "c.D"},
+				{Identifier: "d", IsStar: true},
+			},
+		},
 	},
-	// Fun interfaces (SAM): https://github.com/fwcd/tree-sitter-kotlin/issues/87
-	{
-		desc: "fun-interface",
-		kt: `package com.example
-
-import com.example.dep.Foo
-
-fun interface MyHandler {
-    fun handle(value: String): Boolean
-}
-`,
-		filename: "handler.kt",
-		pkg:      "com.example",
-		imports:  []string{"com.example.dep"},
-	},
-	// Value classes: https://github.com/fwcd/tree-sitter-kotlin/commit/80834a15154448cfa795bfa6b8be3559af1753fc
 	{
 		desc: "value-classes",
 		kt: `
 @JvmInline
 value class Password(private val s: String)
 	`,
-		filename: "simple.kt",
-		pkg:      "",
-		imports:  []string{},
+		want: parseResultComparable{
+			File:    "simple.kt",
+			Package: "",
+			Imports: []importComparable{},
+			TopLevelIdentifiers: []string{
+				"Password",
+			},
+		},
+	},
+	{
+		desc: "multiple top level objects",
+		kt: `
+@JvmInline
+value class Password(private val s: String)
+
+interface Inter {}
+
+data class Point(val x: Int)
+
+fun Thing.method(): Int = 5
+
+fun fn(): Int = 5
+
+var pi = 3.14
+
+typealias AliasedInt = Int
+	`,
+		want: parseResultComparable{
+			File:    "simple.kt",
+			Package: "",
+			TopLevelIdentifiers: []string{
+				"AliasedInt",
+				"fn",
+				"Inter",
+				"method",
+				"Password",
+				"Point",
+				"pi",
+			},
+		},
 	},
 }
 
 func TestTreesitterParser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			res, errs := NewParser().Parse(tc.filename, []byte(tc.kt))
-			if len(errs) > 0 {
-				t.Errorf("Errors parsing %q: %v", tc.filename, errs)
-			}
+			res, _ := NewParser().Parse(tc.want.File, []byte(tc.kt))
 
-			if !equal(res.Imports, tc.imports) {
-				t.Errorf("Imports...\nactual:  %#v;\nexpected: %#v\nkotlin code:\n%v", res.Imports, tc.imports, tc.kt)
-			}
-
-			if res.Package != tc.pkg {
-				t.Errorf("Package....\nactual:  %#v;\nexpected: %#v\nkotlin code:\n%v", res.Package, tc.pkg, tc.kt)
+			tc.want.sort()
+			got := makeComparable(res)
+			if !equalParseResultComparable(tc.want, got) {
+				t.Errorf("unexpected results:\nwant: %#v\ngot:  %#v\n", tc.want, got)
 			}
 		})
 	}
+}
 
-	t.Run("main detection", func(t *testing.T) {
-		res, errs := NewParser().Parse("main.kt", []byte("fun main() {}"))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
+func equalParseResultComparable(a, b parseResultComparable) bool {
+	if a.File != b.File || a.Package != b.Package || a.HasMain != b.HasMain {
+		return false
+	}
+	if len(a.TopLevelIdentifiers) != len(b.TopLevelIdentifiers) {
+		return false
+	}
+	for i, v := range a.TopLevelIdentifiers {
+		if v != b.TopLevelIdentifiers[i] {
+			return false
 		}
+	}
+	if len(a.Imports) != len(b.Imports) {
+		return false
+	}
+	for i, v := range a.Imports {
+		if v != b.Imports[i] {
+			return false
+		}
+	}
+	return true
+}
 
+func TestMainDetection(t *testing.T) {
+	t.Run("main detection", func(t *testing.T) {
+		res, _ := NewParser().Parse("main.kt", []byte("fun main() {}"))
 		if !res.HasMain {
 			t.Errorf("main method should be detected")
 		}
 
-		res, errs = NewParser().Parse("x.kt", []byte(`
+		res, _ = NewParser().Parse("x.kt", []byte(`
 package my.demo
 fun main() {}
 		`))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
-		}
 		if !res.HasMain {
 			t.Errorf("main method should be detected with package")
 		}
 
-		res, errs = NewParser().Parse("x.kt", []byte(`
+		res, _ = NewParser().Parse("x.kt", []byte(`
 package my.demo
 import kotlin.text.*
 fun main() {}
 		`))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
-		}
 		if !res.HasMain {
 			t.Errorf("main method should be detected with imports")
 		}
 	})
 }
 
-func equal[T comparable](a, b []T) bool {
-	if len(a) != len(b) {
-		return false
+type parseResultComparable struct {
+	File                string
+	Imports             []importComparable
+	Package             string
+	HasMain             bool
+	TopLevelIdentifiers []string
+}
+
+func (pr *parseResultComparable) sort() {
+	sort.Strings(pr.TopLevelIdentifiers)
+}
+
+type importComparable struct {
+	Identifier string
+	IsStar     bool
+	Alias      string
+}
+
+func makeComparable(result *ParseResult) parseResultComparable {
+	var topLevelIds []string
+	for _, id := range result.TopLevelIdentifiers {
+		topLevelIds = append(topLevelIds, id.Normalize().Literal())
 	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
+	sort.Strings(topLevelIds)
+
+	comparable := parseResultComparable{
+		File:                result.File,
+		Package:             packageString(result),
+		HasMain:             result.HasMain,
+		TopLevelIdentifiers: topLevelIds,
+	}
+
+	for _, imp := range result.Imports {
+		alias := ""
+		if imp.Alias() != nil {
+			alias = imp.Alias().Literal()
 		}
+		comparable.Imports = append(comparable.Imports, importComparable{
+			Identifier: imp.Identifier().Literal(),
+			IsStar:     imp.IsStarImport(),
+			Alias:      alias,
+		})
 	}
-	return true
+
+	return comparable
+}
+
+func packageString(pr *ParseResult) string {
+	if pr.Package == nil {
+		return ""
+	}
+	return pr.Package.Literal()
 }

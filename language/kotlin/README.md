@@ -9,3 +9,32 @@ This was originally implemented by @jbedard in https://github.com/aspect-build/a
 and has been separated out to a standalone git repository and Bazel module.
 
 The work was sponsored by @reddaly and the GoogleX Tapestry team, thanks so much!
+
+## Configuration Directives
+
+This extension supports several custom directives in your `BUILD.bazel` files to control target generation, target naming, and import resolution behavior.
+
+### `# gazelle:kotlin [enabled|disabled]`
+* **Default**: `enabled`
+* Controls whether the Kotlin Gazelle extension processes files and generates targets in the current package and its subdirectories.
+
+### `# gazelle:kotlin_generate_mode [package|file|existing]`
+* **Default**: `package`
+* **Behavior**:
+  - `package` (Hybrid Mode): Gazelle runs in automatic target-generation mode at the package level.
+    - If a directory contains Kotlin source files that do not belong to any existing `kt_jvm_library` target, Gazelle automatically constructs and inserts a default library target (named after the directory with suffix) containing those unclaimed files.
+    - If some files are already listed in the `srcs` of existing library targets in the `BUILD` file, Gazelle respects those targets, maps those files to the existing targets, and only updates their dependencies, while placing any new or unclaimed files into the default library target.
+  - `file` (Hybrid Mode - not yet implemented): Gazelle runs in automatic target-generation mode at the file level.
+    - For any Kotlin source files that do not belong to any existing `kt_jvm_library` target, Gazelle will automatically construct and insert a dedicated library target for each file.
+    - If a file is already listed in the `srcs` of an existing target, Gazelle respects that target's boundaries and updates its dependencies, rather than generating a redundant file-level target or deleting the existing target.
+  - `existing`: Gazelle operates in strict mode. It will never generate new `kt_jvm_library` targets. Instead, it expects developers to manually define targets and will only update dependencies for existing library rules. If any Kotlin source files are not listed in the `srcs` of an existing target, Gazelle will raise an error. To skip files, exclude them using `# gazelle:exclude` or `.gitignore`.
+
+### `# gazelle:kotlin_library_suffix [suffix]`
+* **Default**: `_lib`
+* Configures the target name suffix used for auto-generated `kt_jvm_library` targets. For example, a package directory named `hello` will result in a target named `hello_lib` by default.
+
+### `# gazelle:kotlin_resolve_granularity [package|symbol]`
+* **Default**: `package` (to be updated to `symbol`)
+* **Behavior**:
+  - `package`: Maps and resolves dependencies based on the package statements of source files.
+  - `symbol`: Maps and resolves dependencies based on the exact top-level declarations (classes, interfaces, singleton objects, functions, properties, and typealiases) declared within files. This provides precise, declaration-level resolution and is helpful for fine-grained dependency tracking when multiple targets share a package name.

@@ -1,0 +1,20 @@
+load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+
+# gazelle:resolve kotlin kotlin foo.bar @foo//bar
+# gazelle:kotlin_generate_mode existing
+# gazelle:kotlin_resolve_granularity symbol
+
+kt_jvm_library(
+    name = "library1",
+    srcs = [
+        "lib1.kt",
+        "lib1b.kt",
+    ],
+)
+
+kt_jvm_library(
+    name = "library2",
+    srcs = [
+        "lib2.kt",
+    ],
+)

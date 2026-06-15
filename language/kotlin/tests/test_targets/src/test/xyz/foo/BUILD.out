@@ -1,0 +1,12 @@
+load("@rules_kotlin//kotlin:jvm.bzl", "kt_jvm_test")
+
+kt_jvm_test(
+    name = "calculatortest_test",
+    srcs = ["CalculatorTest.kt"],
+    test_class = "xyz.foo.CalculatorTest",
+    deps = [
+        "//src/main/xyz/foo",
+        "@example//goog_truth",
+        "@example//junit",
+    ],
+)

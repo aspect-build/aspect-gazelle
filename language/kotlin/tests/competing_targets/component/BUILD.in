@@ -1,0 +1,18 @@
+load("//rules/frontend/angular:defs.bzl", "ng_project")
+
+package(default_visibility = ["//frontend:__subpackages__"])
+
+ng_project(
+    name = "component",
+    srcs = [
+        "component.ts",
+        "component_module.ts",
+        "component_routing_module.ts",
+    ],
+    assets = [
+        "component.ng.html",
+    ],
+    deps = [
+        "//:node_modules/@angular/cdk",
+    ],
+)

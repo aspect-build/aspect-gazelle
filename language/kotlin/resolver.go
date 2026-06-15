@@ -20,15 +20,21 @@ import (
 
 var _ resolve.Resolver = (*kotlinLang)(nil)
 
+// ResolutionType represents the outcome of a dependency resolution attempt.
+type ResolutionType = int
+
 const (
+	// Resolution_Error indicates that an error occurred during dependency resolution (e.g. multiple matching targets).
 	Resolution_Error        = -1
+	// Resolution_None indicates that the import was resolved to the target itself (self-import), so no dependency is needed.
 	Resolution_None         = 0
+	// Resolution_NotFound indicates that the import could not be resolved.
 	Resolution_NotFound     = 1
+	// Resolution_Label indicates that the import was successfully resolved to a specific Bazel label.
 	Resolution_Label        = 2
+	// Resolution_NativeKotlin indicates that the import is a native/standard Kotlin or Java library import.
 	Resolution_NativeKotlin = 3
 )
-
-type ResolutionType = int
 
 func (*kotlinLang) Name() string {
 	return LanguageName
@@ -65,19 +71,36 @@ func (kt *kotlinLang) Embeds(r *rule.Rule, from label.Label) []label.Label {
 func (kt *kotlinLang) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo.RemoteCache, r *rule.Rule, importData interface{}, from label.Label) {
 	BazelLog.Debugf("Resolve(%s): //%s:%s", LanguageName, from.Pkg, r.Name())
 
-	if r.Kind() == KtJvmLibrary || r.Kind() == KtJvmBinary {
+	if r.Kind() == KtJvmLibrary || r.Kind() == KtJvmBinary || r.Kind() == KtJvmTest {
 		var target KotlinTarget
+		var testTarget *KotlinTestTarget
 
 		if r.Kind() == KtJvmLibrary {
 			target = importData.(*KotlinLibTarget).KotlinTarget
-		} else {
+		} else if r.Kind() == KtJvmBinary {
 			target = importData.(*KotlinBinTarget).KotlinTarget
+		} else {
+			testTarget = importData.(*KotlinTestTarget)
+			target = testTarget.KotlinTarget
 		}
 
 		deps, err := kt.resolveImports(c, ix, target.Imports, from)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution error %v\n", err)
 			return
+		}
+
+		if testTarget != nil && testTarget.Package != "" && len(testTarget.Files) > 0 {
+			pkgImpt := ImportStatement{
+				ImportSpec: resolve.ImportSpec{
+					Lang: LanguageName,
+					Imp:  testTarget.Package,
+				},
+				SourcePath: testTarget.Files[0],
+			}
+			if resolutionType, depLabel, err := kt.resolveImport(c, ix, pkgImpt, from); err == nil && resolutionType == Resolution_Label {
+				deps.Add(depLabel)
+			}
 		}
 
 		if !deps.Empty() {
@@ -186,7 +209,18 @@ func (kt *kotlinLang) resolveImport(
 		if l, mavenError := (*mavenResolver).Resolve(jvm_import, cfg.ExcludedArtifacts(), cfg.MavenRepositoryName()); mavenError == nil {
 			return Resolution_Label, &l, nil
 		} else {
-			BazelLog.Debugf("Maven resolution failed: %v", mavenError)
+			dbgInfo := ""
+			if dbg, ok := (*mavenResolver).(interface{ DebugInfo() string }); ok {
+				dbgInfo = dbg.DebugInfo()
+			}
+			BazelLog.Debugf("Maven resolution error for import %q in source file %q. Using maven repo name %q, excluded artifacts (%v): error = %v; Maven debug info:\n%s",
+				impt.Imp,
+				impt.SourcePath,
+				cfg.MavenRepositoryName(),
+				cfg.ExcludedArtifacts(),
+				mavenError,
+				dbgInfo,
+			)
 		}
 	}
 
