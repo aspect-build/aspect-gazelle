@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "kotlinconfig",
@@ -7,6 +7,15 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "@contrib_rules_jvm//java/gazelle/javaconfig",
+        "@gazelle//rule",
+    ],
+)
+
+go_test(
+    name = "kotlinconfig_test",
+    srcs = ["config_test.go"],
+    deps = [
+        ":kotlinconfig",
         "@gazelle//rule",
     ],
 )
