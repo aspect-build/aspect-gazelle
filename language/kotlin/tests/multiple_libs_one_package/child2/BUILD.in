@@ -1,1 +1,1 @@
-# gazelle:kotlin_only_use_existing_library_targets disabled
+# gazelle:kotlin_generate_mode package

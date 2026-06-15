@@ -86,7 +86,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 				})
 			}
 		} else {
-			if err := libTargets.collectSourceFile(cfg.ExportGranularity(), p); err != nil {
+			if err := libTargets.collectSourceFile(cfg.ResolveGranularity(), p); err != nil {
 				common.GenerationErrorf(args.Config, "failed to collect library file: %v", err)
 			}
 		}
@@ -129,7 +129,7 @@ func newLibTargetsForPackage(cfg *kotlinconfig.KotlinConfig, sourceFiles []strin
 	defaultTarget := NewKotlinLibTarget()
 	fileToTargets := map[string][]*KotlinLibTarget{}
 
-	if cfg.OnlyUseExistingLibraryTargets() && buildFile != nil {
+	if cfg.GenerateMode() == kotlinconfig.GenerateModeExisting && buildFile != nil {
 		for _, rule := range buildFile.Rules {
 			if rule.Kind() != KtJvmLibrary {
 				continue
@@ -151,22 +151,22 @@ func newLibTargetsForPackage(cfg *kotlinconfig.KotlinConfig, sourceFiles []strin
 	}
 }
 
-func (lts *libTargetsForPackage) collectSourceFile(exportGranularity kotlinconfig.ExportGranularity, pr *parser.ParseResult) error {
+func (lts *libTargetsForPackage) collectSourceFile(resolveGranularity kotlinconfig.ResolveGranularity, pr *parser.ParseResult) error {
 	targets := lts.existingFileToTargets[pr.File]
 	if len(targets) == 0 {
-		if lts.cfg.OnlyUseExistingLibraryTargets() {
-			return fmt.Errorf("failed to process source file %q: OnlyUseExistingLibraryTargets is specified, yet %q doesn't appear in srcs of any %s target", pr.File, pr.File, KtJvmLibrary)
+		if lts.cfg.GenerateMode() == kotlinconfig.GenerateModeExisting {
+			return fmt.Errorf("failed to process source file %q: kotlin_generate_mode existing is specified, yet %q doesn't appear in srcs of any %s target", pr.File, pr.File, KtJvmLibrary)
 		}
 		targets = append(targets, lts.defaultTarget)
 	}
 	for _, target := range targets {
 		target.Files.Add(pr.File)
-		switch exportGranularity {
-		case kotlinconfig.ExportGranularityPackage:
+		switch resolveGranularity {
+		case kotlinconfig.ResolveGranularityPackage:
 			if pr.Package != nil && pr.Package.Literal() != "" {
 				target.Packages.Add(pr.Package.Literal())
 			}
-		case kotlinconfig.ExportGranularityTopLevelObjects:
+		case kotlinconfig.ResolveGranularitySymbol:
 			for _, id := range pr.TopLevelIdentifiers {
 				fullyQualifiedId := ""
 				if pr.Package == nil || pr.Package.Literal() == "" {

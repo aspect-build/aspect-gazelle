@@ -1,8 +1,8 @@
 load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
 
 # gazelle:resolve kotlin kotlin foo.bar @foo//bar
-# gazelle:kotlin_only_use_existing_library_targets enabled
-# gazelle:kotlin_export_granularity top_level_objects
+# gazelle:kotlin_generate_mode existing
+# gazelle:kotlin_resolve_granularity symbol
 
 kt_jvm_library(
     name = "library1",
