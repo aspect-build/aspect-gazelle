@@ -71,8 +71,9 @@ var (
 	// - "package": Default (Hybrid Mode). Gazelle runs in automatic target-generation mode,
 	// preserving/updating existing targets for files listed in their srcs while auto-generating
 	// a default directory-named target for any new or unclaimed Kotlin source files.
-	//
-	// - "file": Auto-generate one target per Kotlin source file (not yet implemented).
+	// - "file": Default (Hybrid Mode - not yet implemented). Gazelle runs in automatic
+	// target-generation mode at the file level, auto-generating one target per Kotlin
+	// source file unless it is already claimed by an existing target (which is preserved).
 	//
 	// - "existing": Gazelle operates in strict mode. It updates existing library targets but
 	// refuses to create new ones. If a Kotlin file is not mapped to any existing library

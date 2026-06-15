@@ -24,7 +24,9 @@ This extension supports several custom directives in your `BUILD.bazel` files to
   - `package` (Hybrid Mode): Gazelle runs in automatic target-generation mode at the package level.
     - If a directory contains Kotlin source files that do not belong to any existing `kt_jvm_library` target, Gazelle automatically constructs and inserts a default library target (named after the directory with suffix) containing those unclaimed files.
     - If some files are already listed in the `srcs` of existing library targets in the `BUILD` file, Gazelle respects those targets, maps those files to the existing targets, and only updates their dependencies, while placing any new or unclaimed files into the default library target.
-  - `file`: Auto-generate one library target per Kotlin source file (not yet implemented).
+  - `file` (Hybrid Mode - not yet implemented): Gazelle runs in automatic target-generation mode at the file level.
+    - For any Kotlin source files that do not belong to any existing `kt_jvm_library` target, Gazelle will automatically construct and insert a dedicated library target for each file.
+    - If a file is already listed in the `srcs` of an existing target, Gazelle respects that target's boundaries and updates its dependencies, rather than generating a redundant file-level target or deleting the existing target.
   - `existing`: Gazelle operates in strict mode. It will never generate new `kt_jvm_library` targets. Instead, it expects developers to manually define targets and will only update dependencies for existing library rules. If any Kotlin source files are not listed in the `srcs` of an existing target, Gazelle will raise an error. To skip files, exclude them using `# gazelle:exclude` or `.gitignore`.
 
 ### `# gazelle:kotlin_library_suffix [suffix]`
