@@ -56,6 +56,9 @@ go_library(
 
 go_test(
     name = "kotlin_test",
-    srcs = ["kotlin_test.go"],
+    srcs = [
+        "imports_test.go",
+        "kotlin_test.go",
+    ],
     embed = [":kotlin"],
 )
