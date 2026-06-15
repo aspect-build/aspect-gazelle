@@ -54,14 +54,21 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 
 		var target *KotlinTarget
 
+		pkgName := ""
+		if p.Package != nil {
+			pkgName = p.Package.Literal()
+		}
+
 		if p.HasMain {
-			binTarget := NewKotlinBinTarget(p.File, p.Package)
+			binTarget := NewKotlinBinTarget(p.File, pkgName)
 			binTargets.Put(p.File, binTarget)
 
 			target = &binTarget.KotlinTarget
 		} else {
 			libTarget.Files.Add(p.File)
-			libTarget.Packages.Add(p.Package)
+			if pkgName != "" {
+				libTarget.Packages.Add(pkgName)
+			}
 
 			target = &libTarget.KotlinTarget
 		}
@@ -70,7 +77,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 			target.Imports.Add(ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  impt,
+					Imp:  impt.Identifier().Literal(),
 				},
 				SourcePath: p.File,
 			})

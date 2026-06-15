@@ -25,6 +25,9 @@ type ParseResult struct {
 
 	// The identifiers of top level objects.
 	TopLevelIdentifiers []*SimpleIdentifier
+
+	// Parse/query errors.
+	Errors []string
 }
 
 type ImportStatement struct {
@@ -276,6 +279,9 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 
 	treeErrors := tree.QueryErrors()
 	if treeErrors != nil {
+		for _, e := range treeErrors {
+			result.Errors = append(result.Errors, e.Error())
+		}
 		errs = append(errs, treeErrors...)
 	}
 
