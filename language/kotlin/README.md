@@ -32,4 +32,4 @@ This extension supports several custom directives in your `BUILD.bazel` files to
 * **Default**: `package`
 * **Behavior**:
   - `package`: Maps and resolves dependencies based on the package statements of source files.
-  - `top_level_objects`: Maps and resolves dependencies based on the exact top-level objects (classes, interfaces, functions, objects) declared within files. This provides class-level resolution and is helpful for fine-grained dependency tracking.
+  - `top_level_objects`: Maps and resolves dependencies based on the exact top-level declarations (classes, interfaces, singleton objects, functions, properties, and typealiases) declared within files. This provides precise, declaration-level resolution and is helpful for fine-grained dependency tracking when multiple targets share a package name.
