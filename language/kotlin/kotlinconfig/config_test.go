@@ -33,20 +33,29 @@ func TestDirectives(t *testing.T) {
 			},
 		},
 		{
-			name:      "only_use_existing_library_targets enabled",
-			directive: rule.Directive{Key: "kotlin_only_use_existing_library_targets", Value: "enabled"},
+			name:      "generate_mode package",
+			directive: rule.Directive{Key: "kotlin_generate_mode", Value: "package"},
 			check: func(t *testing.T, cfg *kotlinconfig.KotlinConfig) {
-				if !cfg.OnlyUseExistingLibraryTargets() {
-					t.Errorf("expected OnlyUseExistingLibraryTargets to be true")
+				if cfg.GenerateMode() != kotlinconfig.GenerateModePackage {
+					t.Errorf("expected GenerateMode to be %q, got %q", kotlinconfig.GenerateModePackage, cfg.GenerateMode())
 				}
 			},
 		},
 		{
-			name:      "only_use_existing_library_targets disabled",
-			directive: rule.Directive{Key: "kotlin_only_use_existing_library_targets", Value: "disabled"},
+			name:      "generate_mode file",
+			directive: rule.Directive{Key: "kotlin_generate_mode", Value: "file"},
 			check: func(t *testing.T, cfg *kotlinconfig.KotlinConfig) {
-				if cfg.OnlyUseExistingLibraryTargets() {
-					t.Errorf("expected OnlyUseExistingLibraryTargets to be false")
+				if cfg.GenerateMode() != kotlinconfig.GenerateModeFile {
+					t.Errorf("expected GenerateMode to be %q, got %q", kotlinconfig.GenerateModeFile, cfg.GenerateMode())
+				}
+			},
+		},
+		{
+			name:      "generate_mode existing",
+			directive: rule.Directive{Key: "kotlin_generate_mode", Value: "existing"},
+			check: func(t *testing.T, cfg *kotlinconfig.KotlinConfig) {
+				if cfg.GenerateMode() != kotlinconfig.GenerateModeExisting {
+					t.Errorf("expected GenerateMode to be %q, got %q", kotlinconfig.GenerateModeExisting, cfg.GenerateMode())
 				}
 			},
 		},
@@ -65,26 +74,26 @@ func TestDirectives(t *testing.T) {
 			expectedError: "invalid starlark name part",
 		},
 		{
-			name:      "export_granularity package",
-			directive: rule.Directive{Key: "kotlin_export_granularity", Value: "package"},
+			name:      "resolve_granularity package",
+			directive: rule.Directive{Key: "kotlin_resolve_granularity", Value: "package"},
 			check: func(t *testing.T, cfg *kotlinconfig.KotlinConfig) {
-				if cfg.ExportGranularity() != kotlinconfig.ExportGranularityPackage {
-					t.Errorf("expected ExportGranularity to be %q, got %q", kotlinconfig.ExportGranularityPackage, cfg.ExportGranularity())
+				if cfg.ResolveGranularity() != kotlinconfig.ResolveGranularityPackage {
+					t.Errorf("expected ResolveGranularity to be %q, got %q", kotlinconfig.ResolveGranularityPackage, cfg.ResolveGranularity())
 				}
 			},
 		},
 		{
-			name:      "export_granularity top_level_objects",
-			directive: rule.Directive{Key: "kotlin_export_granularity", Value: "top_level_objects"},
+			name:      "resolve_granularity symbol",
+			directive: rule.Directive{Key: "kotlin_resolve_granularity", Value: "symbol"},
 			check: func(t *testing.T, cfg *kotlinconfig.KotlinConfig) {
-				if cfg.ExportGranularity() != kotlinconfig.ExportGranularityTopLevelObjects {
-					t.Errorf("expected ExportGranularity to be %q, got %q", kotlinconfig.ExportGranularityTopLevelObjects, cfg.ExportGranularity())
+				if cfg.ResolveGranularity() != kotlinconfig.ResolveGranularitySymbol {
+					t.Errorf("expected ResolveGranularity to be %q, got %q", kotlinconfig.ResolveGranularitySymbol, cfg.ResolveGranularity())
 				}
 			},
 		},
 		{
-			name:          "export_granularity invalid",
-			directive:     rule.Directive{Key: "kotlin_export_granularity", Value: "unknown"},
+			name:          "resolve_granularity invalid",
+			directive:     rule.Directive{Key: "kotlin_resolve_granularity", Value: "unknown"},
 			expectedError: "invalid directive value",
 		},
 	}

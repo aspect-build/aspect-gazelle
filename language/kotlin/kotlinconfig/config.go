@@ -64,12 +64,23 @@ var (
 		func(val bool, cfg *KotlinConfig) { cfg.SetGenerationEnabled(val) },
 	}
 
-	// A directive taking a single enabled/disabled argument that configures whether the
-	// plugin should generate new library sources.
-	OnlyUseExistingLibraryTargetsDirective = &Directive[bool]{
-		"kotlin_only_use_existing_library_targets",
-		parseEnabledDisableDirective,
-		func(val bool, cfg *KotlinConfig) { cfg.SetOnlyUseExistingLibraryTargets(val) },
+	// GenerateModeDirective configures the target generation style.
+	//
+	// Valid values:
+	//
+	// - "package": Default. Gazelle runs in automatic target-generation mode, constructing
+	// and inserting a kt_jvm_library target for directories containing Kotlin source files.
+	//
+	// - "file": Auto-generate one target per Kotlin source file (not yet implemented).
+	//
+	// - "existing": Gazelle operates in strict mode. It updates existing library targets but
+	// refuses to create new ones. If a Kotlin file is not mapped to any existing library
+	// target's srcs, Gazelle fails with an error. To skip files, exclude them using
+	// '# gazelle:exclude' or .gitignore.
+	GenerateModeDirective = &Directive[GenerateMode]{
+		"kotlin_generate_mode",
+		parseGenerateMode,
+		func(val GenerateMode, cfg *KotlinConfig) { cfg.SetGenerateMode(val) },
 	}
 
 	// A directive that configures the suffix used to name kt_jvm_library rules generated
@@ -86,25 +97,22 @@ var (
 		func(val string, cfg *KotlinConfig) { cfg.SetLibrarySuffix(val) },
 	}
 
-	// A directive that configures how the set of Kotlin identifiers associated
+	// ResolveGranularityDirective configures how the set of Kotlin identifiers associated
 	// with a source file should be determined.
 	//
 	// Valid values:
 	//
-	// - "package": Default, specifies that the package statement of the source
-	// file will be used to determine the set of Kotlin identifiers associated
+	// - "package": Default (to be updated to symbol). Specifies that the package statement
+	// of the source file will be used to determine the set of Kotlin identifiers associated
 	// with a source file (and that source files' Bazel target).
 	//
-	// - "top_level_objects": Specifies that the top-level objects defined in
-	// the source files of the target will be used to determine the identifiers
-	// associated with the target. For example, if a class Foo is defined
-	// in a source file with package com.example, the "com.example.Foo"
-	// identifier prefix would be associated with the library target of the
-	// source file and used to resolve imports.
-	ExportGranularityDirective = &Directive[ExportGranularity]{
-		"kotlin_export_granularity",
-		parseExportGranularity,
-		func(val ExportGranularity, cfg *KotlinConfig) { cfg.SetExportGranularity(val) },
+	// - "symbol": Specifies that the top-level declarations (classes, interfaces,
+	// singleton objects, functions, properties, and typealiases) defined in the source
+	// files of the target will be used to determine the identifiers associated with the target.
+	ResolveGranularityDirective = &Directive[ResolveGranularity]{
+		"kotlin_resolve_granularity",
+		parseResolveGranularity,
+		func(val ResolveGranularity, cfg *KotlinConfig) { cfg.SetResolveGranularity(val) },
 	}
 )
 
@@ -114,9 +122,9 @@ var (
 func AllDirectives() []GenericDirective {
 	return []GenericDirective{
 		EnabledDirective,
-		OnlyUseExistingLibraryTargetsDirective,
+		GenerateModeDirective,
 		LibraryRuleNameSuffix,
-		ExportGranularityDirective,
+		ResolveGranularityDirective,
 	}
 }
 
@@ -131,22 +139,38 @@ func parseEnabledDisableDirective(d rule.Directive) (bool, error) {
 	}
 }
 
-// ExportGranularity defines valid values for the [ExportGranularityDirective].
-type ExportGranularity string
+// GenerateMode defines valid values for the [GenerateModeDirective].
+type GenerateMode string
 
 const (
-	// Package-level identifier resolution. See [ExportGranularityPackage]
-	ExportGranularityPackage = "package"
-	// Identifier resolution.
-	ExportGranularityTopLevelObjects = "top_level_objects"
+	GenerateModePackage  GenerateMode = "package"
+	GenerateModeFile     GenerateMode = "file"
+	GenerateModeExisting GenerateMode = "existing"
 )
 
-func parseExportGranularity(d rule.Directive) (ExportGranularity, error) {
-	switch value := ExportGranularity(strings.TrimSpace(d.Value)); value {
-	case ExportGranularityPackage, ExportGranularityTopLevelObjects:
+func parseGenerateMode(d rule.Directive) (GenerateMode, error) {
+	switch value := GenerateMode(strings.TrimSpace(d.Value)); value {
+	case GenerateModePackage, GenerateModeFile, GenerateModeExisting:
 		return value, nil
 	default:
-		return "", fmt.Errorf("invalid directive value %q for key %q: expected one of {%s, %s}", d.Key, d.Value, ExportGranularityPackage, ExportGranularityTopLevelObjects)
+		return "", fmt.Errorf("invalid directive value %q for key %q: expected one of {%s, %s, %s}", d.Value, d.Key, GenerateModePackage, GenerateModeFile, GenerateModeExisting)
+	}
+}
+
+// ResolveGranularity defines valid values for the [ResolveGranularityDirective].
+type ResolveGranularity string
+
+const (
+	ResolveGranularityPackage ResolveGranularity = "package"
+	ResolveGranularitySymbol  ResolveGranularity = "symbol"
+)
+
+func parseResolveGranularity(d rule.Directive) (ResolveGranularity, error) {
+	switch value := ResolveGranularity(strings.TrimSpace(d.Value)); value {
+	case ResolveGranularityPackage, ResolveGranularitySymbol:
+		return value, nil
+	default:
+		return "", fmt.Errorf("invalid directive value %q for key %q: expected one of {%s, %s}", d.Value, d.Key, ResolveGranularityPackage, ResolveGranularitySymbol)
 	}
 }
 
@@ -175,26 +199,25 @@ type KotlinConfig struct {
 	// for the current package.
 	generationEnabled bool
 
-	// onlyUseExistingLibraryTargets, when true, disables automatic creation of
-	// new `kt_jvm_library` rules, restricting Gazelle to only update the dependency
-	// attributes of existing library targets.
-	onlyUseExistingLibraryTargets bool
+	// generateMode defines the style of target generation.
+	generateMode GenerateMode
 
-	// exportGranularity defines whether targets publish/resolve imports at
-	// the package prefix level or at the individual top-level class/object level.
-	exportGranularity ExportGranularity
+	// resolveGranularity defines whether targets publish/resolve imports at
+	// the package prefix level or at the individual top-level symbol level.
+	resolveGranularity ResolveGranularity
 }
 
 type Configs = map[string]*KotlinConfig
 
 func New(repoRoot string) *KotlinConfig {
 	return &KotlinConfig{
-		Config:            javaconfig.New(repoRoot),
-		generationEnabled: true,
-		parent:            nil,
-		testFileSuffixes:  []string{"Test.kt"},
-		librarySuffix:     "_lib",
-		exportGranularity: ExportGranularityPackage,
+		Config:             javaconfig.New(repoRoot),
+		generationEnabled:  true,
+		parent:             nil,
+		testFileSuffixes:   []string{"Test.kt"},
+		librarySuffix:      "_lib",
+		generateMode:       GenerateModePackage,
+		resolveGranularity: ResolveGranularityPackage,
 	}
 }
 
@@ -221,14 +244,14 @@ func (c *KotlinConfig) NewChild(childPath string) *KotlinConfig {
 	return &cCopy
 }
 
-// SetExportGranularity sets the export granularity for the config.
-func (c *KotlinConfig) SetExportGranularity(granularity ExportGranularity) {
-	c.exportGranularity = granularity
+// SetResolveGranularity sets the resolve granularity for the config.
+func (c *KotlinConfig) SetResolveGranularity(granularity ResolveGranularity) {
+	c.resolveGranularity = granularity
 }
 
-// ExportGranularity returns the export granularity for the config.
-func (c *KotlinConfig) ExportGranularity() ExportGranularity {
-	return c.exportGranularity
+// ResolveGranularity returns the resolve granularity for the config.
+func (c *KotlinConfig) ResolveGranularity() ResolveGranularity {
+	return c.resolveGranularity
 }
 
 // SetGenerationEnabled sets whether the extension is enabled or not.
@@ -241,16 +264,14 @@ func (c *KotlinConfig) GenerationEnabled() bool {
 	return c.generationEnabled
 }
 
-// SetOnlyUseExistingLibraryTargets sets the value of the
-// only-use-existing-library-targets configuration value.
-func (c *KotlinConfig) SetOnlyUseExistingLibraryTargets(enabled bool) {
-	c.onlyUseExistingLibraryTargets = enabled
+// SetGenerateMode sets the generate mode for the config.
+func (c *KotlinConfig) SetGenerateMode(mode GenerateMode) {
+	c.generateMode = mode
 }
 
-// OnlyUseExistingLibraryTargets returns the value of the
-// only-use-existing-library-targets configuration value.
-func (c *KotlinConfig) OnlyUseExistingLibraryTargets() bool {
-	return c.onlyUseExistingLibraryTargets
+// GenerateMode returns the generate mode for the config.
+func (c *KotlinConfig) GenerateMode() GenerateMode {
+	return c.generateMode
 }
 
 // SetLibrarySuffix sets the suffix to be appended to the names of kt_jvm_library
