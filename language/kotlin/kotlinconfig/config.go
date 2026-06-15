@@ -68,8 +68,9 @@ var (
 	//
 	// Valid values:
 	//
-	// - "package": Default. Gazelle runs in automatic target-generation mode, constructing
-	// and inserting a kt_jvm_library target for directories containing Kotlin source files.
+	// - "package": Default (Hybrid Mode). Gazelle runs in automatic target-generation mode,
+	// preserving/updating existing targets for files listed in their srcs while auto-generating
+	// a default directory-named target for any new or unclaimed Kotlin source files.
 	//
 	// - "file": Auto-generate one target per Kotlin source file (not yet implemented).
 	//

@@ -129,7 +129,7 @@ func newLibTargetsForPackage(cfg *kotlinconfig.KotlinConfig, sourceFiles []strin
 	defaultTarget := NewKotlinLibTarget()
 	fileToTargets := map[string][]*KotlinLibTarget{}
 
-	if cfg.GenerateMode() == kotlinconfig.GenerateModeExisting && buildFile != nil {
+	if buildFile != nil {
 		for _, rule := range buildFile.Rules {
 			if rule.Kind() != KtJvmLibrary {
 				continue
@@ -141,6 +141,9 @@ func newLibTargetsForPackage(cfg *kotlinconfig.KotlinConfig, sourceFiles []strin
 				fileToTargets[file] = append(fileToTargets[file], target)
 			}
 		}
+	}
+
+	if cfg.GenerateMode() == kotlinconfig.GenerateModeExisting {
 		defaultTarget = nil
 	}
 
