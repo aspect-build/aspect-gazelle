@@ -184,6 +184,42 @@ func equalParseResultComparable(a, b parseResultComparable) bool {
 	return true
 }
 
+func TestNewSimpleIdentifier(t *testing.T) {
+	valid := map[string]string{
+		"Foo":      "Foo",
+		"_under":   "_under",
+		"a1b2":     "a1b2",
+		"über":     "über",
+		"`Foo`":    "Foo", // backticks around a valid identifier are normalized away
+		"`object`": "object",
+	}
+	for in, want := range valid {
+		si, err := NewSimpleIdentifier(in)
+		if err != nil {
+			t.Errorf("NewSimpleIdentifier(%q) unexpected error: %v", in, err)
+			continue
+		}
+		if si.Literal() != want {
+			t.Errorf("NewSimpleIdentifier(%q).Literal() = %q, want %q", in, si.Literal(), want)
+		}
+	}
+
+	invalid := []string{
+		"",         // empty
+		"1abc",     // leading digit
+		"a-b",      // hyphen
+		"a b",      // space
+		"a.b",      // dotted path is not a single segment
+		"`my var`", // backticked but inner is not a valid unquoted identifier
+		"`",        // lone backtick must not panic
+	}
+	for _, in := range invalid {
+		if si, err := NewSimpleIdentifier(in); err == nil {
+			t.Errorf("NewSimpleIdentifier(%q) = %q, want error", in, si.Literal())
+		}
+	}
+}
+
 func TestMainDetection(t *testing.T) {
 	t.Run("main detection", func(t *testing.T) {
 		res, _ := NewParser().Parse("main.kt", []byte("fun main() {}"))

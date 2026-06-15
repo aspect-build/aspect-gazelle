@@ -114,10 +114,13 @@ type SimpleIdentifier struct {
 }
 
 // NewSimpleIdentifier parses a string and validates it against Kotlin unquoted identifier
-// syntax rules, returning a SimpleIdentifier or an error if invalid.
+// syntax rules, returning a SimpleIdentifier or an error if invalid. Surrounding
+// backticks wrapping an otherwise-valid identifier are stripped (normalized) so the
+// stored literal is consistent with what downstream consumers index.
 func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
-	if kotlinUnquotedIdentifierRegexp.MatchString(value) {
-		return &SimpleIdentifier{value}, nil
+	normalized := (&SimpleIdentifier{value}).Normalize()
+	if kotlinUnquotedIdentifierRegexp.MatchString(normalized.literal) {
+		return normalized, nil
 	}
 	return nil, fmt.Errorf("NewSimpleIdentifier only supports identifiers that match %s; %q doesn't match", kotlinUnquotedIdentifierRegexp, value)
 }
@@ -130,7 +133,7 @@ func (si *SimpleIdentifier) Literal() string {
 // Normalize strips surrounding backticks from the identifier literal if it is a valid
 // unquoted identifier segment underneath, otherwise returning the literal unmodified.
 func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
-	if !strings.HasPrefix(si.literal, "`") {
+	if len(si.literal) < 2 || !strings.HasPrefix(si.literal, "`") || !strings.HasSuffix(si.literal, "`") {
 		return si
 	}
 	betweenQuoteMarks := si.literal[1 : len(si.literal)-1]
@@ -145,7 +148,7 @@ func (si *SimpleIdentifier) AsIdentifier() *Identifier {
 	return &Identifier{[]*SimpleIdentifier{si}}
 }
 
-var kotlinUnquotedIdentifierRegexp = regexp.MustCompile(`[\p{L}_][\p{L}_\d]*`)
+var kotlinUnquotedIdentifierRegexp = regexp.MustCompile(`^[\p{L}_][\p{L}_\d]*$`)
 
 type Parser interface {
 	Parse(filePath string, source []byte) (*ParseResult, []error)
@@ -282,7 +285,11 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			}
 			var alias *SimpleIdentifier
 			if aliasName, aliasOk := caps["import_alias"]; aliasOk {
-				alias = &SimpleIdentifier{aliasName}
+				if aliasId, aliasErr := NewSimpleIdentifier(aliasName); aliasErr != nil {
+					errs = append(errs, aliasErr)
+				} else {
+					alias = aliasId
+				}
 			}
 			result.Imports = append(result.Imports, &ImportStatement{
 				identifier:   id,
