@@ -12,7 +12,13 @@ The work was sponsored by @reddaly and the GoogleX Tapestry team, thanks so much
 
 ## Configuration Directives
 
-This extension supports several custom directives in your `BUILD.bazel` files to control target generation, target naming, and import resolution behavior:
+This extension supports several custom directives in your `BUILD.bazel` files to control target generation, target naming, and import resolution behavior.
+
+> [!WARNING]
+> **Implementation Status**: These directives are currently defined, parsed, and validated into configuration structures within this branch, but **they are not yet wired up to target generation or import resolution in this repository**. 
+> - The parser infrastructure to extract the necessary top-level symbols and star imports is implemented in [PR #2](https://github.com/gonzojive/aspect-gazelle/pull/2).
+> - The full wiring/implementation of resolution logic utilizing these directives is forthcoming in subsequent PRs (or downstream forks like `gazelle-kotlin`).
+> - *TODO: Remove this warning when full resolution/generation support is wired up locally in this extension.*
 
 ### `# gazelle:kotlin [enabled|disabled]`
 * **Default**: `enabled`
