@@ -130,6 +130,17 @@ func NewParser() Parser {
 	return &p
 }
 
+// parserQuery contains AST queries used to extract Kotlin package names, imports,
+// main entry points, and top-level declarations.
+//
+// These nodes and rules map to the official tree-sitter-kotlin grammar definitions:
+// - package_header: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L73
+// - import_header: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L81
+// - function_declaration: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L210
+// - class_declaration: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L131
+// - property_declaration: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L268
+// - type_alias: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L123
+// - object_declaration: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L182
 const parserQuery = `
 	(source_file
 		(package_header
