@@ -150,6 +150,9 @@ func parseExportGranularity(d rule.Directive) (ExportGranularity, error) {
 	}
 }
 
+// KotlinConfig holds the configuration settings for the Kotlin Gazelle plugin
+// within a specific Bazel package. It embeds the Java configuration and maintains
+// hierarchical inheritance via its parent field.
 type KotlinConfig struct {
 	*javaconfig.Config
 
