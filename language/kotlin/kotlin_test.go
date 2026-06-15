@@ -4,24 +4,27 @@ import (
 	"testing"
 )
 
-func assertTrue(t *testing.T, b bool, msg string) {
-	if !b {
-		t.Error(msg)
-	}
-}
-
 func TestKotlinNative(t *testing.T) {
-	t.Run("kotlin native libraries", func(t *testing.T) {
-		assertTrue(t, IsNativeImport("kotlin.io"), "kotlin.io should be native")
-		assertTrue(t, IsNativeImport("kotlinx.foo"), "kotlinx.* should be native")
-	})
+	testCases := []struct {
+		library string
+		want    bool
+	}{
+		{"kotlin.io", true},
+		{"kotlinx.foo", true},
+		{"java.foo", true},
+		{"javax.net", true},
+		{"javax.sql", true},
+		{"javax.xml", true},
+		{"org.xml.sax", true},
+		{"javax.accessibility", true},
+	}
 
-	t.Run("java native libraries", func(t *testing.T) {
-		assertTrue(t, IsNativeImport("java.foo"), "java.* should be native")
-		assertTrue(t, IsNativeImport("javax.accessibility"), "javax should be native")
-		assertTrue(t, IsNativeImport("javax.net"), "javax should be native")
-		assertTrue(t, IsNativeImport("javax.sql"), "javax should be native")
-		assertTrue(t, IsNativeImport("javax.xml"), "javax should be native")
-		assertTrue(t, IsNativeImport("org.xml.sax"), "org.xml.sax should be native")
-	})
+	for _, tc := range testCases {
+		t.Run(tc.library, func(t *testing.T) {
+			got := IsNativeImport(tc.library)
+			if got != tc.want {
+				t.Errorf("IsNativeImport(%q) got %v, want %v", tc.library, got, tc.want)
+			}
+		})
+	}
 }
