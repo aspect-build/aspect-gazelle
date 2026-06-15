@@ -12,9 +12,10 @@ import (
 
 // ParseResult holds the result of parsing a Kotlin source file.
 type ParseResult struct {
-	// File is the package-relative path to the Kotlin source file
-	// (e.g. "Greeter.kt", not repository-relative or absolute).
-	// This matches how files are referenced in Bazel target srcs attributes.
+	// File is the Bazel package-relative path to the Kotlin source file
+	// (i.e. relative to the directory containing the BUILD file, e.g. "Greeter.kt",
+	// not repository-relative or absolute). This matches how files are referenced
+	// in Bazel target srcs attributes.
 	File string
 
 	// Imports is the list of parsed import statements found in the file.
