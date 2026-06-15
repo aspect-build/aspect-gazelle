@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "git",
+    srcs = ["gitignore.go"],
+    importpath = "github.com/aspect-build/aspect-gazelle/language/kotlin/git",
+    visibility = ["//visibility:public"],
+    deps = [
+        "@com_github_aspect_build_aspect_gazelle_common//logger",
+        "@com_github_go_git_go_git_v5//plumbing/format/gitignore",
+        "@gazelle//config:go_default_library",
+    ],
+)
+
+go_test(
+    name = "git_test",
+    srcs = ["gitignore_test.go"],
+    embed = [":git"],
+    deps = ["@gazelle//config:go_default_library"],
+)

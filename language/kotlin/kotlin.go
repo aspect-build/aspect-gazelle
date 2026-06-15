@@ -44,6 +44,10 @@ type KotlinLibTarget struct {
 
 	Packages *treeset.Set[string]
 	Files    *treeset.Set[string]
+
+	// ExistingName is the name of this library target if it already existed in the BUILD file
+	// before generation of new rules.
+	ExistingName string
 }
 
 func NewKotlinLibTarget() *KotlinLibTarget {
