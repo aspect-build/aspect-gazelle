@@ -9,3 +9,27 @@ This was originally implemented by @jbedard in https://github.com/aspect-build/a
 and has been separated out to a standalone git repository and Bazel module.
 
 The work was sponsored by @reddaly and the GoogleX Tapestry team, thanks so much!
+
+## Configuration Directives
+
+This extension supports several custom directives in your `BUILD.bazel` files to control target generation, target naming, and import resolution behavior:
+
+### `# gazelle:kotlin [enabled|disabled]`
+* **Default**: `enabled`
+* Controls whether the Kotlin Gazelle extension processes files and generates targets in the current package and its subdirectories.
+
+### `# gazelle:kotlin_only_use_existing_library_targets [true|false]`
+* **Default**: `false`
+* **Behavior**:
+  - `false`: Gazelle runs in automatic target-generation mode. It will automatically construct and insert a `kt_jvm_library` target for directories containing Kotlin source files if they do not already exist.
+  - `true`: Gazelle operates in strict update-only mode. It will never generate new `kt_jvm_library` targets. Instead, it expects developers to manually define targets and will only update dependencies for existing library rules. If any Kotlin source files are not listed in the `srcs` of an existing target, Gazelle will raise an error.
+
+### `# gazelle:kotlin_library_suffix [suffix]`
+* **Default**: `_lib`
+* Configures the target name suffix used for auto-generated `kt_jvm_library` targets. For example, a package directory named `hello` will result in a target named `hello_lib` by default.
+
+### `# gazelle:kotlin_export_granularity [package|top_level_objects]`
+* **Default**: `package`
+* **Behavior**:
+  - `package`: Maps and resolves dependencies based on the package statements of source files.
+  - `top_level_objects`: Maps and resolves dependencies based on the exact top-level objects (classes, interfaces, functions, objects) declared within files. This provides class-level resolution and is helpful for fine-grained dependency tracking.

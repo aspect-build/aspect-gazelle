@@ -156,15 +156,32 @@ func parseExportGranularity(d rule.Directive) (ExportGranularity, error) {
 type KotlinConfig struct {
 	*javaconfig.Config
 
+	// parent is the configuration of the parent package directory,
+	// used to inherit configuration settings down the directory hierarchy.
 	parent *KotlinConfig
-	rel    string
 
-	librarySuffix    string
+	// rel is the package path relative to the repository root.
+	rel string
+
+	// librarySuffix is the suffix appended to the folder name to produce
+	// target names for auto-generated `kt_jvm_library` rules (e.g. "_lib").
+	librarySuffix string
+
+	// testFileSuffixes defines the set of file name suffixes (e.g. "Test.kt")
+	// that classify a source file as a test file.
 	testFileSuffixes []string
 
-	generationEnabled             bool
+	// generationEnabled indicates whether Gazelle target generation is active
+	// for the current package.
+	generationEnabled bool
+
+	// onlyUseExistingLibraryTargets, when true, disables automatic creation of
+	// new `kt_jvm_library` rules, restricting Gazelle to only update the dependency
+	// attributes of existing library targets.
 	onlyUseExistingLibraryTargets bool
 
+	// exportGranularity defines whether targets publish/resolve imports at
+	// the package prefix level or at the individual top-level class/object level.
 	exportGranularity ExportGranularity
 }
 
