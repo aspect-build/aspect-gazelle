@@ -168,7 +168,7 @@ func TestTreesitterParser(t *testing.T) {
 
 // TestParseResultGobRoundTrip guards against caching corruption: ParseResult is
 // gob-encoded for the on-disk cache, and gob ignores unexported fields, so the
-// Identifier/SimpleIdentifier/ImportStatement types must implement GobEncoder.
+// Identifier/SimpleIdentifier/ImportStatement types must keep their fields exported.
 func TestParseResultGobRoundTrip(t *testing.T) {
 	src := `package com.example
 
