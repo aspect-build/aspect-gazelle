@@ -54,10 +54,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 
 		var target *KotlinTarget
 
-		pkgName := ""
-		if p.Package != nil {
-			pkgName = p.Package.Literal()
-		}
+		pkgName := p.Package.Literal()
 
 		if p.HasMain {
 			binTarget := NewKotlinBinTarget(p.File, pkgName)
@@ -201,9 +198,7 @@ func parseFile(parserCache cache.Cache, rootDir, rel, sourcePath string) (*parse
 	r, _, err := parserCache.LoadOrStoreFile(rootDir, path.Join(rel, sourcePath), "kotlin.Parse", func(_ string, content []byte) (any, error) {
 		// The parse-relative file name (not the repo-relative cache path) is
 		// stored on the result, matching how targets reference their srcs.
-		// Parse records its errors onto result.Errors, which survives caching.
-		p, _ := parser.NewParser().Parse(sourcePath, content)
-		return *p, nil
+		return parser.NewParser().Parse(sourcePath, content)
 	})
 
 	if r != nil {

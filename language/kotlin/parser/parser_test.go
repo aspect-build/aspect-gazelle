@@ -209,7 +209,7 @@ typealias Count = Int
 	}
 
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(*res); err != nil {
+	if err := gob.NewEncoder(&buf).Encode(res); err != nil {
 		t.Fatalf("gob encode failed: %v", err)
 	}
 
@@ -220,7 +220,7 @@ typealias Count = Int
 
 	want := makeComparable(res)
 	want.sort()
-	got := makeComparable(&decoded)
+	got := makeComparable(decoded)
 	got.sort()
 	if !equalParseResultComparable(want, got) {
 		t.Errorf("ParseResult changed across gob round-trip:\nwant: %#v\ngot:  %#v", want, got)
@@ -339,7 +339,7 @@ type importComparable struct {
 	Alias      string
 }
 
-func makeComparable(result *ParseResult) parseResultComparable {
+func makeComparable(result ParseResult) parseResultComparable {
 	var topLevelIds []string
 	for _, id := range result.TopLevelIdentifiers {
 		topLevelIds = append(topLevelIds, id.Normalize().Literal)
@@ -348,29 +348,18 @@ func makeComparable(result *ParseResult) parseResultComparable {
 
 	comparable := parseResultComparable{
 		File:                result.File,
-		Package:             packageString(result),
+		Package:             result.Package.Literal(),
 		HasMain:             result.HasMain,
 		TopLevelIdentifiers: topLevelIds,
 	}
 
 	for _, imp := range result.Imports {
-		alias := ""
-		if imp.Alias != nil {
-			alias = imp.Alias.Literal
-		}
 		comparable.Imports = append(comparable.Imports, importComparable{
 			Identifier: imp.Identifier.Literal(),
 			IsStar:     imp.IsStarImport,
-			Alias:      alias,
+			Alias:      imp.Alias.Literal,
 		})
 	}
 
 	return comparable
-}
-
-func packageString(pr *ParseResult) string {
-	if pr.Package == nil {
-		return ""
-	}
-	return pr.Package.Literal()
 }
