@@ -72,6 +72,9 @@ func (kt *kotlinLang) Configure(c *config.Config, rel string, f *rule.File) {
 		if err != nil {
 			BazelLog.Fatalf("error creating Maven resolver: %s", err.Error())
 		}
+		if dbg, ok := resolver.(interface{ DebugInfo() string }); ok {
+			BazelLog.Tracef("Maven resolver DebugInfo:\n%s", dbg.DebugInfo())
+		}
 		kt.mavenResolver = &resolver
 	}
 }
