@@ -28,7 +28,8 @@ type ParseResult struct {
 	// TopLevelIdentifiers is the list of unique top-level declarations defined in this file.
 	TopLevelIdentifiers []*SimpleIdentifier
 
-	// Errors is the list of parse or query errors, formatted as strings so they survive caching.
+	// Errors is the list of parse or query errors, formatted as strings so they
+	// survive serialization to the on-disk cache (where the returned []error is lost).
 	Errors []string
 }
 
@@ -121,7 +122,7 @@ func (si *SimpleIdentifier) AsIdentifier() *Identifier {
 var kotlinUnquotedIdentifierRegexp = regexp.MustCompile(`^[\p{L}_][\p{L}_\d]*$`)
 
 type Parser interface {
-	Parse(filePath string, source []byte) (*ParseResult, []error)
+	Parse(filePath string, source []byte) (*ParseResult, error)
 }
 
 type treeSitterParser struct {
@@ -209,22 +210,16 @@ const parserQuery = `
 	)
 `
 
-func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, []error) {
+func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResult, error) {
 	result := &ParseResult{
 		File:    filePath,
 		Imports: []*ImportStatement{},
 	}
 
-	var errs []error
-
 	lang := treeutils.NewLanguage(treeutils.Kotlin, kotlin.LanguagePtr())
 	tree, err := treeutils.ParseSourceCode(lang, filePath, sourceCode)
 	if err != nil {
-		errs = append(errs, err)
-	}
-
-	if tree == nil {
-		return result, errs
+		return nil, err
 	}
 	defer tree.Close()
 
@@ -237,7 +232,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		if pkg, ok := caps["package"]; ok {
 			id, err := ParseIdentifier(pkg)
 			if err != nil {
-				errs = append(errs, err)
+				result.Errors = append(result.Errors, err.Error())
 			} else {
 				result.Package = id
 			}
@@ -246,7 +241,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		if impName, ok := caps["import_name"]; ok {
 			id, err := ParseIdentifier(impName)
 			if err != nil {
-				errs = append(errs, err)
+				result.Errors = append(result.Errors, err.Error())
 				continue
 			}
 			isStar := false
@@ -256,7 +251,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			var alias *SimpleIdentifier
 			if aliasName, aliasOk := caps["import_alias"]; aliasOk {
 				if aliasId, aliasErr := NewSimpleIdentifier(aliasName); aliasErr != nil {
-					errs = append(errs, aliasErr)
+					result.Errors = append(result.Errors, aliasErr.Error())
 				} else {
 					alias = aliasId
 				}
@@ -303,15 +298,11 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 		}
 	}
 
-	treeErrors := tree.QueryErrors()
-	if treeErrors != nil {
-		for _, e := range treeErrors {
-			result.Errors = append(result.Errors, e.Error())
-		}
-		errs = append(errs, treeErrors...)
+	for _, treeErr := range tree.QueryErrors() {
+		result.Errors = append(result.Errors, treeErr.Error())
 	}
 
-	return result, errs
+	return result, nil
 }
 
 // ParseIdentifier parses a dot-separated string representation of a Kotlin identifier

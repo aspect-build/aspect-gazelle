@@ -100,6 +100,28 @@ import /* fdsa */ d/* asdf */.* // w
 			},
 		},
 	},
+	// Fun interfaces (SAM): https://github.com/fwcd/tree-sitter-kotlin/issues/87
+	{
+		desc: "fun-interface",
+		kt: `package com.example
+
+import com.example.dep.Foo
+
+fun interface MyHandler {
+    fun handle(value: String): Boolean
+}
+`,
+		want: parseResultComparable{
+			File:    "handler.kt",
+			Package: "com.example",
+			Imports: []importComparable{
+				{Identifier: "com.example.dep.Foo"},
+			},
+			TopLevelIdentifiers: []string{
+				"MyHandler",
+			},
+		},
+	},
 	{
 		desc: "value-classes",
 		kt: `
@@ -152,9 +174,9 @@ typealias AliasedInt = Int
 func TestTreesitterParser(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			res, errs := NewParser().Parse(tc.want.File, []byte(tc.kt))
-			if len(errs) > 0 {
-				t.Errorf("Errors parsing %q: %v", tc.want.File, errs)
+			res, err := NewParser().Parse(tc.want.File, []byte(tc.kt))
+			if err != nil {
+				t.Errorf("Errors parsing %q: %v", tc.want.File, err)
 			}
 
 			tc.want.sort()
@@ -181,9 +203,9 @@ fun main() {}
 class Widget
 typealias Count = Int
 `
-	res, errs := NewParser().Parse("gob.kt", []byte(src))
-	if len(errs) > 0 {
-		t.Fatalf("Errors parsing: %v", errs)
+	res, err := NewParser().Parse("gob.kt", []byte(src))
+	if err != nil {
+		t.Fatalf("Errors parsing: %v", err)
 	}
 
 	var buf bytes.Buffer
@@ -266,32 +288,32 @@ func TestNewSimpleIdentifier(t *testing.T) {
 
 func TestMainDetection(t *testing.T) {
 	t.Run("main detection", func(t *testing.T) {
-		res, errs := NewParser().Parse("main.kt", []byte("fun main() {}"))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
+		res, err := NewParser().Parse("main.kt", []byte("fun main() {}"))
+		if err != nil {
+			t.Errorf("Parse error: %v", err)
 		}
 		if !res.HasMain {
 			t.Errorf("main method should be detected")
 		}
 
-		res, errs = NewParser().Parse("x.kt", []byte(`
+		res, err = NewParser().Parse("x.kt", []byte(`
 package my.demo
 fun main() {}
 		`))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
+		if err != nil {
+			t.Errorf("Parse error: %v", err)
 		}
 		if !res.HasMain {
 			t.Errorf("main method should be detected with package")
 		}
 
-		res, errs = NewParser().Parse("x.kt", []byte(`
+		res, err = NewParser().Parse("x.kt", []byte(`
 package my.demo
 import kotlin.text.*
 fun main() {}
 		`))
-		if len(errs) > 0 {
-			t.Errorf("Parse error: %v", errs)
+		if err != nil {
+			t.Errorf("Parse error: %v", err)
 		}
 		if !res.HasMain {
 			t.Errorf("main method should be detected with imports")
