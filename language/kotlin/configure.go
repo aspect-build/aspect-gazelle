@@ -3,7 +3,6 @@ package gazelle
 import (
 	"flag"
 
-	common "github.com/aspect-build/aspect-gazelle/common"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/kotlin/kotlinconfig"
 	jvm_javaconfig "github.com/bazel-contrib/rules_jvm/java/gazelle/javaconfig"
@@ -15,11 +14,23 @@ import (
 
 var _ config.Configurer = (*kotlinLang)(nil)
 
+var directivesByKey map[string]kotlinconfig.GenericDirective
+
+func init() {
+	directivesByKey = make(map[string]kotlinconfig.GenericDirective)
+	for _, dir := range kotlinconfig.AllDirectives() {
+		directivesByKey[dir.ConfigKey()] = dir
+	}
+}
+
 func (kt *kotlinLang) KnownDirectives() []string {
-	return []string{
-		kotlinconfig.Directive_KotlinExtension,
+	out := []string{
 		jvm_javaconfig.JavaMavenInstallFile,
 	}
+	for _, dir := range kotlinconfig.AllDirectives() {
+		out = append(out, dir.ConfigKey())
+	}
+	return out
 }
 
 func (kc *kotlinLang) initRootConfig(c *config.Config) kotlinconfig.Configs {
@@ -48,13 +59,19 @@ func (kt *kotlinLang) Configure(c *config.Config, rel string, f *rule.File) {
 			switch d.Key {
 
 			case kotlinconfig.Directive_KotlinExtension:
-				cfg.SetGenerationEnabled(common.ReadEnabled(d))
-
-			// TODO: invoke java gazelle.Configure() to support all jvm directives?
-			// TODO: JavaMavenRepositoryName: https://github.com/bazel-contrib/rules_jvm/commit/e46bb11bedb2ead45309eae04619caca684f6243
+				if err := kotlinconfig.EnabledDirective.Parse(d, cfg); err != nil {
+					BazelLog.Fatalf("failed to parse directive %v: %v", d, err)
+				}
 
 			case jvm_javaconfig.JavaMavenInstallFile:
 				cfg.SetMavenInstallFile(d.Value)
+
+			default:
+				if dir, ok := directivesByKey[d.Key]; ok {
+					if err := dir.Parse(d, cfg); err != nil {
+						BazelLog.Fatalf("error parsing kotlin directive: %v", err)
+					}
+				}
 			}
 		}
 	}
@@ -71,6 +88,9 @@ func (kt *kotlinLang) Configure(c *config.Config, rel string, f *rule.File) {
 		)
 		if err != nil {
 			BazelLog.Fatalf("error creating Maven resolver: %s", err.Error())
+		}
+		if dbg, ok := resolver.(interface{ DebugInfo() string }); ok {
+			BazelLog.Tracef("Maven resolver DebugInfo:\n%s", dbg.DebugInfo())
 		}
 		kt.mavenResolver = &resolver
 	}

@@ -1,1 +1,1 @@
-Resolution error Import "lib.not" from "lib.kt" is an unknown kotlin dependency
+Resolution error Import "lib.not.found" from "lib.kt" is an unknown kotlin dependency

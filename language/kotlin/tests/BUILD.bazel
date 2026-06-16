@@ -7,7 +7,10 @@ load("@gazelle//:def.bzl", "gazelle_binary")
 # Internal only for tests
 gazelle_binary(
     name = "gazelle_kotlin_test_binary",
-    languages = ["//:kotlin"],
+    languages = [
+        "@gazelle//language/proto",
+        "//:kotlin",
+    ],
     visibility = ["//visibility:private"],
 )
 

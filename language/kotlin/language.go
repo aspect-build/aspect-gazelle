@@ -15,6 +15,7 @@ const LanguageName = "kotlin"
 const (
 	KtJvmLibrary              = "kt_jvm_library"
 	KtJvmBinary               = "kt_jvm_binary"
+	KtJvmTest                 = "kt_jvm_test"
 	RulesKotlinModuleName     = "rules_kotlin"
 	RulesKotlinRepositoryName = "io_bazel_rules_kotlin"
 )
@@ -65,6 +66,21 @@ var kotlinKinds = map[string]rule.KindInfo{
 		MergeableAttrs:  map[string]bool{},
 		ResolveAttrs:    map[string]bool{},
 	},
+
+	KtJvmTest: {
+		MatchAny: false,
+		NonEmptyAttrs: map[string]bool{
+			"srcs":       true,
+			"test_class": true,
+		},
+		SubstituteAttrs: map[string]bool{},
+		MergeableAttrs: map[string]bool{
+			"srcs": true,
+		},
+		ResolveAttrs: map[string]bool{
+			"deps": true,
+		},
+	},
 }
 
 func (*kotlinLang) Kinds() map[string]rule.KindInfo {
@@ -87,6 +103,7 @@ func (h *kotlinLang) ApparentLoads(moduleToApparentName func(string) string) []r
 			Symbols: []string{
 				KtJvmLibrary,
 				KtJvmBinary,
+				KtJvmTest,
 			},
 		},
 	}

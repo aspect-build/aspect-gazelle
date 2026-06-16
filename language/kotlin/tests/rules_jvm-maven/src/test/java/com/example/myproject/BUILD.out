@@ -1,7 +1,8 @@
-load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_library")
+load("@io_bazel_rules_kotlin//kotlin:jvm.bzl", "kt_jvm_test")
 
-kt_jvm_library(
-    name = "myproject",
+kt_jvm_test(
+    name = "apptest_test",
     srcs = ["AppTest.kt"],
+    test_class = "com.example.myproject.AppTest",
     deps = ["@maven//:junit_junit"],
 )
