@@ -147,13 +147,13 @@ func NewParser() Parser {
 //   - [type_alias]
 //   - [object_declaration]
 //
-// [package_header]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L73
-// [import_header]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L81
-// [function_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L210
-// [class_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L131
-// [property_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L268
-// [type_alias]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L123
-// [object_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/main/grammar.js#L182
+// [package_header]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L165
+// [import_header]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L172
+// [function_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L352
+// [class_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L215
+// [property_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L372
+// [type_alias]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L185
+// [object_declaration]: https://github.com/fwcd/tree-sitter-kotlin/blob/6b9788578ae23a1bc7c87e8d564e0daf7671dee3/grammar.js#L425
 const parserQuery = `
 	(source_file
 		(package_header
