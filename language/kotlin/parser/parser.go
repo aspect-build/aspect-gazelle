@@ -12,30 +12,23 @@ import (
 
 // ParseResult holds the result of parsing a Kotlin source file.
 type ParseResult struct {
-	// File is the Bazel package-relative path to the Kotlin source file
-	// (i.e. relative to the directory containing the BUILD file, e.g. "Greeter.kt",
-	// not repository-relative or absolute). This matches how files are referenced
-	// in Bazel target srcs attributes.
+	// File is the Bazel package-relative path to the Kotlin source file (e.g. "Greeter.kt"),
+	// matching how files are referenced in Bazel target srcs attributes.
 	File string
 
 	// Imports is the list of parsed import statements found in the file.
 	Imports []*ImportStatement
 
-	// Package is the structured package identifier declared in the file,
-	// or nil if no package header is present (default package).
+	// Package is the structured package identifier, or nil for the default package.
 	Package *Identifier
 
-	// HasMain is true if the file defines a top-level 'main' function,
-	// indicating this file can act as a binary entry point.
+	// HasMain is true if the file defines a top-level 'main' function (a binary entry point).
 	HasMain bool
 
-	// TopLevelIdentifiers is the list of unique top-level declarations
-	// (classes, interfaces, singleton objects, functions, properties, and typealiases)
-	// defined in this file.
+	// TopLevelIdentifiers is the list of unique top-level declarations defined in this file.
 	TopLevelIdentifiers []*SimpleIdentifier
 
-	// Errors is the list of parse or query error messages encountered
-	// during analysis, formatted as strings so they survive serialization/caching.
+	// Errors is the list of parse or query errors, formatted as strings so they survive caching.
 	Errors []string
 }
 
@@ -47,25 +40,21 @@ type ImportStatement struct {
 	alias        *SimpleIdentifier
 }
 
-// Identifier returns the structured import path identifier (e.g. com.example.Foo).
 func (i *ImportStatement) Identifier() *Identifier {
 	return i.identifier
 }
 
-// IsStarImport reports whether the import statement imports all symbols in a
-// package namespace using a wildcard star suffix (e.g. import com.example.*).
+// IsStarImport reports whether the import is a wildcard (e.g. import com.example.*).
 func (i *ImportStatement) IsStarImport() bool {
 	return i.isStarImport
 }
 
-// Alias returns the custom local name alias (e.g. Baz in "import Foo as Baz")
-// if specified, or nil otherwise.
+// Alias returns the local name alias (e.g. Baz in "import Foo as Baz"), or nil.
 func (i *ImportStatement) Alias() *SimpleIdentifier {
 	return i.alias
 }
 
-// String returns a human-readable string representation of the import statement,
-// formatting aliases (as Alias) and star imports (.*) if present.
+// String returns a human-readable representation, including any alias or star suffix.
 func (i *ImportStatement) String() string {
 	switch {
 	case i.Alias() != nil:
@@ -113,10 +102,8 @@ type SimpleIdentifier struct {
 	literal string
 }
 
-// NewSimpleIdentifier parses a string and validates it against Kotlin unquoted identifier
-// syntax rules, returning a SimpleIdentifier or an error if invalid. Surrounding
-// backticks wrapping an otherwise-valid identifier are stripped (normalized) so the
-// stored literal is consistent with what downstream consumers index.
+// NewSimpleIdentifier validates value as a Kotlin identifier segment (stripping any
+// surrounding backticks), returning an error if it is not valid.
 func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
 	normalized := (&SimpleIdentifier{value}).Normalize()
 	if kotlinUnquotedIdentifierRegexp.MatchString(normalized.literal) {
@@ -125,13 +112,11 @@ func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
 	return nil, fmt.Errorf("NewSimpleIdentifier only supports identifiers that match %s; %q doesn't match", kotlinUnquotedIdentifierRegexp, value)
 }
 
-// Literal returns the raw string literal representing the identifier segment.
 func (si *SimpleIdentifier) Literal() string {
 	return si.literal
 }
 
-// Normalize strips surrounding backticks from the identifier literal if it is a valid
-// unquoted identifier segment underneath, otherwise returning the literal unmodified.
+// Normalize strips surrounding backticks if the inner literal is a valid unquoted segment.
 func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
 	if len(si.literal) < 2 || !strings.HasPrefix(si.literal, "`") || !strings.HasSuffix(si.literal, "`") {
 		return si
