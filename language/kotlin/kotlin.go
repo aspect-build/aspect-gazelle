@@ -11,6 +11,9 @@ import (
 	jvm_types "github.com/bazel-contrib/rules_jvm/java/gazelle/private/types"
 )
 
+// IsNativeImport returns true if the import path refers to a native Kotlin
+// or Java library (e.g. packages starting with "kotlin.", "kotlinx.", or
+// standard JDK packages).
 func IsNativeImport(impt string) bool {
 	if strings.HasPrefix(impt, "kotlin.") || strings.HasPrefix(impt, "kotlinx.") {
 		return true

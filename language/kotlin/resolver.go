@@ -20,15 +20,21 @@ import (
 
 var _ resolve.Resolver = (*kotlinLang)(nil)
 
+// ResolutionType represents the outcome of a dependency resolution attempt.
+type ResolutionType = int
+
 const (
+	// Resolution_Error indicates that an error occurred during dependency resolution (e.g. multiple matching targets).
 	Resolution_Error        = -1
+	// Resolution_None indicates that the import was resolved to the target itself (self-import), so no dependency is needed.
 	Resolution_None         = 0
+	// Resolution_NotFound indicates that the import could not be resolved.
 	Resolution_NotFound     = 1
+	// Resolution_Label indicates that the import was successfully resolved to a specific Bazel label.
 	Resolution_Label        = 2
+	// Resolution_NativeKotlin indicates that the import is a native/standard Kotlin or Java library import.
 	Resolution_NativeKotlin = 3
 )
-
-type ResolutionType = int
 
 func (*kotlinLang) Name() string {
 	return LanguageName
@@ -186,7 +192,18 @@ func (kt *kotlinLang) resolveImport(
 		if l, mavenError := (*mavenResolver).Resolve(jvm_import, cfg.ExcludedArtifacts(), cfg.MavenRepositoryName()); mavenError == nil {
 			return Resolution_Label, &l, nil
 		} else {
-			BazelLog.Debugf("Maven resolution failed: %v", mavenError)
+			dbgInfo := ""
+			if dbg, ok := (*mavenResolver).(interface{ DebugInfo() string }); ok {
+				dbgInfo = dbg.DebugInfo()
+			}
+			BazelLog.Debugf("Maven resolution error for import %q in source file %q. Using maven repo name %q, excluded artifacts (%v): error = %v; Maven debug info:\n%s",
+				impt.Imp,
+				impt.SourcePath,
+				cfg.MavenRepositoryName(),
+				cfg.ExcludedArtifacts(),
+				mavenError,
+				dbgInfo,
+			)
 		}
 	}
 
