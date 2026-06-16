@@ -34,57 +34,45 @@ type ParseResult struct {
 
 // ImportStatement represents a single parsed Kotlin import header, which may
 // optionally contain a wildcard (star import) or an import alias name.
+//
+// The fields are exported so the parser result can be gob-serialized for caching.
 type ImportStatement struct {
-	identifier   *Identifier
-	isStarImport bool
-	alias        *SimpleIdentifier
-}
-
-func (i *ImportStatement) Identifier() *Identifier {
-	return i.identifier
-}
-
-// IsStarImport reports whether the import is a wildcard (e.g. import com.example.*).
-func (i *ImportStatement) IsStarImport() bool {
-	return i.isStarImport
-}
-
-// Alias returns the local name alias (e.g. Baz in "import Foo as Baz"), or nil.
-func (i *ImportStatement) Alias() *SimpleIdentifier {
-	return i.alias
+	Identifier   *Identifier
+	IsStarImport bool
+	Alias        *SimpleIdentifier
 }
 
 // String returns a human-readable representation, including any alias or star suffix.
 func (i *ImportStatement) String() string {
 	switch {
-	case i.Alias() != nil:
-		return i.Identifier().Literal() + " as " + i.Alias().Literal()
-	case i.IsStarImport():
-		return i.Identifier().Literal() + ".*"
+	case i.Alias != nil:
+		return i.Identifier.Literal() + " as " + i.Alias.Literal
+	case i.IsStarImport:
+		return i.Identifier.Literal() + ".*"
 	default:
-		return i.Identifier().Literal()
+		return i.Identifier.Literal()
 	}
 }
 
 // Identifier represents a structured dot-separated identifier path (e.g. com.example.utils).
 type Identifier struct {
-	parts []*SimpleIdentifier
+	Parts []*SimpleIdentifier
 }
 
 // Parent returns the parent identifier path by stripping the last segment.
 // Returns nil if the identifier has 1 or fewer segments.
 func (i *Identifier) Parent() *Identifier {
-	if len(i.parts) <= 1 {
+	if len(i.Parts) <= 1 {
 		return nil
 	}
-	return &Identifier{i.parts[0 : len(i.parts)-1]}
+	return &Identifier{i.Parts[0 : len(i.Parts)-1]}
 }
 
 // Literal returns the raw, dot-separated string representation of the identifier path.
 func (i *Identifier) Literal() string {
-	strs := make([]string, len(i.parts))
-	for idx, part := range i.parts {
-		strs[idx] = part.Literal()
+	strs := make([]string, len(i.Parts))
+	for idx, part := range i.Parts {
+		strs[idx] = part.Literal
 	}
 	return strings.Join(strs, ".")
 }
@@ -92,36 +80,33 @@ func (i *Identifier) Literal() string {
 // Child constructs a new Identifier by appending a child identifier component to the path.
 func (i *Identifier) Child(childComponent *SimpleIdentifier) *Identifier {
 	childId := &Identifier{}
-	childId.parts = append(childId.parts, i.parts...)
-	childId.parts = append(childId.parts, childComponent)
+	childId.Parts = append(childId.Parts, i.Parts...)
+	childId.Parts = append(childId.Parts, childComponent)
 	return childId
 }
 
-// SimpleIdentifier represents a single valid segment of an identifier.
+// SimpleIdentifier represents a single valid segment of an identifier. Construct one
+// via NewSimpleIdentifier to guarantee the Literal is a valid Kotlin identifier segment.
 type SimpleIdentifier struct {
-	literal string
+	Literal string
 }
 
 // NewSimpleIdentifier validates value as a Kotlin identifier segment (stripping any
 // surrounding backticks), returning an error if it is not valid.
 func NewSimpleIdentifier(value string) (*SimpleIdentifier, error) {
 	normalized := (&SimpleIdentifier{value}).Normalize()
-	if kotlinUnquotedIdentifierRegexp.MatchString(normalized.literal) {
+	if kotlinUnquotedIdentifierRegexp.MatchString(normalized.Literal) {
 		return normalized, nil
 	}
 	return nil, fmt.Errorf("NewSimpleIdentifier only supports identifiers that match %s; %q doesn't match", kotlinUnquotedIdentifierRegexp, value)
 }
 
-func (si *SimpleIdentifier) Literal() string {
-	return si.literal
-}
-
 // Normalize strips surrounding backticks if the inner literal is a valid unquoted segment.
 func (si *SimpleIdentifier) Normalize() *SimpleIdentifier {
-	if len(si.literal) < 2 || !strings.HasPrefix(si.literal, "`") || !strings.HasSuffix(si.literal, "`") {
+	if len(si.Literal) < 2 || !strings.HasPrefix(si.Literal, "`") || !strings.HasSuffix(si.Literal, "`") {
 		return si
 	}
-	betweenQuoteMarks := si.literal[1 : len(si.literal)-1]
+	betweenQuoteMarks := si.Literal[1 : len(si.Literal)-1]
 	if kotlinUnquotedIdentifierRegexp.MatchString(betweenQuoteMarks) {
 		return &SimpleIdentifier{betweenQuoteMarks}
 	}
@@ -277,9 +262,9 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 				}
 			}
 			result.Imports = append(result.Imports, &ImportStatement{
-				identifier:   id,
-				isStarImport: isStar,
-				alias:        alias,
+				Identifier:   id,
+				IsStarImport: isStar,
+				Alias:        alias,
 			})
 		}
 
@@ -306,7 +291,7 @@ func (p *treeSitterParser) Parse(filePath string, sourceCode []byte) (*ParseResu
 			if err == nil {
 				found := false
 				for _, existing := range result.TopLevelIdentifiers {
-					if existing.Literal() == simpleId.Literal() {
+					if existing.Literal == simpleId.Literal {
 						found = true
 						break
 					}

@@ -77,7 +77,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 			target.Imports.Add(ImportStatement{
 				ImportSpec: resolve.ImportSpec{
 					Lang: LanguageName,
-					Imp:  impt.Identifier().Literal(),
+					Imp:  impt.Identifier.Literal(),
 				},
 				SourcePath: p.File,
 			})

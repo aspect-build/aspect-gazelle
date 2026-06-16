@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"bytes"
+	"encoding/gob"
 	"sort"
 	"testing"
 )
@@ -164,6 +166,45 @@ func TestTreesitterParser(t *testing.T) {
 	}
 }
 
+// TestParseResultGobRoundTrip guards against caching corruption: ParseResult is
+// gob-encoded for the on-disk cache, and gob ignores unexported fields, so the
+// Identifier/SimpleIdentifier/ImportStatement types must implement GobEncoder.
+func TestParseResultGobRoundTrip(t *testing.T) {
+	src := `package com.example
+
+import a.B
+import c.D as E
+import x.y.*
+
+fun main() {}
+
+class Widget
+typealias Count = Int
+`
+	res, errs := NewParser().Parse("gob.kt", []byte(src))
+	if len(errs) > 0 {
+		t.Fatalf("Errors parsing: %v", errs)
+	}
+
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(*res); err != nil {
+		t.Fatalf("gob encode failed: %v", err)
+	}
+
+	var decoded ParseResult
+	if err := gob.NewDecoder(&buf).Decode(&decoded); err != nil {
+		t.Fatalf("gob decode failed: %v", err)
+	}
+
+	want := makeComparable(res)
+	want.sort()
+	got := makeComparable(&decoded)
+	got.sort()
+	if !equalParseResultComparable(want, got) {
+		t.Errorf("ParseResult changed across gob round-trip:\nwant: %#v\ngot:  %#v", want, got)
+	}
+}
+
 func equalParseResultComparable(a, b parseResultComparable) bool {
 	if a.File != b.File || a.Package != b.Package || a.HasMain != b.HasMain {
 		return false
@@ -202,8 +243,8 @@ func TestNewSimpleIdentifier(t *testing.T) {
 			t.Errorf("NewSimpleIdentifier(%q) unexpected error: %v", in, err)
 			continue
 		}
-		if si.Literal() != want {
-			t.Errorf("NewSimpleIdentifier(%q).Literal() = %q, want %q", in, si.Literal(), want)
+		if si.Literal != want {
+			t.Errorf("NewSimpleIdentifier(%q).Literal = %q, want %q", in, si.Literal, want)
 		}
 	}
 
@@ -218,7 +259,7 @@ func TestNewSimpleIdentifier(t *testing.T) {
 	}
 	for _, in := range invalid {
 		if si, err := NewSimpleIdentifier(in); err == nil {
-			t.Errorf("NewSimpleIdentifier(%q) = %q, want error", in, si.Literal())
+			t.Errorf("NewSimpleIdentifier(%q) = %q, want error", in, si.Literal)
 		}
 	}
 }
@@ -279,7 +320,7 @@ type importComparable struct {
 func makeComparable(result *ParseResult) parseResultComparable {
 	var topLevelIds []string
 	for _, id := range result.TopLevelIdentifiers {
-		topLevelIds = append(topLevelIds, id.Normalize().Literal())
+		topLevelIds = append(topLevelIds, id.Normalize().Literal)
 	}
 	sort.Strings(topLevelIds)
 
@@ -292,12 +333,12 @@ func makeComparable(result *ParseResult) parseResultComparable {
 
 	for _, imp := range result.Imports {
 		alias := ""
-		if imp.Alias() != nil {
-			alias = imp.Alias().Literal()
+		if imp.Alias != nil {
+			alias = imp.Alias.Literal
 		}
 		comparable.Imports = append(comparable.Imports, importComparable{
-			Identifier: imp.Identifier().Literal(),
-			IsStar:     imp.IsStarImport(),
+			Identifier: imp.Identifier.Literal(),
+			IsStar:     imp.IsStarImport,
 			Alias:      alias,
 		})
 	}
