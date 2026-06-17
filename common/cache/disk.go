@@ -85,13 +85,6 @@ func (c *diskCache) read() {
 }
 
 func (c *diskCache) write() {
-	cacheWriter, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		BazelLog.Errorf("Failed to create cache %q: %v", c.file, err)
-		return
-	}
-	defer cacheWriter.Close()
-
 	contentHashes := make(map[string]string)
 	c.contentHashes.Range(func(k, v any) bool {
 		contentHashes[k.(string)] = v.(string)
@@ -103,15 +96,8 @@ func (c *diskCache) write() {
 		ContentHashes: contentHashes,
 	}
 
-	cacheEncoder := gob.NewEncoder(cacheWriter)
-
-	if err := WriteCacheVersion(cacheEncoder, "disk"); err != nil {
-		BazelLog.Errorf("Failed to write cache info to %q: %v", c.file, err)
-		return
-	}
-
-	if e := cacheEncoder.Encode(s); e != nil {
-		BazelLog.Errorf("Failed to write cache %q: %v", c.file, e)
+	if err := WriteCacheFile(c.file, "disk", s); err != nil {
+		BazelLog.Errorf("%v", err)
 		return
 	}
 

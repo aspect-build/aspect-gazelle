@@ -179,6 +179,10 @@ func (c *watchmanCache) write() {
 		BazelLog.Errorf("Failed to create cache %q: %v", c.file, err)
 		return
 	}
+	// Safety net for the error-return paths below; the happy path closes
+	// explicitly so a flush error surfaced only at close is not lost.
+	// TODO: replace with cache.WriteCacheFile once the common dep is bumped to
+	// a version that exports it (shared with diskCache/FileComputeCache).
 	defer cacheWriter.Close()
 
 	s := cacheState{
@@ -195,6 +199,11 @@ func (c *watchmanCache) write() {
 
 	if e := cacheEncoder.Encode(s); e != nil {
 		BazelLog.Errorf("Failed to write cache %q: %v", c.file, e)
+		return
+	}
+
+	if err := cacheWriter.Close(); err != nil {
+		BazelLog.Errorf("Failed to flush cache %q: %v", c.file, err)
 		return
 	}
 
