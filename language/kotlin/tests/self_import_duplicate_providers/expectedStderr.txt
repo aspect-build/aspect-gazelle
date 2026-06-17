@@ -1,0 +1,1 @@
+Resolution error Import "test.shared" from "consumer.kt" resolved to multiple targets (@self_import_duplicate_providers//earth, @self_import_duplicate_providers//moon) - this must be fixed using the "gazelle:resolve" directive

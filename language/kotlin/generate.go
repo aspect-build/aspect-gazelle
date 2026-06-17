@@ -29,7 +29,7 @@ func (kt *kotlinLang) GenerateRules(args language.GenerateArgs) language.Generat
 	cfg := args.Config.Exts[LanguageName].(kotlinconfig.Configs)[args.Rel]
 
 	// When we return empty, we mean that we don't generate anything, but this
-	// still triggers the indexing for all the TypeScript targets in this package.
+	// still triggers the indexing for all the Kotlin targets in this package.
 	if !cfg.GenerationEnabled() {
 		BazelLog.Tracef("GenerateRules(%s) disabled: %s", LanguageName, args.Rel)
 		return language.GenerateResult{}
