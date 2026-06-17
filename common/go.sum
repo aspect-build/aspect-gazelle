@@ -1,5 +1,5 @@
-github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260613015439-0951f7f0d815 h1:Ib26rFS8tlNC5yQ97xm4gA8IF0SetVlUr4g3HTuUTxo=
-github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260613015439-0951f7f0d815/go.mod h1:leRBCn+U8+E8kKLOijdsVZJdVigOvXfMeQn1Vb5gD4E=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f h1:PUdAOr9KR/ajJnuS9P31wcYxvm7ARG2FChPwQGj0pkw=
+github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f/go.mod h1:leRBCn+U8+E8kKLOijdsVZJdVigOvXfMeQn1Vb5gD4E=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 h1:lSINS7DK4xjm0Z4CBd7onO63uIe6WUsEZ/0voExa+JY=
 github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2/go.mod h1:B76PjnaM2KyUG8ypV/ePHHDmGbyUNZ2PCEdEQIJISQM=
 github.com/bazelbuild/bazel-gazelle v0.51.3 h1:WtLCDPJTj06AWZizuN0SpkX8njjH1meOFgYbia6mD64=
