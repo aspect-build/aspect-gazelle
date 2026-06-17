@@ -187,7 +187,10 @@ func readIndexable(v starlark.Indexable, read func(v starlark.Value) (any, error
 }
 
 func ReadMap[K any](v starlark.Value, f func(k string, v starlark.Value) (K, error)) (map[string]K, error) {
-	d := v.(*starlark.Dict)
+	d, ok := v.(*starlark.Dict)
+	if !ok {
+		return nil, fmt.Errorf("expected dict, got %s", v.Type())
+	}
 	m := make(map[string]K, d.Len())
 
 	iter := d.Iterate()
@@ -211,7 +214,10 @@ func ReadMap[K any](v starlark.Value, f func(k string, v starlark.Value) (K, err
 }
 
 func ReadMap2[K any](v starlark.Value, f func(v starlark.Value) (K, error)) (map[string]K, error) {
-	d := v.(*starlark.Dict)
+	d, ok := v.(*starlark.Dict)
+	if !ok {
+		return nil, fmt.Errorf("expected dict, got %s", v.Type())
+	}
 	m := make(map[string]K, d.Len())
 
 	iter := d.Iterate()
@@ -235,8 +241,11 @@ func ReadMap2[K any](v starlark.Value, f func(v starlark.Value) (K, error)) (map
 }
 
 func ReadMapEntry[K any](v starlark.Value, key string, f func(v starlark.Value) (K, error), defaultValue K) (K, error) {
-	m := v.(*starlark.Dict)
-	val, exists, err := (*m).Get(starlark.String(key))
+	m, ok := v.(*starlark.Dict)
+	if !ok {
+		return defaultValue, fmt.Errorf("expected dict, got %s", v.Type())
+	}
+	val, exists, err := m.Get(starlark.String(key))
 
 	if err != nil {
 		return defaultValue, fmt.Errorf("failed to read map entry '%s': %v", key, err)
