@@ -19,9 +19,10 @@ go_library(
 
 go_test(
     name = "treesitter_test",
-    srcs = ["filters_test.go"],
-    deps = [
-        ":treesitter",
-        "@aspect_treesitter_grammars//golang",
+    srcs = [
+        "filters_test.go",
+        "parser_test.go",
     ],
+    embed = [":treesitter"],
+    deps = ["@aspect_treesitter_grammars//golang"],
 )
