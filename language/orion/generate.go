@@ -153,10 +153,8 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 			eg.Go(func() error {
 				actx := plugin.NewAnalyzeContext(prep.PrepareContext, &src, host.database)
 
-				err := host.plugins[pluginId].Analyze(actx)
-				if err != nil {
-					// TODO:
-					fmt.Println(fmt.Errorf("analyze failed for %s: %w", pluginId, err))
+				if err := host.plugins[pluginId].Analyze(actx); err != nil {
+					return fmt.Errorf("analyze failed for %s: %w", pluginId, err)
 				}
 				return nil
 			})
