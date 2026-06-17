@@ -174,36 +174,13 @@ func (c *watchmanCache) read() {
 }
 
 func (c *watchmanCache) write() {
-	cacheWriter, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		BazelLog.Errorf("Failed to create cache %q: %v", c.file, err)
-		return
-	}
-	// Safety net for the error-return paths below; the happy path closes
-	// explicitly so a flush error surfaced only at close is not lost.
-	// TODO: replace with cache.WriteCacheFile once the common dep is bumped to
-	// a version that exports it (shared with diskCache/FileComputeCache).
-	defer cacheWriter.Close()
-
 	s := cacheState{
 		ClockSpec: c.lastClockSpec,
 		Entries:   c.FileComputeCache.SnapshotEntries(),
 	}
 
-	cacheEncoder := gob.NewEncoder(cacheWriter)
-
-	if err := cache.WriteCacheVersion(cacheEncoder, "watchman"); err != nil {
-		BazelLog.Errorf("Failed to write cache info to %q: %v", c.file, err)
-		return
-	}
-
-	if e := cacheEncoder.Encode(s); e != nil {
-		BazelLog.Errorf("Failed to write cache %q: %v", c.file, e)
-		return
-	}
-
-	if err := cacheWriter.Close(); err != nil {
-		BazelLog.Errorf("Failed to flush cache %q: %v", c.file, err)
+	if err := cache.WriteCacheFile(c.file, "watchman", s); err != nil {
+		BazelLog.Errorf("%v", err)
 		return
 	}
 
