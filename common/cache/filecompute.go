@@ -122,21 +122,9 @@ func (c *FileComputeCache) read() {
 }
 
 func (c *FileComputeCache) write() {
-	cacheWriter, err := os.OpenFile(c.file, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0666)
-	if err != nil {
-		BazelLog.Errorf("cache: failed to create %q: %v", c.file, err)
-		return
-	}
-	defer cacheWriter.Close()
-
 	m := c.SnapshotEntries()
-	enc := gob.NewEncoder(cacheWriter)
-	if err := WriteCacheVersion(enc, "filecompute"); err != nil {
-		BazelLog.Errorf("cache: failed to write version to %q: %v", c.file, err)
-		return
-	}
-	if e := enc.Encode(fileComputeCacheState{Entries: m}); e != nil {
-		BazelLog.Errorf("cache: failed to write %q: %v", c.file, e)
+	if err := WriteCacheFile(c.file, "filecompute", fileComputeCacheState{Entries: m}); err != nil {
+		BazelLog.Errorf("cache: %v", err)
 		return
 	}
 	BazelLog.Debugf("cache: wrote %d entries to %q\n", len(m), c.file)
