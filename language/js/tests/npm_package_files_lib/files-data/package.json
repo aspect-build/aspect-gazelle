@@ -1,0 +1,8 @@
+{
+  "name": "files-data",
+  "private": true,
+  "files": [
+    "README.md",
+    "docs"
+  ]
+}

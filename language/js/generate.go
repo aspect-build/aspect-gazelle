@@ -393,11 +393,13 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 	// The package.json may not exist if it is generated or for some reason does not exist on disk.
 	var packageJsonEntries []string
+	var packageJsonFiles []string
 	if packageJson, err := ts.getPackageJson(args.Config, args.Rel); err != nil {
 		common.MisconfiguredErrorf(args.Config, "Failed to parse %q: %v", packageJsonPath, err)
 		return
 	} else if packageJson != nil {
 		packageJsonEntries = packageJson.Entries
+		packageJsonFiles = packageJson.Files
 	} else if slices.Contains(args.GenFiles, NpmPackageFilename) {
 		BazelLog.Debugf("Generated package.json for %q", args.Rel)
 	} else {
@@ -434,6 +436,8 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 		}
 	}
 
+	ts.addPackageJsonFiles(cfg, args, packageJsonPath, packageJsonFiles, dataFiles, npmPackageInfo)
+
 	// Add the package.json if not in the src
 	// BUG: if it was removed from 'dataFiles' and put in a target that the package does not depend on (such as a test ts_project())
 	// TODO: why not always add it?
@@ -460,6 +464,81 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 	result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, &npmPackageInfo.TsProjectInfo)...)
 
 	BazelLog.Infof("add rule '%s' '%s:%s'", cfg.packageTargetKind, args.Rel, packageTargetName)
+}
+
+// addPackageJsonFiles ensures files published via the package.json 'files'
+// patterns are included in the package target. Matching data files are added
+// as sources; exact paths that are not local data files (generated files,
+// files owned by targets in subdirectories) and matching generated files are
+// resolved the same way as package.json entries such as 'main' and 'exports'.
+func (ts *typeScriptLang) addPackageJsonFiles(cfg *JsGazelleConfig, args language.GenerateArgs, packageJsonPath string, patterns, dataFiles []string, npmPackageInfo *TsPackageInfo) {
+	if len(patterns) == 0 {
+		return
+	}
+
+	addFileImport := func(file string) {
+		npmPackageInfo.imports.Add(ImportStatement{
+			ImportSpec: resolve.ImportSpec{
+				Lang: LanguageName,
+				Imp:  path.Join(args.Rel, file),
+			},
+			ImportPath: file,
+			SourcePath: packageJsonPath,
+
+			// The file may not exist anywhere, npm simply does not publish it.
+			Optional: true,
+		})
+	}
+
+	// Patterns are treated as a set (match an include and no exclude), not npm's
+	// sequential order where a later pattern re-includes an "!" exclusion.
+	var includes, excludes []string
+	for _, pattern := range patterns {
+		negated := strings.HasPrefix(pattern, "!")
+		pattern = strings.TrimPrefix(pattern, "!")
+
+		if cfg.IsImportIgnored(pattern) {
+			continue
+		}
+
+		// A pattern naming a directory also includes everything within it.
+		if negated {
+			excludes = append(excludes, pattern, pattern+"/**")
+			continue
+		}
+		includes = append(includes, pattern+"/**")
+
+		// An exact path that is not a local data file may still exist elsewhere
+		// such as a generated file or a file owned by a subdirectory target.
+		if !strings.ContainsAny(pattern, "*?[{") && !slices.Contains(dataFiles, pattern) {
+			addFileImport(pattern)
+		} else {
+			includes = append(includes, pattern)
+		}
+	}
+
+	if len(includes) == 0 {
+		return
+	}
+
+	filesMatch, err := common.ParseGlobExpressionsWithExcludes(includes, excludes)
+	if err != nil {
+		BazelLog.Warnf("Invalid %q files patterns: %v", packageJsonPath, err)
+		return
+	}
+
+	for _, file := range dataFiles {
+		if filesMatch(file) && !cfg.IsImportIgnored(file) {
+			npmPackageInfo.sources.Add(file)
+		}
+	}
+
+	// Generated files resolve to the generating target's output.
+	for _, file := range args.GenFiles {
+		if filesMatch(file) && !cfg.IsImportIgnored(file) {
+			addFileImport(file)
+		}
+	}
 }
 
 // getPackageJson lazily parses and returns the package.json data of the given

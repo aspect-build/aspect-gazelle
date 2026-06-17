@@ -1,0 +1,23 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .: {}
+
+  files-data: {}
+
+  files-gen: {}
+
+  files-glob: {}
+
+  files-glob-ignored: {}
+
+  files-ignored: {}
+
+  files-not-found: {}
+
+  files-subdir: {}

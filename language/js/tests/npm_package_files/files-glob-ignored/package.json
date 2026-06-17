@@ -1,0 +1,7 @@
+{
+  "name": "files-glob-ignored",
+  "private": true,
+  "files": [
+    "*.txt"
+  ]
+}

@@ -1,0 +1,20 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+genrule(
+    name = "build",
+    srcs = [],
+    outs = ["dist/bundle.js"],
+    cmd = "echo \"console.log(42)\" > \"$@\"",
+)
+
+npm_link_all_packages(name = "node_modules")
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        ":dist/bundle.js",
+    ],
+    visibility = ["//:__pkg__"],
+)

@@ -1,0 +1,10 @@
+{
+  "name": "files-glob",
+  "private": true,
+  "files": [
+    "assets/*.svg",
+    "!assets/skip.svg",
+    "./public/**",
+    "./assets/*.png"
+  ]
+}

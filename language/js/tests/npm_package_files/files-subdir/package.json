@@ -1,0 +1,7 @@
+{
+  "name": "files-subdir",
+  "private": true,
+  "files": [
+    "lib"
+  ]
+}

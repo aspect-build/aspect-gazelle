@@ -1,0 +1,7 @@
+{
+  "name": "files-gen",
+  "private": true,
+  "files": [
+    "dist"
+  ]
+}
