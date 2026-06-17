@@ -2,6 +2,7 @@ package queries
 
 import (
 	"bytes"
+	"fmt"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
@@ -53,7 +54,11 @@ func convertYqNodeToValue(node *yqlib.CandidateNode) interface{} {
 		for i := 0; i < len(node.Content); i += 2 {
 			key := convertYqNodeToValue(node.Content[i])
 			value := convertYqNodeToValue(node.Content[i+1])
-			m[key.(string)] = value
+			keyStr, ok := key.(string)
+			if !ok {
+				keyStr = fmt.Sprint(key)
+			}
+			m[keyStr] = value
 		}
 		return m
 	case yqlib.SequenceNode:

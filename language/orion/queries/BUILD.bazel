@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "queries",
@@ -30,4 +30,11 @@ go_library(
         "@com_github_itchyny_gojq//:gojq",
         "@com_github_mikefarah_yq_v4//pkg/yqlib",
     ],
+)
+
+go_test(
+    name = "queries_test",
+    srcs = ["yq_test.go"],
+    embed = [":queries"],
+    deps = ["//plugin"],
 )
