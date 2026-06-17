@@ -1,0 +1,13 @@
+load("@multiple-test//:rules.bzl", "collect_all", "widget_library")
+
+# gazelle:collect_root
+
+widget_library(name = "widget")
+
+collect_all(
+    name = "all-widgets",
+    srcs = [
+        ":widget",
+        "//app/feature/deep:widget",
+    ],
+)

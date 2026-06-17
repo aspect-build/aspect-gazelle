@@ -28,7 +28,7 @@ def declare(ctx):
         attrs = {
             "declare_ctx_attrs": dir(ctx),
             "analyze_ctx_attrs": aspect.Import(
-                id = "add_symbol properties rel repo_name source",
+                id = "add_symbol data has_file properties rel repo_name source",
                 provider = "ctx-attrs",
                 optional = True,
             ),

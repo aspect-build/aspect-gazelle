@@ -1,0 +1,50 @@
+aspect.gazelle_rule_kind("probe_lib", {
+    "From": "@data-analyze-read-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("probe_consumer", {
+    "From": "@data-analyze-read-test//:rules.bzl",
+    "ResolveAttrs": ["dep"],
+})
+
+PROVIDER = "probe"
+
+# ctx.data is readable (not just writable) in the analyze stage. prepare writes a
+# value top-down; analyze reads it back and uses it to scope a Symbol id.
+def prepare(ctx):
+    if ctx.rel == "":
+        ctx.data["symbol_id"] = "analyzed-symbol"
+
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".probe")],
+    )
+
+def analyze(ctx):
+    # Read ctx.data during analyze and register a symbol under the inherited id.
+    ctx.add_symbol(
+        id = ctx.data["symbol_id"],
+        provider_type = PROVIDER,
+        label = aspect.Label(name = "lib"),
+    )
+
+def declare(ctx):
+    if ctx.rel != "":
+        return
+
+    ctx.targets.add(name = "lib", kind = "probe_lib")
+
+    # Resolves only if analyze read the right id from ctx.data.
+    ctx.targets.add(
+        name = "consumer",
+        kind = "probe_consumer",
+        attrs = {
+            "dep": aspect.Import(id = "analyzed-symbol", provider = PROVIDER),
+        },
+    )
+
+aspect.orion_extension(
+    id = "data-analyze-read",
+    prepare = prepare,
+    analyze = analyze,
+    declare = declare,
+)

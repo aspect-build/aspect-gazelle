@@ -1,0 +1,69 @@
+aspect.gazelle_rule_kind("css_module_types", {
+    "From": "//tools:css.bzl",
+})
+
+aspect.gazelle_rule_kind("write_source_files", {
+    "From": "@bazel_lib//lib:write_source_files.bzl",
+    "ResolveAttrs": ["srcs"],
+})
+
+PROVIDER = "gentypes"
+
+# A directory owning a `tsconfig.json` is a gentypes root. It records itself in
+# ctx.data during prepare; descendants inherit it so each CSS-module package
+# scopes its generated-types Symbol to the nearest such root.
+ANCHOR = "ts_gentypes_root"
+
+def prepare(ctx):
+    if ctx.has_file("tsconfig.json"):
+        ctx.data[ANCHOR] = ctx.rel
+
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".module.css")],
+    )
+
+def declare(ctx):
+    rootdir = ctx.data.get(ANCHOR)
+    if rootdir == None:
+        return
+
+    # Each package with CSS modules generates a rule producing their .d.ts and
+    # provides a "css-modules" Symbol scoped to the nearest gentypes root, so it
+    # is collected by exactly that root's write_source_files.
+    if ctx.sources:
+        ctx.targets.add(
+            name = "css-modules",
+            kind = "css_module_types",
+            attrs = {
+                "srcs": [s.path for s in ctx.sources],
+            },
+            symbols = [aspect.Symbol(
+                id = path.join(rootdir, "css-modules"),
+                provider = PROVIDER,
+            )],
+        )
+
+    # At the gentypes root, collect every css-modules target in the subtree into
+    # a single write_source_files that writes the generated .d.ts into `gentypes`
+    # - the directory the sibling tsconfig.json references via rootDirs.
+    if rootdir == ctx.rel:
+        ctx.targets.add(
+            name = "gentypes",
+            kind = "write_source_files",
+            attrs = {
+                "srcs": [
+                    aspect.Import(
+                        id = path.join(ctx.rel, "css-modules"),
+                        provider = PROVIDER,
+                        multiple = True,
+                    ),
+                ],
+                "out": "gentypes",
+            },
+        )
+
+aspect.orion_extension(
+    id = "gentypes",
+    prepare = prepare,
+    declare = declare,
+)

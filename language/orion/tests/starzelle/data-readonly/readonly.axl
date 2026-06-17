@@ -1,0 +1,15 @@
+aspect.gazelle_rule_kind("noop", {
+    "From": "@data-readonly-test//:rules.bzl",
+})
+
+# ctx.data may only be written during prepare (the one top-down stage). Writing
+# it from declare is a hard error because generation is bottom-up and the write
+# would never reach descendants.
+def declare(ctx):
+    ctx.data["late"] = ctx.rel
+    ctx.targets.add(name = "noop", kind = "noop")
+
+aspect.orion_extension(
+    id = "data-readonly",
+    declare = declare,
+)

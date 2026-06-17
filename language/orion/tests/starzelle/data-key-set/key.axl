@@ -1,0 +1,10 @@
+# ctx.data keys must be strings. A non-string key on write is a hard error
+# (the writable-during-prepare check passes first, then the key type is rejected).
+def prepare(ctx):
+    ctx.data[1] = "value"
+    return aspect.PrepareResult(sources = [])
+
+aspect.orion_extension(
+    id = "data-key-set",
+    prepare = prepare,
+)

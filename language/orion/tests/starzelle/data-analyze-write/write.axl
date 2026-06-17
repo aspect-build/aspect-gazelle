@@ -1,0 +1,15 @@
+# ctx.data is read-only outside the prepare stage. analyze runs bottom-up (same
+# as declare), so a write there could never reach descendants and is a hard error.
+def prepare(ctx):
+    return aspect.PrepareResult(
+        sources = [aspect.SourceExtensions(".probe")],
+    )
+
+def analyze(ctx):
+    ctx.data["late"] = ctx.rel
+
+aspect.orion_extension(
+    id = "data-analyze-write",
+    prepare = prepare,
+    analyze = analyze,
+)

@@ -69,10 +69,89 @@ func (p PropertyValues) AttrNames() []string {
 	return []string{"is_local"}
 }
 
+// ---------------- PluginData (ctx.data)
+
+var _ starlark.Value = (*PluginData)(nil)
+var _ starlark.Mapping = (*PluginData)(nil)
+var _ starlark.HasSetKey = (*PluginData)(nil)
+var _ starlark.HasAttrs = (*PluginData)(nil)
+
+func (d *PluginData) String() string        { return fmt.Sprintf("PluginData{local: %v}", d.local) }
+func (d *PluginData) Type() string          { return "PluginData" }
+func (d *PluginData) Freeze()               {}
+func (d *PluginData) Truth() starlark.Bool  { return starlark.True }
+func (d *PluginData) Hash() (uint32, error) { return 0, fmt.Errorf("unhashable: %s", d.Type()) }
+
+func (d *PluginData) Get(k starlark.Value) (starlark.Value, bool, error) {
+	key, ok := starlark.AsString(k)
+	if !ok {
+		return nil, false, fmt.Errorf("ctx.data key must be a string, got %s", k.Type())
+	}
+	if v, found := d.lookup(key); found {
+		return starUtils.Write(v), true, nil
+	}
+	return nil, false, nil
+}
+
+func (d *PluginData) SetKey(k, v starlark.Value) error {
+	if !d.writable {
+		return fmt.Errorf("ctx.data is read-only outside the prepare stage: generation runs bottom-up, so inherited data must be written top-down during prepare to reach descendants")
+	}
+	key, ok := starlark.AsString(k)
+	if !ok {
+		return fmt.Errorf("ctx.data key must be a string, got %s", k.Type())
+	}
+	goVal, err := starUtils.Read(v)
+	if err != nil {
+		return err
+	}
+	if d.local == nil {
+		d.local = make(map[string]any)
+	}
+	d.local[key] = goVal
+	return nil
+}
+
+var pluginDataGet = starlark.NewBuiltin("get", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var key string
+	var fallback starlark.Value = starlark.None
+	if err := starlark.UnpackArgs("get", args, kwargs, "key", &key, "default?", &fallback); err != nil {
+		return nil, err
+	}
+	d := b.Receiver().(*PluginData)
+	if v, found := d.lookup(key); found {
+		return starUtils.Write(v), nil
+	}
+	return fallback, nil
+})
+
+func (d *PluginData) Attr(name string) (starlark.Value, error) {
+	switch name {
+	case "get":
+		return pluginDataGet.BindReceiver(d), nil
+	}
+	return nil, fmt.Errorf("no such attribute: %s on %s", name, d.Type())
+}
+func (d *PluginData) AttrNames() []string {
+	return []string{"get"}
+}
+
 // ---------------- PrepareContext
 
 var _ starlark.Value = (*PrepareContext)(nil)
 var _ starlark.HasAttrs = (*PrepareContext)(nil)
+
+var prepareContextHasFile = starlark.NewBuiltin("has_file", func(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var name string
+	if err := starlark.UnpackArgs("has_file", args, kwargs, "name", &name); err != nil {
+		return nil, err
+	}
+	ctx := b.Receiver().(PrepareContext)
+	if ctx.HasFile == nil {
+		return starlark.False, nil
+	}
+	return starlark.Bool(ctx.HasFile(name)), nil
+})
 
 func (ctx PrepareContext) String() string {
 	return fmt.Sprintf("PrepareContext{repo_name: %q, rel: %q, properties: %v}", ctx.RepoName, ctx.Rel, ctx.Properties)
@@ -92,12 +171,21 @@ func (ctx PrepareContext) Attr(name string) (starlark.Value, error) {
 		return starlark.String(ctx.Rel), nil
 	case "properties":
 		return ctx.Properties, nil
+	case "data":
+		// Guard against a host that never wired Data: returning the nil pointer
+		// would wrap it in a non-nil starlark.Value and panic on first use.
+		if ctx.Data == nil {
+			return nil, fmt.Errorf("ctx.data is not available in this context")
+		}
+		return ctx.Data, nil
+	case "has_file":
+		return prepareContextHasFile.BindReceiver(ctx), nil
 	}
 
 	return nil, fmt.Errorf("no such attribute: %s on %s", name, ctx.Type())
 }
 func (ctx PrepareContext) AttrNames() []string {
-	return []string{"repo_name", "rel", "properties"}
+	return []string{"repo_name", "rel", "properties", "data", "has_file"}
 }
 
 // ---------------- DeclareTargetsContext

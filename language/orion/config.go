@@ -22,6 +22,9 @@ type BUILDConfig struct {
 
 	// Plugin specific config
 	pluginPrepareResults map[plugin.PluginId]pluginConfig
+
+	// Plugin-private inherited data (ctx.data), local to this directory; reads walk the parent chain.
+	pluginData map[plugin.PluginId]map[string]any
 }
 
 func NewRootConfig(repoName string) *BUILDConfig {
@@ -45,6 +48,9 @@ func (c *BUILDConfig) NewChildConfig(rel string) *BUILDConfig {
 	cCopy.rel = rel
 	cCopy.parent = c
 	cCopy.directiveRawValues = make(map[string][]string)
+
+	// Local plugin data; inherited values are reached via the parent chain.
+	cCopy.pluginData = nil
 
 	// Non-inherited that require cloning
 	// TODO: verify these should not be inherited
@@ -78,6 +84,31 @@ func (c *BUILDConfig) getRawValue(key string) (value []string, found bool, local
 	}
 
 	return nil, false, false
+}
+
+// setPluginDataMap records the plugin-private data map written by `pluginId`
+// during this directory's prepare stage.
+func (c *BUILDConfig) setPluginDataMap(pluginId plugin.PluginId, data map[string]any) {
+	if c.pluginData == nil {
+		c.pluginData = make(map[plugin.PluginId]map[string]any)
+	}
+	c.pluginData[pluginId] = data
+}
+
+// getPluginData returns the value `pluginId` associated with `key` in this
+// directory or, failing that, the nearest ancestor that set it.
+func (c *BUILDConfig) getPluginData(pluginId plugin.PluginId, key string) (any, bool) {
+	if d, ok := c.pluginData[pluginId]; ok {
+		if v, ok := d[key]; ok {
+			return v, true
+		}
+	}
+
+	if c.parent != nil {
+		return c.parent.getPluginData(pluginId, key)
+	}
+
+	return nil, false
 }
 
 // An extension of PrepareContext+Result to add internal utils

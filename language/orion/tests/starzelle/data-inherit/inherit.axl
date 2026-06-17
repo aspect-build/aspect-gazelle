@@ -1,0 +1,35 @@
+aspect.gazelle_rule_kind("data_probe", {
+    "From": "@data-inherit-test//:rules.bzl",
+})
+
+# ctx.data values are copied on write and on every read: mutating a read value
+# does not write through, and nested values (dicts/lists) roundtrip intact.
+def prepare(ctx):
+    if ctx.rel == "":
+        ctx.data["meta"] = {"tags": ["root"], "count": 1}
+
+    if ctx.rel == "child":
+        # Reading returns a copy; this mutation must NOT leak into the stored
+        # "meta" that descendants inherit.
+        tags = ctx.data["meta"]["tags"]
+        tags.append("child")
+        ctx.data["child_tags"] = tags
+
+    return aspect.PrepareResult(sources = [])
+
+def declare(ctx):
+    ctx.targets.add(
+        name = "probe",
+        kind = "data_probe",
+        attrs = {
+            "count": ctx.data["meta"]["count"],
+            "tags": ctx.data["meta"]["tags"],
+            "extra": ctx.data.get("child_tags", []),
+        },
+    )
+
+aspect.orion_extension(
+    id = "data-inherit",
+    prepare = prepare,
+    declare = declare,
+)

@@ -1,0 +1,6 @@
+load("//tools:css.bzl", "css_module_types")
+
+css_module_types(
+    name = "css-modules",
+    srcs = ["styles.module.css"],
+)

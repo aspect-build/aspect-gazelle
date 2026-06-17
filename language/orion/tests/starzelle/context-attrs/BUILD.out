@@ -5,6 +5,8 @@ ctx_attrs(
     analyze_ctx_attrs = "//:analyze_ctx",
     declare_ctx_attrs = [
         "add_symbol",
+        "data",
+        "has_file",
         "properties",
         "rel",
         "repo_name",

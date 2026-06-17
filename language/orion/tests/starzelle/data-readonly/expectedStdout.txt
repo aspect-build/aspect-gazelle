@@ -1,0 +1,3 @@
+Failed to invoke data-readonly:DeclareTargets(): Error: ctx.data is read-only outside the prepare stage: generation runs bottom-up, so inherited data must be written top-down during prepare to reach descendants
+Traceback (most recent call last):
+  data-readonly/readonly.axl:9:13: in declare

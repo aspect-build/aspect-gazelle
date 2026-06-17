@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"sync"
 
+	common "github.com/aspect-build/aspect-gazelle/common"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 	"github.com/bazelbuild/bazel-gazelle/config"
@@ -58,6 +59,13 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 
 	var prepResultMutex sync.Mutex
 
+	// ctx.has_file: lazily report whether this directory contains a file (or a
+	// `sub/dir/file` relative path). Backed by the gazelle walk cache, queried
+	// only when a plugin actually calls has_file.
+	hasFile := func(name string) bool {
+		return common.WalkHasPath(rel, name)
+	}
+
 	// Prepare the plugins for this configuration.
 	for k, p := range configurer.plugins {
 		if !config.IsPluginEnabled(k) {
@@ -69,11 +77,32 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 		p := p
 		eg.Go(func() error {
 			prepContext := configToPrepareContext(p, config)
+			prepContext.HasFile = hasFile
+
+			// ctx.data: plugin-private inherited store. Writable during prepare,
+			// reads fall through to the nearest ancestor that wrote the key.
+			inherit := func(key string) (any, bool) {
+				if config.parent != nil {
+					return config.parent.getPluginData(k, key)
+				}
+				return nil, false
+			}
+			prepContext.Data = plugin.NewPluginData(inherit)
+
 			prepResult := p.Prepare(prepContext)
 
-			// Lock while modifying config.pluginPrepareResults
+			// Writes are only allowed during prepare; the same store is reused
+			// read-only for the analyze/declare stages.
+			prepContext.Data.Seal()
+
+			// Lock while modifying config.pluginPrepareResults / pluginData
 			prepResultMutex.Lock()
 			defer prepResultMutex.Unlock()
+
+			// Persist any writes from this directory so descendants can inherit them.
+			if data := prepContext.Data.Local(); data != nil {
+				config.setPluginDataMap(k, data)
+			}
 
 			// Index the plugins and their PrepareResult
 			config.pluginPrepareResults[k] = pluginConfig{
