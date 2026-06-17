@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# js_assets narrows asset collection to `jsx` only, so `import`-kind imports are
+# NOT collected as assets. A `.json` imported from source must still be absorbed
+# into the ts_project srcs regardless, because it is a data-file extension (this
+# guards the `isDataFileExt(...) || CollectAssetsFrom(...)` check in generate.go:
+# without the isDataFileExt half, config.json would fall out to a separate dep).
+# gazelle:js_assets jsx
+
+ts_project(
+    name = "js_assets_imported_json",
+    srcs = [
+        "config.json",
+        "main.ts",
+    ],
+)
