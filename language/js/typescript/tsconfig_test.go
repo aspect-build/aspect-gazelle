@@ -126,6 +126,34 @@ func TestTsconfigLoad(t *testing.T) {
 		assertEqual(t, extender.Extends[0], "./base.tsconfig.json", "should not fail extending")
 	})
 
+	t.Run("inherits baseUrl from extended config", func(t *testing.T) {
+		// base.tsconfig.json sets `baseUrl: "src"`; this child omits it. Per tsc,
+		// baseUrl is inherited across `extends` ("the configuration from the base
+		// file are loaded first, then overridden by those in the inheriting
+		// config file"). The resolver currently resets it to "." instead.
+		extender, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/extends-base.json")
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertEqual(t, extender.BaseUrl, "src", "should inherit baseUrl from extended config")
+	})
+
+	t.Run("inherits baseUrl re-anchored to the base's directory", func(t *testing.T) {
+		// This child lives in subdir/ and extends ../base.tsconfig.json, which
+		// sets `baseUrl: "src"`. Per tsc, relative paths "are resolved relative to
+		// the configuration file they originated in", so from the child's dir the
+		// inherited baseUrl is "../src" — matching how the inherited Paths.Rel
+		// already resolves (see the sibling test above).
+		extender, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/subdir/extends-base.json")
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertEqual(t, extender.Paths.Rel, "../src", "sanity: inherited Paths.Rel is re-anchored to the base dir")
+		assertEqual(t, extender.BaseUrl, "../src", "inherited baseUrl must be re-anchored to the base dir, like Paths.Rel")
+	})
+
 	t.Run("parse a tsconfig extending other in parent dir", func(t *testing.T) {
 		extender, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/subdir/extends-base.json")
 		if err != nil {
@@ -149,7 +177,10 @@ func TestTsconfigLoad(t *testing.T) {
 		if !extender.ImportHelpers {
 			t.Errorf("should inherit compilerOptions.importHelpers")
 		}
-		assertEqual(t, extender.Paths.Rel, ".", "should override Paths.Rel with local")
+		// The child declares its own `paths` but no baseUrl, so per tsc its path
+		// mappings resolve against the inherited baseUrl ("src" from the base),
+		// re-anchored from this subdir to "../src" — not the child's own dir.
+		assertEqual(t, extender.Paths.Rel, "../src", "child paths resolve against the inherited baseUrl")
 		_, aliasAExists := extender.Paths.Map["alias-a"]
 		assertTrue(t, !aliasAExists, "should override Paths from extended")
 		assertEqual(t, extender.Paths.Map["alias-b"][0], "src/lib/b", "should override Paths.Map")
