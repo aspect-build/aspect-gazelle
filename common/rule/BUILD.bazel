@@ -22,9 +22,16 @@ go_library(
 
 go_test(
     name = "rule_test",
-    srcs = ["glob_test.go"],
+    srcs = [
+        "glob_test.go",
+        "rules_test.go",
+    ],
     embed = [":rule"],
     deps = [
+        "@bazel_gazelle//config",
+        "@bazel_gazelle//language",
+        "@bazel_gazelle//rule",
         "@com_github_bazelbuild_buildtools//build",
+        "@com_github_emirpasic_gods_v2//sets/treeset",
     ],
 )

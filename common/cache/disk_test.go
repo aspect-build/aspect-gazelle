@@ -2,6 +2,7 @@ package cache
 
 import (
 	"bytes"
+	"encoding/gob"
 	"os"
 	"path/filepath"
 	"testing"
@@ -174,6 +175,62 @@ func TestDiskCache_FilePathOnEmbeddedFileComputeCache(t *testing.T) {
 	c := NewDiskCache(cacheFile).(*diskCache)
 	if c.FileComputeCache.file != cacheFile {
 		t.Errorf("FileComputeCache.file = %q, want %q (diskCache must not shadow the embedded field)", c.FileComputeCache.file, cacheFile)
+	}
+}
+
+// A corrupt/unreadable cache file must be ignored (treated as empty) rather than
+// crashing; the next load recomputes from scratch.
+func TestDiskCache_CorruptFileIgnored(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "file.go", "content")
+	cacheFile := filepath.Join(dir, "cache")
+	if err := os.WriteFile(cacheFile, []byte("not a valid gob stream"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := NewDiskCache(cacheFile)
+	compute, calls := makeCompute(t)
+
+	_, hit, err := c.LoadOrStoreFile(dir, "file.go", "key", compute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hit {
+		t.Error("expected a miss from a corrupt cache file")
+	}
+	if *calls != 1 {
+		t.Errorf("expected 1 compute call, got %d", *calls)
+	}
+}
+
+// A cache file whose metadata declares a different cache type must be rejected
+// and treated as empty (e.g. a stale file written by another cache).
+func TestDiskCache_TypeMismatchIgnored(t *testing.T) {
+	dir := t.TempDir()
+	writeTestFile(t, dir, "file.go", "content")
+	cacheFile := filepath.Join(dir, "cache")
+
+	f, err := os.Create(cacheFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteCacheVersion(gob.NewEncoder(f), "some-other-cache-type"); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	c := NewDiskCache(cacheFile)
+	compute, calls := makeCompute(t)
+
+	_, hit, err := c.LoadOrStoreFile(dir, "file.go", "key", compute)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hit {
+		t.Error("expected a miss when the cache type does not match")
+	}
+	if *calls != 1 {
+		t.Errorf("expected 1 compute call, got %d", *calls)
 	}
 }
 

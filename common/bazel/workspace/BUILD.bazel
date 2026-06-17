@@ -1,4 +1,4 @@
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "workspace",
@@ -8,4 +8,10 @@ go_library(
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/common/bazel/workspace",
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "workspace_test",
+    srcs = ["finder_test.go"],
+    embed = [":workspace"],
 )
