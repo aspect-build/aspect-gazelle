@@ -1,6 +1,8 @@
 package queries
 
 import (
+	"maps"
+
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
@@ -37,9 +39,7 @@ func RunQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries)
 		if results == nil {
 			results = batch
 		} else {
-			for key, r := range batch {
-				results[key] = r
-			}
+			maps.Copy(results, batch)
 		}
 	}
 
@@ -47,9 +47,7 @@ func RunQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries)
 	if results == nil {
 		results = gated
 	} else {
-		for key, r := range gated {
-			results[key] = r
-		}
+		maps.Copy(results, gated)
 	}
 	if results == nil {
 		results = plugin.QueryResults{}
