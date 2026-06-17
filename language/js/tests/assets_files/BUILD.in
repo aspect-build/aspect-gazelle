@@ -1,0 +1,5 @@
+# gazelle:generation_mode update_only
+
+# gazelle:js_asset_files *.svg
+# gazelle:js_files mygroup *.my.ts
+# gazelle:js_asset_files mygroup data/**

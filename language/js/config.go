@@ -65,6 +65,8 @@ const (
 	Directive_TestFiles = "js_test_files"
 	// The directive controlling whether asset collection is enabled for import types.
 	Directive_Assets = "js_assets"
+	// The glob for additional asset files, in addition to assets detected within parsed source files.
+	Directive_AssetFiles = "js_asset_files"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
 	Directive_CustomTargetFiles = "js_custom_files"
@@ -126,11 +128,18 @@ type TargetGroup struct {
 	// Supports {dirname} variable.
 	name string
 
-	// Custom glob patterns for sources.
+	// Glob patterns for sources, overriding any inherited patterns.
 	customSources []string
 
-	// Default glob patterns for sources. Only set for pre-configured targets.
-	defaultSources []string
+	// Source glob patterns inherited from the parent package, shadowed by any locally specified customSources.
+	// At the root the inherited values may be from the pre-configured DefaultSourceGlobs.
+	inheritedSources []string
+
+	// Glob patterns for assets, overriding any inherited patterns.
+	customAssets []string
+
+	// Asset glob patterns inherited from the parent package, shadowed by any locally specified customAssets.
+	inheritedAssets []string
 
 	// The `visibility` of the target
 	visibility []label.Label
@@ -143,16 +152,16 @@ func boolPtr(b bool) *bool { return &b }
 
 var DefaultSourceGlobs = []*TargetGroup{
 	&TargetGroup{
-		name:           DefaultLibraryName,
-		customSources:  []string{},
-		defaultSources: []string{fmt.Sprintf("%s/**/*.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
-		testonly:       false,
+		name:             DefaultLibraryName,
+		customSources:    []string{},
+		inheritedSources: []string{fmt.Sprintf("%s/**/*.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
+		testonly:         false,
 	},
 	&TargetGroup{
-		name:           DefaultTestsName,
-		customSources:  []string{},
-		defaultSources: []string{fmt.Sprintf("%s/**/*.{spec,test}.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
-		testonly:       true,
+		name:             DefaultTestsName,
+		customSources:    []string{},
+		inheritedSources: []string{fmt.Sprintf("%s/**/*.{spec,test}.{%s}", rootDirVar, strings.Join(defaultTypescriptFileExtensionsArray, ","))},
+		testonly:         true,
 	},
 }
 
@@ -241,6 +250,7 @@ func newRootConfig() *JsGazelleConfig {
 	for i, t := range DefaultSourceGlobs {
 		cp := *t
 		cp.customSources = append([]string{}, t.customSources...)
+		cp.customAssets = append([]string{}, t.customAssets...)
 		targets[i] = &cp
 	}
 
@@ -269,18 +279,31 @@ func newRootConfig() *JsGazelleConfig {
 	}
 }
 
-func (g *TargetGroup) newChild() *TargetGroup {
-	sources := g.customSources
-	if len(sources) == 0 {
-		sources = g.defaultSources
+// The effective source glob patterns for this group.
+func (g *TargetGroup) sourceGlobs() []string {
+	if len(g.customSources) > 0 {
+		return g.customSources
 	}
+	return g.inheritedSources
+}
 
+// The effective asset glob patterns for this group.
+func (g *TargetGroup) assetGlobs() []string {
+	if len(g.customAssets) > 0 {
+		return g.customAssets
+	}
+	return g.inheritedAssets
+}
+
+func (g *TargetGroup) newChild() *TargetGroup {
 	return &TargetGroup{
-		name:           g.name,
-		customSources:  []string{},
-		defaultSources: sources,
-		testonly:       g.testonly,
-		visibility:     g.visibility,
+		name:             g.name,
+		customSources:    []string{},
+		inheritedSources: g.sourceGlobs(),
+		customAssets:     []string{},
+		inheritedAssets:  g.assetGlobs(),
+		testonly:         g.testonly,
+		visibility:       g.visibility,
 	}
 }
 
@@ -573,6 +596,19 @@ func (c *JsGazelleConfig) ReverseMapTargetName(mappedName string) string {
 	return mappedName
 }
 
+// parseGroupGlob splits a "[group] glob" directive value into the target group
+// name and glob pattern, defaulting to defaultGroup when no group is specified.
+func (c *JsGazelleConfig) parseGroupGlob(value, defaultGroup string) (group, glob string) {
+	group, glob = defaultGroup, value
+
+	if before, after, found := strings.Cut(value, " "); found {
+		group = c.ReverseMapTargetName(before)
+		glob = strings.TrimSpace(after)
+	}
+
+	return group, glob
+}
+
 func (c *JsGazelleConfig) MapTargetName(name string) string {
 	if n := c.targetNamingOverrides[name]; n != "" {
 		return n
@@ -635,13 +671,23 @@ func (c *JsGazelleConfig) GetSourceTarget(targetName string) *TargetGroup {
 	return nil
 }
 
-// AddTargetGlob sets the glob used to find source files for the specified target
-func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool) error {
-	// Normalize the glob so e.g. "./foo.js" matches a file path stored as "foo.js".
+// Trims any leading "./", validates the glob.
+// The adjective (e.g. "asset ") is interpolated into the error message.
+func normalizeAndValidateGlob(targetName, adjective, glob string) (string, error) {
 	glob = strings.TrimPrefix(glob, "./")
 
 	if _, err := common.ParseGlobExpression(glob); err != nil {
-		return fmt.Errorf("Invalid target (%s) glob %q: %w", targetName, glob, err)
+		return "", fmt.Errorf("Invalid target (%s) %sglob %q: %w", targetName, adjective, glob, err)
+	}
+
+	return glob, nil
+}
+
+// AddTargetGlob sets the glob used to find source files for the specified target
+func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool) error {
+	glob, err := normalizeAndValidateGlob(targetName, "", glob)
+	if err != nil {
+		return err
 	}
 
 	// Update existing target with the same name
@@ -668,5 +714,26 @@ func (c *JsGazelleConfig) addTargetGlob(targetName, glob string, isTestOnly bool
 		customSources: []string{glob},
 		testonly:      isTestOnly,
 	})
+	return nil
+}
+
+// addTargetAssetGlob adds a glob collecting additional asset files for the
+// specified target, in addition to assets detected within parsed source files.
+func (c *JsGazelleConfig) addTargetAssetGlob(targetName, glob string) error {
+	glob, err := normalizeAndValidateGlob(targetName, "asset ", glob)
+	if err != nil {
+		return err
+	}
+
+	if glob == "" {
+		return fmt.Errorf("Empty asset glob for target (%s)", targetName)
+	}
+
+	target := c.GetSourceTarget(targetName)
+	if target == nil {
+		return fmt.Errorf("Target %q not found in %q", targetName, c.rel)
+	}
+
+	target.customAssets = append(target.customAssets, glob)
 	return nil
 }

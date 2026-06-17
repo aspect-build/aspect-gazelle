@@ -168,8 +168,9 @@ type groupTsconfig struct {
 	config *typescript.TsConfig
 }
 
-// newSourceTargetClassifier returns a function that maps each source file to its target group.
-func newSourceTargetClassifier(cfg *JsGazelleConfig, groupTsconfigs map[string]groupTsconfig) func(filePath string) *TargetGroup {
+// newTargetGlobClassifier returns a function that maps each file to the target
+// group whose globs (selected by globsOf) match the file.
+func newTargetGlobClassifier(cfg *JsGazelleConfig, groupTsconfigs map[string]groupTsconfig, globsOf func(*TargetGroup) []string) func(filePath string) *TargetGroup {
 	targets := cfg.GetSourceTargets()
 	type entry struct {
 		target *TargetGroup
@@ -178,9 +179,9 @@ func newSourceTargetClassifier(cfg *JsGazelleConfig, groupTsconfigs map[string]g
 	entries := make([]entry, 0, len(targets))
 	for i := len(targets) - 1; i >= 0; i-- {
 		target := targets[i]
-		sources := target.customSources
+		sources := globsOf(target)
 		if len(sources) == 0 {
-			sources = target.defaultSources
+			continue
 		}
 		rootDir := "."
 		if tc := groupTsconfigs[target.name].config; tc != nil {
@@ -194,6 +195,12 @@ func newSourceTargetClassifier(cfg *JsGazelleConfig, groupTsconfigs map[string]g
 			entries = append(entries, entry{target: target, glob: glob})
 		}
 	}
+
+	// No globs configured, quick exit to no target.
+	if len(entries) == 0 {
+		return func(string) *TargetGroup { return nil }
+	}
+
 	return func(filePath string) *TargetGroup {
 		for _, e := range entries {
 			if e.glob(filePath) {
@@ -218,17 +225,21 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		groupTsconfigs[group.name] = groupTsconfig{rel: rel, config: c}
 	}
 
-	// Build a classifier to efficiently determine a file's target group.
-	classifyFile := newSourceTargetClassifier(cfg, groupTsconfigs)
+	// Build classifiers to efficiently determine a file's target group.
+	classifyFile := newTargetGlobClassifier(cfg, groupTsconfigs, (*TargetGroup).sourceGlobs)
+	classifyAsset := newTargetGlobClassifier(cfg, groupTsconfigs, (*TargetGroup).assetGlobs)
 
 	// Set of source and generated source files per target.
 	sourceFileGroups := make(map[string]map[string]struct{}, len(cfg.GetSourceTargets()))
 	generatedFileGroups := make(map[string]map[string]struct{}, len(cfg.GetSourceTargets()))
 
+	// Set of asset files per target collected via custom asset globs.
+	assetFileGroups := make(map[string]map[string]struct{})
+
 	// Collect data files which *may* be added to a target if imported within the sources.
 	dataFiles := make([]string, 0, 5)
 
-	// Util for adding a file to a source group or the data files.
+	// Util for adding a file to a source group, an asset group or the data files.
 	processPotentialSourceFile := func(groups map[string]map[string]struct{}, file string) {
 		fileExt := path.Ext(file)
 		if isSourceFileExt(fileExt) || isDataFileExt(fileExt) {
@@ -244,22 +255,32 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 					groups[target.name] = g
 				}
 				g[file] = struct{}{}
-			} else {
-				// Source files with no group, but may still be considered "data"
-				// of other source-importing targets such as npm package targets.
-				if BazelLog.IsTraceEnabled() {
-					BazelLog.Tracef("add src data file '%s/%s'", args.Rel, file)
-				}
-
-				dataFiles = append(dataFiles, file)
+				return
 			}
-		} else {
-			// Not collected by any target group, but still collect as a data file.
-			if BazelLog.IsTraceEnabled() {
-				BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
-			}
-			dataFiles = append(dataFiles, file)
 		}
+
+		// Files not collected as a source may be collected as an asset
+		// of a target group via custom asset globs.
+		if target := classifyAsset(file); target != nil {
+			if BazelLog.IsTraceEnabled() {
+				BazelLog.Tracef("add '%s' asset '%s/%s'", target.name, args.Rel, file)
+			}
+
+			g, hasGroup := assetFileGroups[target.name]
+			if !hasGroup {
+				g = make(map[string]struct{}, 10)
+				assetFileGroups[target.name] = g
+			}
+			g[file] = struct{}{}
+			return
+		}
+
+		// Not collected by any target group, but may still be considered "data"
+		// of other source-importing targets such as npm package targets.
+		if BazelLog.IsTraceEnabled() {
+			BazelLog.Tracef("add data file '%s/%s'", args.Rel, file)
+		}
+		dataFiles = append(dataFiles, file)
 	}
 
 	// Collect source files.
@@ -356,6 +377,7 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 				ruleName,
 				ruleSrcs,
 				ruleGenSrcs,
+				setToSlice(assetFileGroups[group.name]),
 				dataFiles,
 				result,
 			)
@@ -818,7 +840,7 @@ func setToSlice(s map[string]struct{}) []string {
 	return out
 }
 
-func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
+func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, assetFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
 	// Check for name-collisions with the rule being generated.
 	colError := ruleUtils.CheckCollisionErrors(targetName, TsProjectKind, sourceRuleKinds, args)
 	if colError != nil {
@@ -840,6 +862,14 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 		info.sources.Add(f)
 	}
 	for _, f := range genFiles {
+		info.sources.Add(f)
+	}
+
+	// Asset files collected via custom asset globs. Added to the sources but
+	// always emitted as `assets`, never parsed or emitted as `srcs`.
+	customAssets := make(map[string]struct{}, len(assetFiles))
+	for _, f := range assetFiles {
+		customAssets[f] = struct{}{}
 		info.sources.Add(f)
 	}
 
@@ -925,23 +955,36 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)
 	if ruleKind == TsProjectKind {
-		var assetFiles []string
+		var assets []string
 		srcFiles := make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
 			sourceFile := it.Value()
-			if isSourceFileExt(path.Ext(sourceFile)) || isDataFileExt(path.Ext(sourceFile)) {
+			_, isCustomAsset := customAssets[sourceFile]
+			if !isCustomAsset && (isSourceFileExt(path.Ext(sourceFile)) || isDataFileExt(path.Ext(sourceFile))) {
 				srcFiles = append(srcFiles, sourceFile)
 			} else {
-				assetFiles = append(assetFiles, sourceFile)
+				assets = append(assets, sourceFile)
 			}
 		}
 		sourceRule.SetAttr("srcs", srcFiles)
-		if len(assetFiles) > 0 {
-			sourceRule.SetAttr("assets", assetFiles)
+		if len(assets) > 0 {
+			sourceRule.SetAttr("assets", assets)
 		} else {
 			sourceRule.DelAttr("assets")
 		}
 	} else {
+		// js_library has no `assets` attribute and asset files must never be
+		// emitted as `srcs`, so the js_asset_files directive is unsupported for
+		// targets that resolve to js_library (those with no transpiled sources).
+		if len(customAssets) > 0 {
+			assets := setToSlice(customAssets)
+			slices.Sort(assets)
+			return nil, fmt.Errorf(
+				"target %q has no transpiled sources and resolves to %s, which does not support asset files; "+
+					"remove the %q directive matching: %s",
+				targetName, JsLibraryKind, Directive_AssetFiles, strings.Join(assets, ", "),
+			)
+		}
 		sourceRule.SetAttr("srcs", info.sources.Values())
 		sourceRule.DelAttr("assets")
 	}

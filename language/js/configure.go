@@ -57,6 +57,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_LibraryFiles,
 		Directive_TestFiles,
 		Directive_Assets,
+		Directive_AssetFiles,
 
 		// TODO(deprecated): remove
 		Directive_CustomTargetFiles,
@@ -248,29 +249,24 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				return
 			}
 		case Directive_LibraryFiles:
-			group := DefaultLibraryName
-			groupGlob := value
-
-			if before, after, found := strings.Cut(value, " "); found {
-				group = config.ReverseMapTargetName(before)
-				groupGlob = strings.TrimSpace(after)
-			}
+			group, groupGlob := config.parseGroupGlob(value, DefaultLibraryName)
 
 			if err := config.addTargetGlob(group, groupGlob, false); err != nil {
 				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_LibraryFiles, err)
 				return
 			}
 		case Directive_TestFiles:
-			group := DefaultTestsName
-			groupGlob := value
-
-			if before, after, found := strings.Cut(value, " "); found {
-				group = config.ReverseMapTargetName(before)
-				groupGlob = strings.TrimSpace(after)
-			}
+			group, groupGlob := config.parseGroupGlob(value, DefaultTestsName)
 
 			if err := config.addTargetGlob(group, groupGlob, true); err != nil {
 				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_TestFiles, err)
+				return
+			}
+		case Directive_AssetFiles:
+			group, groupGlob := config.parseGroupGlob(value, DefaultLibraryName)
+
+			if err := config.addTargetAssetGlob(group, groupGlob); err != nil {
+				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_AssetFiles, err)
 				return
 			}
 		case Directive_Assets:

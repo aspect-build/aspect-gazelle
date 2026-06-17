@@ -1,0 +1,2 @@
+# gazelle:js_files styles styles.ts
+# gazelle:js_asset_files styles *.css

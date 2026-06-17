@@ -1,0 +1,1 @@
+Source rule generation error: target "root" has no transpiled sources and resolves to js_library, which does not support asset files; remove the "js_asset_files" directive matching: logo.svg
