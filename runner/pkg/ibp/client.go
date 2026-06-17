@@ -102,8 +102,13 @@ func (c *incClient) negotiate() error {
 
 func negotiateVersion(acceptedVersions []any) (ProtocolVersion, error) {
 	for _, v := range acceptedVersions {
-		if slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(v.(float64))) {
-			return ProtocolVersion(v.(float64)), nil
+		f, ok := v.(float64)
+		if !ok {
+			// Skip non-numeric invalid versions
+			continue
+		}
+		if slices.Contains(abazelSupportedProtocolVersions, ProtocolVersion(f)) {
+			return ProtocolVersion(f), nil
 		}
 	}
 	return -1, fmt.Errorf("unsupported versions %v, expected one of %v", acceptedVersions, abazelSupportedProtocolVersions)
@@ -165,8 +170,8 @@ func (c *incClient) AwaitCycle() iter.Seq2[CycleEvent, error] {
 			case "CYCLE", "CYCLE_RESET":
 				event, cycleErr := convertWireCycle(msg)
 				if cycleErr != nil {
-					fmt.Printf("Failed read cycle: %v\n", cycleErr)
-					continue
+					yield(nil, fmt.Errorf("failed to read cycle: %w", cycleErr))
+					return
 				}
 				cycleId := event.cycleId()
 

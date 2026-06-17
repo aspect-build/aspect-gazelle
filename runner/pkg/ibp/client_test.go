@@ -179,3 +179,61 @@ func TestConvertWireCycle_RejectsUnknownKind(t *testing.T) {
 		t.Fatal("expected error for unknown kind, got nil")
 	}
 }
+
+// A non-numeric versions entry must not panic the type assertion; with no
+// supported version present, an "unsupported" error is returned.
+func TestNegotiateVersion_skipsNonNumericEntries(t *testing.T) {
+	if _, err := negotiateVersion([]any{"two", nil, true}); err == nil {
+		t.Fatal("expected unsupported-versions error, got nil")
+	}
+}
+
+// A supported version is selected even when non-numeric entries are interleaved.
+func TestNegotiateVersion_picksSupportedAmongMixedTypes(t *testing.T) {
+	got, err := negotiateVersion([]any{"junk", float64(VERSION_1)})
+	if err != nil {
+		t.Fatalf("negotiateVersion returned error: %v", err)
+	}
+	if got != VERSION_1 {
+		t.Fatalf("expected VERSION_1, got %d", got)
+	}
+}
+
+// All entries numeric but none supported -> unsupported error.
+func TestNegotiateVersion_unsupportedNumeric(t *testing.T) {
+	if _, err := negotiateVersion([]any{float64(99)}); err == nil {
+		t.Fatal("expected unsupported-versions error, got nil")
+	}
+}
+
+// A malformed CYCLE (here an invalid cycle_id) must surface an error and stop,
+// not silently continue: the host is already blocked awaiting a response, and
+// no valid CYCLE_STARTED/CYCLE_COMPLETED can be sent without a cycle_id.
+func TestAwaitCycle_malformedCycleYieldsErrorAndStops(t *testing.T) {
+	s := &fakeSocket{recvQueue: []map[string]any{{
+		"kind":     "CYCLE",
+		"cycle_id": "not-a-number",
+	}}}
+	c := &incClient{socket: s}
+
+	var gotEvent CycleEvent
+	var gotErr error
+	iterations := 0
+	for ev, err := range c.AwaitCycle() {
+		gotEvent, gotErr = ev, err
+		iterations++
+	}
+
+	if iterations != 1 {
+		t.Fatalf("expected the cycle loop to stop after one yield, got %d", iterations)
+	}
+	if gotErr == nil {
+		t.Fatal("expected an error for the malformed cycle, got nil")
+	}
+	if gotEvent != nil {
+		t.Fatalf("expected nil event on error, got %#v", gotEvent)
+	}
+	if len(s.sent) != 0 {
+		t.Fatalf("expected no messages sent for a malformed cycle, got %v", s.sent)
+	}
+}
