@@ -26,7 +26,13 @@ func processGitignoreFile(rootDir, gitignorePath string, d any) (func(pathParts 
 		BazelLog.Tracef("Add gitignore file %s", gitignorePath)
 		defer ignoreReader.Close()
 
-		ignorePatterns = append(ignorePatterns, parseIgnore(path.Dir(gitignorePath), ignoreReader)...)
+		parsed, parseErr := parseIgnore(path.Dir(gitignorePath), ignoreReader)
+		if parseErr != nil {
+			msg := fmt.Sprintf("Failed to read %s: %v", gitignorePath, parseErr)
+			BazelLog.Error(msg)
+			fmt.Printf("%s\n", msg)
+		}
+		ignorePatterns = append(ignorePatterns, parsed...)
 	} else {
 		msg := fmt.Sprintf("Failed to open %s: %v", gitignorePath, ignoreErr)
 		BazelLog.Error(msg)
@@ -48,7 +54,7 @@ func createMatcherFunc(ignorePatterns []gitignore.Pattern) isGitIgnored {
 	return gitignore.NewMatcher(ignorePatterns).Match
 }
 
-func parseIgnore(rel string, ignoreReader io.Reader) []gitignore.Pattern {
+func parseIgnore(rel string, ignoreReader io.Reader) ([]gitignore.Pattern, error) {
 	var domain []string
 	if rel != "" && rel != "." {
 		domain = strings.Split(path.Clean(rel), "/")
@@ -66,7 +72,7 @@ func parseIgnore(rel string, ignoreReader io.Reader) []gitignore.Pattern {
 		matcherPatterns = append(matcherPatterns, parsePattern(p, domain))
 	}
 
-	return matcherPatterns
+	return matcherPatterns, reader.Err()
 }
 
 func parsePattern(p string, domain []string) gitignore.Pattern {

@@ -185,11 +185,28 @@ func TestGitIgnore(t *testing.T) {
 	t.Run("escaped trailing whitespace", func(t *testing.T) {
 		// Bypass addIgnoreFileContent helper (which TrimSpaces lines)
 		// to test that parseIgnore preserves escaped trailing spaces.
-		patterns := parseIgnore("", strings.NewReader("foo\\ \n"))
+		patterns, err := parseIgnore("", strings.NewReader("foo\\ \n"))
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
 		m := createMatcherFunc(patterns)
 
 		shouldMatch("escaped trailing space", m, "foo ")
 		shouldNotMatch("without trailing space", m, "foo")
+	})
+
+	t.Run("scan error is surfaced", func(t *testing.T) {
+		// A line longer than bufio.Scanner's max token size (64 KiB) makes
+		// Scan() stop early and Err() report bufio.ErrTooLong. The patterns
+		// parsed before it must not be silently treated as the complete set.
+		content := "node_modules/\n" + strings.Repeat("a", 70000) + "\n"
+		patterns, err := parseIgnore("", strings.NewReader(content))
+		if err == nil {
+			t.Fatal("expected a scan error for an over-long line, got nil")
+		}
+		if len(patterns) != 1 {
+			t.Fatalf("expected the 1 pattern parsed before the error, got %d", len(patterns))
+		}
 	})
 
 	t.Run("dir specific matches", func(t *testing.T) {
@@ -266,7 +283,7 @@ func addIgnoreFileContent(parentPatterns []gitignore.Pattern, rel, ignoreContent
 		}
 	}
 
-	patterns := parseIgnore(rel, strings.NewReader(strings.Join(ignoreLines, "\n")))
+	patterns, _ := parseIgnore(rel, strings.NewReader(strings.Join(ignoreLines, "\n")))
 	patterns = append(parentPatterns, patterns...)
 
 	return createMatcherFunc(patterns), patterns
