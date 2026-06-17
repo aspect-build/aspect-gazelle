@@ -1,0 +1,2 @@
+# This is a Bazel workspace for the Gazelle test data.
+workspace(name = "self_import_duplicate_providers")

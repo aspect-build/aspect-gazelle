@@ -21,10 +21,8 @@ const (
 
 var sourceRuleKinds = treeset.NewWith(strings.Compare, KtJvmLibrary)
 
-var _ language.Language = (*kotlinLang)(nil)
-
-// The Gazelle extension for TypeScript rules.
-// TypeScript satisfies the language.Language interface including the
+// The Gazelle extension for Kotlin rules.
+// kotlinLang satisfies the language.Language interface including the
 // Configurer and Resolver types.
 type kotlinLang struct {
 	// TODO: extend rules_jvm extension instead of duplicating?
@@ -34,7 +32,7 @@ type kotlinLang struct {
 var _ language.Language = (*kotlinLang)(nil)
 var _ language.ModuleAwareLanguage = (*kotlinLang)(nil)
 
-// NewLanguage initializes a new TypeScript that satisfies the language.Language
+// NewLanguage initializes a new kotlinLang that satisfies the language.Language
 // interface. This is the entrypoint for the extension initialization.
 func NewLanguage() language.Language {
 	return &kotlinLang{}

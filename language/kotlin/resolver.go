@@ -158,7 +158,7 @@ func (kt *kotlinLang) resolveImport(
 			return Resolution_Error, nil, fmt.Errorf(
 				"Import %q from %q resolved to multiple targets (%s)"+
 					" - this must be fixed using the \"gazelle:resolve\" directive",
-				impt.Imp, impt.SourcePath, targetListFromResults(matches))
+				impt.Imp, impt.SourcePath, targetListFromLabels(filteredMatches))
 		}
 
 		// The matches were self imports, no dependency is needed
@@ -202,13 +202,13 @@ func (kt *kotlinLang) resolveImport(
 	return kt.resolveImport(c, ix, parentImportSpec, from)
 }
 
-// targetListFromResults returns a string with the human-readable list of
-// targets contained in the given results.
+// targetListFromLabels returns a string with the human-readable list of
+// the given target labels.
 // TODO: move to gazelle/common
-func targetListFromResults(results []resolve.FindResult) string {
-	list := make([]string, len(results))
-	for i, result := range results {
-		list[i] = result.Label.String()
+func targetListFromLabels(labels []label.Label) string {
+	list := make([]string, len(labels))
+	for i, l := range labels {
+		list[i] = l.String()
 	}
 	return strings.Join(list, ", ")
 }
