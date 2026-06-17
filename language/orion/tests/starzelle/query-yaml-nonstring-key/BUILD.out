@@ -1,0 +1,10 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+x_lib(
+    name = "data_lib",
+    srcs = ["data.yaml"],
+    config_keys = [
+        "123",
+        "true",
+    ],
+)

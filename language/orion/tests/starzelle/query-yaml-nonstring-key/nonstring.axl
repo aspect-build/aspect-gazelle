@@ -1,0 +1,37 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".yaml"),
+        queries = {
+            # Returns the nested mapping, which has a non-string (integer) key.
+            # Converting it must not crash the gazelle run.
+            "cfg": aspect.YamlQuery(
+                filter = "*.yaml",
+                query = ".config",
+            ),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        # The query result is a list with the matched mapping. Its keys are the
+        # (originally non-string) YAML keys, stringified by the conversion.
+        config = file.query_results["cfg"][0]
+        ctx.targets.add(
+            name = file.path[:file.path.rindex(".")] + "_lib",
+            kind = "x_lib",
+            attrs = {
+                "srcs": [file.path],
+                "config_keys": sorted(config.keys()),
+            },
+        )
+
+aspect.orion_extension(
+    id = "yaml-nonstring-key-test",
+    prepare = prepare,
+    declare = declare,
+)
