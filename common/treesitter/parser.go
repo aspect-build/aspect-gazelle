@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"iter"
 	"path"
+	"strings"
 	"unsafe"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -133,7 +134,12 @@ func (tree *treeAst) String() string {
 }
 
 func PathToLanguage(p string) LanguageGrammar {
-	return extensionToLanguage(path.Ext(p))
+	lang, found := lookupPathLanguage(p)
+	if !found {
+		// TODO: allow override or fallback language for files
+		BazelLog.Fatalf("Unknown source file extension %q", path.Ext(p))
+	}
+	return lang
 }
 
 // Based on https://github.com/github-linguist/linguist/blob/master/lib/linguist/languages.yml
@@ -187,15 +193,10 @@ var extLanguages = map[string]LanguageGrammar{
 
 // In theory, this is a mirror of
 // https://github.com/github-linguist/linguist/blob/master/lib/linguist/languages.yml
-func extensionToLanguage(ext string) LanguageGrammar {
-	var lang, found = extLanguages[ext[1:]]
-
-	// TODO: allow override or fallback language for files
-	if !found {
-		BazelLog.Fatalf("Unknown source file extension %q", ext)
-	}
-
-	return lang
+func lookupPathLanguage(p string) (LanguageGrammar, bool) {
+	ext := strings.TrimPrefix(path.Ext(p), ".")
+	lang, found := extLanguages[ext]
+	return lang, found
 }
 
 func ParseSourceCode(lang Language, filePath string, sourceCode []byte) (AST, error) {
