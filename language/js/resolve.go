@@ -187,13 +187,23 @@ func (ts *typeScriptLang) protoLibraryImports(r *rule.Rule, f *rule.File) []reso
 		// Query services: https://github.com/aspect-build/rules_ts/blob/v3.4.0/ts/private/ts_proto_library.bzl#L74-L78
 		if ruleUtils.AttrBool(r, "gen_connect_query") {
 			for _, p := range ruleUtils.AttrMap(r, "gen_connect_query_service_mapping") {
-				proto := p.Key.(*build.StringExpr).Value
-				protoName := strings.TrimSuffix(proto, ".proto")
+				protoKey, isString := p.Key.(*build.StringExpr)
+				if !isString {
+					BazelLog.Errorf("Expected ts_proto_library.gen_connect_query_service_mapping key to be a string, got %v", p.Key)
+					continue
+				}
+				protoName := strings.TrimSuffix(protoKey.Value, ".proto")
 
 				if services, isServicesArray := p.Value.(*build.ListExpr); isServicesArray {
 					for _, service := range services.List {
+						serviceStr, isString := service.(*build.StringExpr)
+						if !isString {
+							BazelLog.Errorf("Expected ts_proto_library.gen_connect_query_service_mapping service to be a string, got %v", service)
+							continue
+						}
+
 						// Service filename: https://github.com/aspect-build/rules_ts/blob/v3.4.0/ts/private/ts_proto_library.bzl#L78C54-L78C105
-						serviceFile := fmt.Sprintf("%s-%s_connectquery", protoName, service.(*build.StringExpr).Value)
+						serviceFile := fmt.Sprintf("%s-%s_connectquery", protoName, serviceStr.Value)
 
 						dtsOutputs = append(dtsOutputs, path.Join(f.Pkg, serviceFile))
 					}
