@@ -1,0 +1,27 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".txt"),
+        queries = {
+            "q": aspect.RawQuery(),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        # query_results is a starlark.Mapping but not a *Dict. Passing it as
+        # attrs must produce a clean Starlark error, not crash the gazelle run.
+        ctx.targets.add(
+            name = "bad",
+            kind = "x_lib",
+            attrs = file.query_results,
+        )
+
+aspect.orion_extension(
+    id = "bad-attrs-test",
+    prepare = prepare,
+    declare = declare,
+)

@@ -1,0 +1,1 @@
+workspace(name = "declare_bad_attrs")
