@@ -121,25 +121,23 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	for pluginId := range cfg.pluginPrepareResults {
 		pluginSrcs := pluginSourceFiles[pluginId]
 
-		queryPrefix := pluginId + "|"
-
-		// Collect the query results for this plugin's source files
 		targetSources := make(map[string]plugin.TargetSource, len(pluginSrcs))
 		for _, f := range pluginSrcs {
-			queryResults := make(plugin.QueryResults)
-			for queryId, results := range sourceFileQueryResults[f] {
-				if strings.HasPrefix(queryId, queryPrefix) {
-					queryResults[queryId[len(queryPrefix):]] = results
-				}
-			}
-
 			targetSources[f] = plugin.TargetSource{
 				Path:         f,
-				QueryResults: queryResults,
+				QueryResults: make(plugin.QueryResults),
 			}
 		}
 
 		pluginTargetSources[pluginId] = targetSources
+	}
+
+	// Assign the file query results to the correct plugin TargetSources.QueryResults.
+	for f, results := range sourceFileQueryResults {
+		for key, queryResult := range results {
+			pluginId, queryId, _ := strings.Cut(key, "|")
+			pluginTargetSources[pluginId][f].QueryResults[queryId] = queryResult
+		}
 	}
 
 	// Stage 3:
@@ -248,15 +246,15 @@ func (host *GazelleHost) convertPlugActionsToGenerateResult(pluginActions map[st
 }
 
 func (host *GazelleHost) applyPluginAction(args gazelleLanguage.GenerateArgs, pluginId plugin.PluginId, action plugin.TargetAction, result *gazelleLanguage.GenerateResult) {
-	switch action.(type) {
+	switch a := action.(type) {
 	case plugin.RemoveTargetAction:
 		// If marked for removal simply add to the empty list and continue
-		if removed := applyRemoveAction(args, result, action.(plugin.RemoveTargetAction)); removed != nil {
+		if removed := applyRemoveAction(args, result, a); removed != nil {
 			BazelLog.Debugf("GenerateRules remove target: %s %s(%q)", args.Rel, removed.Kind(), removed.Name())
 		}
 	case plugin.AddTargetAction:
 		// Check for name-collisions with the rule being generated.
-		target := action.(plugin.AddTargetAction).TargetDeclaration
+		target := a.TargetDeclaration
 		colError := ruleUtils.CheckCollisionErrors(target.Name, target.Kind, host.sourceRuleKinds, args)
 		if colError != nil {
 			common.GenerationErrorf(args.Config, "Source rule generation error: %v", colError)
@@ -320,7 +318,7 @@ func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target
 }
 
 func targetAttributesToRelsToImport(pkg string, attrs map[string]*attributeValue) []string {
-	relToImport := []string{}
+	var relToImport []string
 
 	// By default it is assumed all imports are workspace-relative paths.
 	// TODO: provide hooks for plugins to override this behavior.
@@ -339,7 +337,9 @@ func targetAttributesToRelsToImport(pkg string, attrs map[string]*attributeValue
 
 func convertPluginAttribute(pkg string, val interface{}) ([]interface{}, []plugin.TargetImport, bool) {
 	if a, isArray := val.([]interface{}); isArray {
-		var r []interface{}
+		// Each element typically yields a single value (imports are rare), so
+		// size r to the array up front and leave i nil until something needs it.
+		r := make([]interface{}, 0, len(a))
 		var i []plugin.TargetImport
 		for _, v := range a {
 			newR, newI, _ := convertPluginAttribute(pkg, v)
