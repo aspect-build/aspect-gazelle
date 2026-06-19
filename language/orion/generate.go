@@ -121,25 +121,23 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	for pluginId := range cfg.pluginPrepareResults {
 		pluginSrcs := pluginSourceFiles[pluginId]
 
-		queryPrefix := pluginId + "|"
-
-		// Collect the query results for this plugin's source files
 		targetSources := make(map[string]plugin.TargetSource, len(pluginSrcs))
 		for _, f := range pluginSrcs {
-			queryResults := make(plugin.QueryResults)
-			for queryId, results := range sourceFileQueryResults[f] {
-				if strings.HasPrefix(queryId, queryPrefix) {
-					queryResults[queryId[len(queryPrefix):]] = results
-				}
-			}
-
 			targetSources[f] = plugin.TargetSource{
 				Path:         f,
-				QueryResults: queryResults,
+				QueryResults: make(plugin.QueryResults),
 			}
 		}
 
 		pluginTargetSources[pluginId] = targetSources
+	}
+
+	// Assign the file query results to the correct plugin TargetSources.QueryResults.
+	for f, results := range sourceFileQueryResults {
+		for key, queryResult := range results {
+			pluginId, queryId, _ := strings.Cut(key, "|")
+			pluginTargetSources[pluginId][f].QueryResults[queryId] = queryResult
+		}
 	}
 
 	// Stage 3:
