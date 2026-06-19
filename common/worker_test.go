@@ -29,3 +29,17 @@ func TestParallelize(t *testing.T) {
 		})
 	}
 }
+
+// A consumer that abandons the channel early must not wedge a shared pool
+// worker; the buffered result channel lets workers finish regardless. A leaked
+// worker would eventually starve the pool and hang this test.
+func TestParallelizeAbandonedConsumer(t *testing.T) {
+	for range 100 {
+		<-Parallelize([]string{"a", "b", "c"}, func(v string) string { return v })
+	}
+	for r := range Parallelize([]string{"x"}, func(v string) string { return v }) {
+		if r != "x" {
+			t.Errorf("pool unusable after abandoned consumers: got %q", r)
+		}
+	}
+}

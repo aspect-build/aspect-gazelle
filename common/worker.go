@@ -1,8 +1,8 @@
 package common
 
 import (
-	"math"
 	"sync"
+	"sync/atomic"
 )
 
 const (
@@ -10,44 +10,48 @@ const (
 	MaxWorkerCount = 12
 )
 
-// Parallelize an action over a set of string values.
-// Returns a channel that emits results as they are produced.
-func Parallelize[T any](values []string, process func(string) T) chan T {
-	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
-
-	// The channel of inputs
-	valuesCh := make(chan string, workerCount)
-
-	// The channel of outputs.
-	resultsCh := make(chan T, workerCount)
-
-	// Start the worker goroutines.
-	var wg sync.WaitGroup
-	for range workerCount {
-		wg.Add(1)
+// workerPool is a shared, process-wide pool of MaxWorkerCount worker goroutines
+// created once and reused across all Parallelize calls.
+var workerPool = sync.OnceValue(func() chan func() {
+	tasks := make(chan func(), MaxWorkerCount)
+	for range MaxWorkerCount {
 		go func() {
-			defer wg.Done()
-
-			for value := range valuesCh {
-				resultsCh <- process(value)
+			for task := range tasks {
+				task()
 			}
 		}()
 	}
+	return tasks
+})
 
-	// Send values to the workers.
-	go func() {
-		for _, value := range values {
-			valuesCh <- value
-		}
-
-		close(valuesCh)
-	}()
-
-	// Wait for all workers to finish.
-	go func() {
-		wg.Wait()
+// Parallelize an action over a set of string values.
+// Returns a channel that emits results as they are produced.
+func Parallelize[T any](values []string, process func(string) T) chan T {
+	// Buffered to hold every result so a shared pool worker never blocks on its
+	// send (a consumer that stops reading early must not wedge a pooled worker).
+	resultsCh := make(chan T, len(values))
+	if len(values) == 0 {
 		close(resultsCh)
+		return resultsCh
+	}
+
+	// Submit the work to the shared worker pool. The last task to finish closes
+	// the channel; each decrement runs after that task's send, so reaching zero
+	// means every result has been buffered.
+	tasks := workerPool()
+	var remaining atomic.Int64
+	remaining.Store(int64(len(values)))
+	go func() {
+		for i := range values {
+			tasks <- func() {
+				defer func() {
+					if remaining.Add(-1) == 0 {
+						close(resultsCh)
+					}
+				}()
+				resultsCh <- process(values[i])
+			}
+		}
 	}()
 
 	return resultsCh
