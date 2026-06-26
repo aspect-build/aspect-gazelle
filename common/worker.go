@@ -56,3 +56,37 @@ func Parallelize[T any](values []string, process func(string) T) chan T {
 
 	return resultsCh
 }
+
+// WorkerGroup runs a set of fallible tasks on the shared worker pool. It mirrors
+// the subset of golang.org/x/sync/errgroup used here — Go submits a task, Wait
+// blocks until every submitted task has finished and returns the first non-nil
+// error — but it does not start a goroutine per task: tasks run on the shared
+// pool, so total concurrency is bounded by the pool rather than per group (no
+// SetLimit needed). The zero value is ready to use.
+//
+// As with Parallelize, a pooled task must not call Go/Wait on a group whose
+// tasks contend for the pool, or it can starve it.
+type WorkerGroup struct {
+	wg      sync.WaitGroup
+	errOnce sync.Once
+	err     error
+}
+
+// Go submits fn to run on the shared worker pool. It blocks only when the pool's
+// intake is full (back-pressure); it never spawns its own goroutine.
+func (g *WorkerGroup) Go(fn func() error) {
+	g.wg.Add(1)
+	workerPool() <- func() {
+		defer g.wg.Done()
+		if err := fn(); err != nil {
+			g.errOnce.Do(func() { g.err = err })
+		}
+	}
+}
+
+// Wait blocks until all tasks submitted via Go have finished and returns the
+// first error any of them returned (nil if none did).
+func (g *WorkerGroup) Wait() error {
+	g.wg.Wait()
+	return g.err
+}

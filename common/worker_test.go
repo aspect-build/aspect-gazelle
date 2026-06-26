@@ -1,8 +1,10 @@
 package common
 
 import (
+	"errors"
 	"slices"
 	"strconv"
+	"sync/atomic"
 	"testing"
 )
 
@@ -41,5 +43,27 @@ func TestParallelizeAbandonedConsumer(t *testing.T) {
 		if r != "x" {
 			t.Errorf("pool unusable after abandoned consumers: got %q", r)
 		}
+	}
+}
+
+func TestWorkerGroup(t *testing.T) {
+	// Every submitted task runs, and Wait returns nil when none fail.
+	var g WorkerGroup
+	var count atomic.Int64
+	for range 50 {
+		g.Go(func() error { count.Add(1); return nil })
+	}
+	if err := g.Wait(); err != nil || count.Load() != 50 {
+		t.Fatalf("Wait() = %v, ran %d tasks; want nil and 50", err, count.Load())
+	}
+
+	// Wait surfaces a task's error.
+	var g2 WorkerGroup
+	sentinel := errors.New("boom")
+	g2.Go(func() error { return nil })
+	g2.Go(func() error { return sentinel })
+	g2.Go(func() error { return nil })
+	if err := g2.Wait(); err != sentinel {
+		t.Errorf("Wait() = %v, want %v", err, sentinel)
 	}
 }
