@@ -1,0 +1,3 @@
+load("@nearest-test//:rules.bzl", "loc_provider")
+
+loc_provider(name = "provider")
