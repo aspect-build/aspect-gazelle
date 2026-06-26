@@ -16,13 +16,9 @@ func TestParallelize(t *testing.T) {
 				expected[i] = strconv.Itoa(i) + "!"
 			}
 
-			results := make([]string, 0, size)
-			for r := range Parallelize(values, func(v string) string { return v + "!" }) {
-				results = append(results, r)
-			}
+			// Results are returned in input order (index-aligned).
+			results := Parallelize(values, func(v string) string { return v + "!" })
 
-			slices.Sort(expected)
-			slices.Sort(results)
 			if !slices.Equal(results, expected) {
 				t.Errorf("Parallelize over %d values returned %v, want %v", size, results, expected)
 			}

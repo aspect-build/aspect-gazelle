@@ -10,45 +10,36 @@ const (
 	MaxWorkerCount = 12
 )
 
-// Parallelize an action over a set of string values.
-// Returns a channel that emits results as they are produced.
-func Parallelize[T any](values []string, process func(string) T) chan T {
-	// The number of workers. Don't create more workers than necessary.
-	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
-
-	// The channel of inputs
-	valuesCh := make(chan string, workerCount)
-
-	// The channel of outputs.
-	resultsCh := make(chan T, workerCount)
-
-	// Start the worker goroutines.
-	var wg sync.WaitGroup
-	for range workerCount {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-
-			for value := range valuesCh {
-				resultsCh <- process(value)
-			}
-		}()
+// Parallelize an action over a set of string values, returning the results in
+// input order. Workers are created per call and coordinated with a WaitGroup;
+// each writes into its own slice slot, so no channels are involved.
+//
+// The values are split into contiguous chunks, one worker per chunk (up to
+// MaxWorkerCount). This is a static partition — simple and channel-free, but it
+// assumes roughly even per-value cost; a single very expensive value can leave
+// its worker straggling.
+func Parallelize[T any](values []string, process func(string) T) []T {
+	results := make([]T, len(values))
+	if len(values) == 0 {
+		return results
 	}
 
-	// Send values to the workers.
-	go func() {
-		for _, value := range values {
-			valuesCh <- value
-		}
+	// Don't create more workers than necessary.
+	workerCount := int(math.Min(MaxWorkerCount, float64(1+len(values)/2)))
+	chunk := (len(values) + workerCount - 1) / workerCount
 
-		close(valuesCh)
-	}()
+	var wg sync.WaitGroup
+	for start := 0; start < len(values); start += chunk {
+		end := min(start+chunk, len(values))
+		wg.Add(1)
+		go func(start, end int) {
+			defer wg.Done()
+			for i := start; i < end; i++ {
+				results[i] = process(values[i])
+			}
+		}(start, end)
+	}
 
-	// Wait for all workers to finish.
-	go func() {
-		wg.Wait()
-		close(resultsCh)
-	}()
-
-	return resultsCh
+	wg.Wait()
+	return results
 }
