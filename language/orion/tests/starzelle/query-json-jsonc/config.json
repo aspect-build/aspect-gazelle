@@ -1,0 +1,6 @@
+// a leading line comment
+{
+    /* a block comment */
+    "name": "from-jsonc",
+    "url": "https://example.com/x",
+}

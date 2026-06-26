@@ -1,0 +1,10 @@
+load("@jsonc-test//:rules.bzl", "cfg")
+
+cfg(name = "broken")
+
+cfg(
+    name = "config",
+    tags = ["from-jsonc"],
+)
+
+cfg(name = "empty")

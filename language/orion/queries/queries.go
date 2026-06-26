@@ -63,7 +63,7 @@ func runQueryBatch(queryType plugin.QueryType, fileName string, sourceCode []byt
 	case plugin.QueryTypeRegex:
 		return runRegexQueries(sourceCode, active)
 	case plugin.QueryTypeJson:
-		return runJsonQueries(sourceCode, active)
+		return runJsonQueries(fileName, sourceCode, active)
 	case plugin.QueryTypeYaml:
 		return runYamlQueries(sourceCode, active)
 	case plugin.QueryTypeToml:
