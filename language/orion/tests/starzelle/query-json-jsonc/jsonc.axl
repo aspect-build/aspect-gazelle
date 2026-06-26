@@ -1,0 +1,29 @@
+# Demonstrates JSONC tolerance of the JSON query engine: line/block comments and
+# trailing commas are accepted (config.json), and empty/unparseable files are
+# skipped gracefully instead of aborting the whole run (empty.json, broken.json).
+aspect.gazelle_rule_kind("cfg", {
+    "From": "@jsonc-test//:rules.bzl",
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".json"),
+        queries = {
+            "name": aspect.JsonQuery(filter = "*.json", query = ".name?"),
+        },
+    )
+
+def declare(ctx):
+    for f in ctx.sources:
+        names = f.query_results["name"]
+        ctx.targets.add(
+            name = f.path[:f.path.rindex(".")],
+            kind = "cfg",
+            attrs = {"tags": names if len(names) > 0 else None},
+        )
+
+aspect.orion_extension(
+    id = "jsonc",
+    prepare = prepare,
+    declare = declare,
+)

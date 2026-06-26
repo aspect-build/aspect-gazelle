@@ -4,20 +4,27 @@ import (
 	"encoding/json"
 	"sync"
 
+	"github.com/goexlib/jsonc"
 	"github.com/itchyny/gojq"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 )
 
-func runJsonQueries(sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+func runJsonQueries(fileName string, sourceCode []byte, queries plugin.NamedQueries) (plugin.QueryResults, error) {
+	// Strip JSONC (comments, trailing commas); skip a malformed/empty file with
+	// no results rather than aborting the run.
 	var doc interface{}
-	err := json.Unmarshal(sourceCode, &doc)
-	if err != nil {
-		return nil, err
+	if err := json.Unmarshal(jsonc.Strip(sourceCode), &doc); err != nil {
+		BazelLog.Warnf("ignoring unparseable JSON file %q: %v", fileName, err)
 	}
 
 	results := make(plugin.QueryResults, len(queries))
 	for key, q := range queries {
+		if doc == nil {
+			results[key] = make([]interface{}, 0)
+			continue
+		}
 		r, err := runJsonQuery(doc, q.(*plugin.JsonQuery).Query)
 		if err != nil {
 			return nil, err
