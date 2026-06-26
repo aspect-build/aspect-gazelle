@@ -311,7 +311,7 @@ func (host *GazelleHost) resolveImport(
 			if len(matched) == 0 {
 				matched = symbols
 			}
-			return Resolution_Label, []label.Label{symbolLabel(matched[0])}, nil
+			return Resolution_Label, []label.Label{symbolLabel(nearestSymbol(matched, from))}, nil
 		}
 	}
 
@@ -325,6 +325,29 @@ func (host *GazelleHost) resolveImport(
 	}
 
 	return Resolution_NotFound, nil, nil
+}
+
+// nearestSymbol picks the same-id symbol whose package is the deepest ancestor
+// of the importer `from` (same repo), falling back to the first when none is an
+// ancestor (so single-match and cross-repo cases are unaffected).
+func nearestSymbol(matched []plugin.TargetSymbol, from label.Label) plugin.TargetSymbol {
+	best := matched[0]
+	bestDepth := -1
+	for _, s := range matched {
+		if s.Label.Repo != from.Repo || !isPkgAncestor(s.Label.Pkg, from.Pkg) {
+			continue
+		}
+		if depth := len(s.Label.Pkg); depth > bestDepth {
+			bestDepth = depth
+			best = s
+		}
+	}
+	return best
+}
+
+// isPkgAncestor reports whether package `anc` encloses (or equals) package `pkg`.
+func isPkgAncestor(anc, pkg string) bool {
+	return anc == "" || anc == pkg || strings.HasPrefix(pkg, anc+"/")
 }
 
 // symbolLabel converts a symbol-db entry's label into an absolute label.

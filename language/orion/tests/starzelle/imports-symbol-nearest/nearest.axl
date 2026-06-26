@@ -1,0 +1,46 @@
+# Demonstrates the symbol-db "nearest package" tiebreak in resolveImport.
+#
+# The SAME symbol id ("loc") is registered by providers in two packages at
+# different depths (root "" and "sub"). When a consumer imports "loc", it must
+# resolve to the provider in the NEAREST enclosing package, not an arbitrary one:
+#   - a consumer under //sub/deep resolves to //sub (the deepest ancestor),
+#   - a consumer under //top (no provider above it but the root) resolves to //:.
+# Without the nearest tiebreak the resolver returns the first-registered symbol,
+# which is registration-order dependent and ignores the consumer's location.
+aspect.gazelle_rule_kind("loc_provider", {
+    "From": "@nearest-test//:rules.bzl",
+})
+
+aspect.gazelle_rule_kind("loc_consumer", {
+    "From": "@nearest-test//:rules.bzl",
+    "ResolveAttrs": ["dep"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".prov", ".cons"),
+    )
+
+def declare(ctx):
+    for f in ctx.sources:
+        if f.path.endswith(".prov"):
+            ctx.targets.add(name = "provider", kind = "loc_provider")
+
+            # Register the shared symbol pointing at THIS package's provider.
+            ctx.add_symbol(
+                id = "loc",
+                provider_type = "p",
+                label = aspect.Label(repo = ctx.repo_name, pkg = ctx.rel, name = "provider"),
+            )
+        elif f.path.endswith(".cons"):
+            ctx.targets.add(
+                name = "consumer",
+                kind = "loc_consumer",
+                attrs = {"dep": aspect.Import(id = "loc", provider = "p")},
+            )
+
+aspect.orion_extension(
+    id = "nearest",
+    prepare = prepare,
+    declare = declare,
+)

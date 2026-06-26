@@ -1,0 +1,6 @@
+load("@nearest-test//:rules.bzl", "loc_consumer")
+
+loc_consumer(
+    name = "consumer",
+    dep = "//:provider",
+)
