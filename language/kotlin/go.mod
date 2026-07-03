@@ -13,7 +13,7 @@ require (
 
 require (
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
-	github.com/bazelbuild/buildtools v0.0.0-20260528135316-84fa6c32aee6 // indirect
+	github.com/bazelbuild/buildtools v0.0.0-20260622120422-77b9b380c0a4 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
