@@ -11,7 +11,7 @@ require (
 	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5
 	github.com/itchyny/gojq v0.12.19
 	github.com/mikefarah/yq/v4 v4.53.3
-	go.starlark.net v0.0.0-20260613233743-8ba36ccb83fb
+	go.starlark.net v0.0.0-20260630144053-529d8e869a14
 	golang.org/x/sync v0.21.0
 )
 
