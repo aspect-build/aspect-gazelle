@@ -1,0 +1,13 @@
+load("@aspect_rules_graphql//graphql:defs.bzl", "graphql_ts_codegen")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "js-imports-orion",
+    srcs = ["main.ts"],
+    deps = [":queries_graphql"],
+)
+
+graphql_ts_codegen(
+    name = "queries_graphql",
+    srcs = ["queries.graphql"],
+)

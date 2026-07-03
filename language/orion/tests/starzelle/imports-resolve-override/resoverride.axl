@@ -1,0 +1,31 @@
+# Demonstrates that a standard `# gazelle:resolve <lang> <imp> <label>` override
+# applies to an import whose provider matches <lang>, even though orion registers
+# itself with gazelle as a single language ("orion"). The resolver tries the
+# override keyed by both the orion language name and the import's provider.
+#
+# The import is optional, so without the provider-keyed override lookup it would
+# simply drop (no dep); the override makes it resolve to //vendor:ext.
+aspect.gazelle_rule_kind("ro_consumer", {
+    "From": "@resoverride-test//:rules.bzl",
+    "ResolveAttrs": ["dep"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".cons"),
+    )
+
+def declare(ctx):
+    for f in ctx.sources:
+        if f.path.endswith(".cons"):
+            ctx.targets.add(
+                name = "consumer",
+                kind = "ro_consumer",
+                attrs = {"dep": aspect.Import(id = "ext-lib", provider = "p", optional = True)},
+            )
+
+aspect.orion_extension(
+    id = "resoverride",
+    prepare = prepare,
+    declare = declare,
+)

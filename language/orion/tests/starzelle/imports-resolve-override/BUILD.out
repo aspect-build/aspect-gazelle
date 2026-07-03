@@ -1,0 +1,8 @@
+load("@resoverride-test//:rules.bzl", "ro_consumer")
+
+# gazelle:resolve p ext-lib //vendor:ext
+
+ro_consumer(
+    name = "consumer",
+    dep = "//vendor:ext",
+)

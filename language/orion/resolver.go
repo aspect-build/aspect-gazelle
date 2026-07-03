@@ -244,9 +244,17 @@ func (host *GazelleHost) resolveImport(
 	matchedSelfOnly := false
 
 	for importSpec := range importSpecsToTry(impt, from.Pkg) {
-		// A gazelle override replaces the entire resolution, including a multiple collection.
+		// A gazelle override replaces the entire resolution, including a multiple
+		// collection. The override's resolver language may be either orion's own name
+		// (`resolve <lang> orion <imp> <label>`) or the import's provider
+		// (`resolve <lang> <imp> <label>`), so try both.
 		if override, ok := resolve.FindRuleWithOverride(c, importSpec, GazelleLanguageName); ok {
 			return Resolution_Label, []label.Label{override}, nil
+		}
+		if impt.Provider != GazelleLanguageName {
+			if override, ok := resolve.FindRuleWithOverride(c, importSpec, impt.Provider); ok {
+				return Resolution_Label, []label.Label{override}, nil
+			}
 		}
 
 		matches := ix.FindRulesByImportWithConfig(c, importSpec, GazelleLanguageName)
