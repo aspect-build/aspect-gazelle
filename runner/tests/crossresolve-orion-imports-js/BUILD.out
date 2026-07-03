@@ -1,0 +1,6 @@
+load("@aspect_rules_esbuild//esbuild:defs.bzl", "esbuild_bundle")
+
+esbuild_bundle(
+    name = "web",
+    deps = ["//src"],
+)
