@@ -1,0 +1,89 @@
+"""A minimal rules_cc-style Gazelle extension driven entirely by regex queries.
+
+It scans C++ sources to:
+  * resolve dependencies from local `#include "..."` statements, and
+  * pick `cc_binary` vs `cc_library` based on the presence of a `main()`.
+
+This mirrors what a real language extension does, but stays intentionally small
+so it can double as documentation.
+"""
+
+aspect.gazelle_rule_kind("cc_library", {
+    "From": "@rules_cc//cc:defs.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+aspect.gazelle_rule_kind("cc_binary", {
+    "From": "@rules_cc//cc:defs.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceExtensions(".cc", ".h"),
+        ],
+        queries = {
+            # Local includes such as `#include "foo/bar.h"`. Angle-bracket
+            # system includes (`#include <vector>`) are ignored on purpose.
+            "includes": aspect.RegexQuery(
+                filter = "*.cc",
+                expression = """#include\\s+"(?P<include>[^"]+)\\.h\"""",
+            ),
+            # A translation unit defining `main()` becomes a cc_binary.
+            "main": aspect.RegexQuery(
+                filter = "*.cc",
+                expression = """\\bint\\s+main\\s*\\(""",
+            ),
+        },
+    )
+
+def declare(ctx):
+    for file in ctx.sources:
+        if not file.path.endswith(".cc"):
+            continue
+
+        basename = file.path.removesuffix(".cc")
+        is_binary = len(file.query_results["main"]) > 0
+
+        deps = []
+        for inc in file.query_results["includes"]:
+            id = inc.captures["include"]
+
+            # `foo.cc` and its own `foo.h` compile into the same target.
+            if id == basename:
+                continue
+            deps.append(aspect.Import(
+                id = id,
+                provider = "cc",
+                src = file.path,
+            ))
+
+        # A sibling `foo.h` header is compiled together with `foo.cc`.
+        hdrs = [
+            h.path
+            for h in ctx.sources
+            if h.path == basename + ".h"
+        ]
+
+        ctx.targets.add(
+            name = basename,
+            kind = "cc_binary" if is_binary else "cc_library",
+            attrs = {
+                "srcs": [file.path],
+                "hdrs": hdrs,
+                "deps": deps,
+            },
+            symbols = [aspect.Symbol(
+                id = "/".join([ctx.rel, basename]) if ctx.rel else basename,
+                provider = "cc",
+            )],
+        )
+
+aspect.orion_extension(
+    id = "rules_cc",
+    prepare = prepare,
+    declare = declare,
+)
