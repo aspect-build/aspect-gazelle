@@ -12,7 +12,9 @@ npm_link_all_packages(name = "node_modules")
 
 js_library(
     name = "pkg",
-    srcs = ["package.json"],
+    srcs = [
+        "package.json",
+        ":start.js",
+    ],
     visibility = ["//:__pkg__"],
-    deps = [":start.js"],
 )

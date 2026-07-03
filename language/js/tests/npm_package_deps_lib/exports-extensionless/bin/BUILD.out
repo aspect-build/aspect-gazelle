@@ -1,0 +1,3 @@
+# Extensionless file referenced by the enclosing package's 'exports'. Declared
+# with exports_files so the //exports-extensionless/bin:cli label resolves.
+exports_files(["cli"])

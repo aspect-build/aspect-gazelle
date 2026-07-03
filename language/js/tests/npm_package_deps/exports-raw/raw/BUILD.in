@@ -1,0 +1,9 @@
+# The raw .js/.mjs/.cjs files here are referenced by the enclosing package's
+# package.json 'exports' but are not collected as sources (js_files is TS-only).
+# gazelle references them as `//exports-raw/raw:<file>`, so they must be declared
+# as targets. Declare them with exports_files until gazelle exposes them itself.
+exports_files([
+    "mod.cjs",
+    "mod.js",
+    "mod.mjs",
+])

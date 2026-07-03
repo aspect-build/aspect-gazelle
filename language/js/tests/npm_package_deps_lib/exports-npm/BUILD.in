@@ -1,0 +1,4 @@
+# The '.' export resolves (via js_resolve) to an npm package whose name
+# contains a dot ('lodash.debounce'). It is a library target and must be
+# classified by how it resolved, not by the dot in its label name.
+# gazelle:js_resolve exports-npm/index.mjs //:node_modules/lodash.debounce

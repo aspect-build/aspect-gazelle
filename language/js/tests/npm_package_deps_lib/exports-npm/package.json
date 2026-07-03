@@ -1,0 +1,7 @@
+{
+  "name": "pkg-with-npm-export",
+  "private": true,
+  "exports": {
+    ".": "./index.mjs"
+  }
+}

@@ -18,7 +18,13 @@ importers:
 
   exports-ignore: {}
 
+  exports-extensionless: {}
+
   exports-js: {}
+
+  exports-npm: {}
+
+  exports-raw: {}
 
   exports-single: {}
 
@@ -31,6 +37,8 @@ importers:
   main-js-gen: {}
 
   main-ts: {}
+
+  mixed-refs: {}
 
   not-found-references: {}
 

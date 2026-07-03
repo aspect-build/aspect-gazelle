@@ -1,0 +1,7 @@
+{
+  "name": "pkg-extensionless",
+  "private": true,
+  "exports": {
+    "./cli": "./bin/cli"
+  }
+}

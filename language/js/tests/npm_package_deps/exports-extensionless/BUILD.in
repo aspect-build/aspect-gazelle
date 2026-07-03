@@ -1,0 +1,3 @@
+# The './cli' export references a raw file with no extension. It is a file,
+# not a library, despite the lack of an extension in its label name -- the
+# inverse of the dotted-npm-package case.

@@ -1,0 +1,8 @@
+{
+  "name": "pkg-mixed-refs",
+  "private": true,
+  "exports": {
+    "./lib": "./lib/lib.js",
+    "./raw": "./raw/mod.mjs"
+  }
+}

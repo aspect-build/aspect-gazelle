@@ -1,0 +1,19 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# A package whose 'exports' reference both a raw file (./raw/mod.mjs, not
+# collected as a source) and a source file compiled by a library target
+# (./lib/lib.js -> //mixed-refs/lib:tsc): a package target that references a
+# file and a library at the same time.
+
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        "//mixed-refs/raw:mod.mjs",
+    ],
+    visibility = ["//:__pkg__"],
+    deps = ["//mixed-refs/lib:tsc"],
+)

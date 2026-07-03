@@ -1,0 +1,4 @@
+# A package whose 'exports' reference both a raw file (./raw/mod.mjs, not
+# collected as a source) and a source file compiled by a library target
+# (./lib/lib.js -> //mixed-refs/lib:tsc): a package target that references a
+# file and a library at the same time.

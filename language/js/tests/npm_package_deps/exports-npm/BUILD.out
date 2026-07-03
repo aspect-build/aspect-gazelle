@@ -1,0 +1,18 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# The '.' export resolves (via js_resolve) to an npm package whose name
+# contains a dot ('lodash.debounce'). It is a library target and must be
+# classified by how it resolved, not by the dot in its label name.
+# gazelle:js_resolve exports-npm/index.mjs //:node_modules/lodash.debounce
+
+npm_link_all_packages(name = "node_modules")
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        "//:node_modules/lodash.debounce",
+    ],
+    visibility = ["//:__pkg__"],
+)
