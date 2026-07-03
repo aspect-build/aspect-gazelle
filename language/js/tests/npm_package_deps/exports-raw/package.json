@@ -1,0 +1,10 @@
+{
+  "name": "pkg-with-raw-exports",
+  "private": true,
+  "exports": {
+    ".": "./local.mjs",
+    "./js": "./raw/mod.js",
+    "./mjs": "./raw/mod.mjs",
+    "./cjs": "./raw/mod.cjs"
+  }
+}

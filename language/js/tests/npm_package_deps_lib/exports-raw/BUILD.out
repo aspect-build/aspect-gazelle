@@ -1,20 +1,18 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
-genrule(
-    name = "foo",
-    srcs = [],
-    outs = ["types.d.ts"],
-    cmd = "echo \"export const foo: number\" > \"$@\"",
-)
+# gazelle:js_files **/*.ts
 
 npm_link_all_packages(name = "node_modules")
 
 js_library(
     name = "pkg",
     srcs = [
+        "local.mjs",
         "package.json",
-        ":types.d.ts",
+        "//exports-raw/raw:mod.cjs",
+        "//exports-raw/raw:mod.js",
+        "//exports-raw/raw:mod.mjs",
     ],
     visibility = ["//:__pkg__"],
 )

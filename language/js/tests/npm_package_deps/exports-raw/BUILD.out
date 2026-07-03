@@ -1,0 +1,18 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# gazelle:js_files **/*.ts
+
+npm_link_all_packages(name = "node_modules")
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "local.mjs",
+        "package.json",
+        "//exports-raw/raw:mod.cjs",
+        "//exports-raw/raw:mod.js",
+        "//exports-raw/raw:mod.mjs",
+    ],
+    visibility = ["//:__pkg__"],
+)

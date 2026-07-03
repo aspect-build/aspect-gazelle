@@ -1,0 +1,17 @@
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# The './cli' export references a raw file with no extension. It is a file,
+# not a library, despite the lack of an extension in its label name -- the
+# inverse of the dotted-npm-package case.
+
+npm_link_all_packages(name = "node_modules")
+
+npm_package(
+    name = "pkg",
+    srcs = [
+        "package.json",
+        "//exports-extensionless/bin:cli",
+    ],
+    visibility = ["//:__pkg__"],
+)

@@ -1,0 +1,4 @@
+# Raw .mjs file referenced by the enclosing package's 'exports' but not
+# collected as a source (js_files does not match .mjs). Declared with
+# exports_files so the //mixed-refs/raw:mod.mjs label resolves.
+exports_files(["mod.mjs"])

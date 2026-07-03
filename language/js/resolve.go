@@ -27,7 +27,13 @@ const (
 	Resolution_Error = iota
 	Resolution_None
 	Resolution_NotFound
+	// Resolution_Label is a resolution to a rule target: a JsInfo-providing
+	// library such as a ts_project or js_library.
 	Resolution_Label
+	// Resolution_File is a resolution to a raw file target (a source or
+	// generated file). It has no JsInfo provider and so belongs in 'srcs'
+	// rather than 'deps' when a package target references it.
+	Resolution_File
 	Resolution_NativeNode
 )
 
@@ -358,7 +364,8 @@ func (ts *typeScriptLang) Resolve(
 
 		// Support this target representing a project or a package
 		var projectInfo *TsProjectInfo
-		if packageInfo, isPackageInfo := importData.(*TsPackageInfo); isPackageInfo {
+		packageInfo, isPackageInfo := importData.(*TsPackageInfo)
+		if isPackageInfo {
 			projectInfo = &packageInfo.TsProjectInfo
 			if packageInfo.source != nil {
 				deps.Add(packageInfo.source)
@@ -370,7 +377,16 @@ func (ts *typeScriptLang) Resolve(
 			break
 		}
 
-		err := ts.resolveImports(c, ix, deps, projectInfo.imports, from, projectInfo.groupName)
+		// For a package target (a js_library representing an npm package), a
+		// package.json 'main'/'exports'/'files' reference to a raw file belongs
+		// in srcs; deps is reserved for JsInfo-providing library targets.
+		// fileDeps collects the raw-file resolutions so they can be split out.
+		var fileDeps *common.LabelSet
+		if isPackageInfo {
+			fileDeps = common.NewLabelSet(from)
+		}
+
+		err := ts.resolveImports(c, ix, deps, fileDeps, projectInfo.imports, from, projectInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -382,6 +398,16 @@ func (ts *typeScriptLang) Resolve(
 
 		if r.Kind() == TsProjectKind {
 			ts.addTsLib(c, ix, deps, from, projectInfo.groupName)
+		}
+
+		if isPackageInfo {
+			srcs := packageInfo.sources.Values()
+			for f := range fileDeps.Labels() {
+				srcs = append(srcs, f.String())
+			}
+			if len(srcs) > 0 {
+				r.SetAttr("srcs", srcs)
+			}
 		}
 
 		if !deps.Empty() {
@@ -397,7 +423,7 @@ func (ts *typeScriptLang) Resolve(
 		srcs := packageInfo.sources.Values()
 
 		deps := common.NewLabelSet(from)
-		err := ts.resolveImports(c, ix, deps, packageInfo.imports, from, packageInfo.groupName)
+		err := ts.resolveImports(c, ix, deps, nil, packageInfo.imports, from, packageInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -431,10 +457,15 @@ func (ts *typeScriptLang) addTsLib(
 	}
 }
 
+// resolveImports resolves each import into deps, except raw-file resolutions
+// which, when fileDeps is non-nil, are routed there instead. Callers that do
+// not distinguish files from libraries (all deps in one attribute) pass a nil
+// fileDeps so every resolution lands in deps.
 func (ts *typeScriptLang) resolveImports(
 	c *config.Config,
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
+	fileDeps *common.LabelSet,
 	imports *treeset.Set[ImportStatement],
 	from label.Label,
 	groupName string,
@@ -470,8 +501,12 @@ func (ts *typeScriptLang) resolveImports(
 		}
 
 		if !imp.TypesOnly || len(types) == 0 {
+			target := deps
+			if resolutionType == Resolution_File && fileDeps != nil {
+				target = fileDeps
+			}
 			for _, dep := range resolved {
-				deps.Add(dep)
+				target.Add(dep)
 			}
 		}
 
@@ -544,9 +579,9 @@ func (ts *typeScriptLang) resolveImport(
 		}
 	}
 
-	// References to a label such as a file or file-generating rule
+	// References to a raw file (a source file or a generated file output).
 	if importLabel := ts.getImportLabel(imp.Imp); importLabel != nil {
-		return Resolution_Label, []*label.Label{importLabel}, nil
+		return Resolution_File, []*label.Label{importLabel}, nil
 	}
 
 	// Native node imports

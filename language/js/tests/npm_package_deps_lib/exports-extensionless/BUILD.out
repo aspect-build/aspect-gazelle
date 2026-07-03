@@ -1,12 +1,9 @@
 load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@npm//:defs.bzl", "npm_link_all_packages")
 
-genrule(
-    name = "foo",
-    srcs = [],
-    outs = ["types.d.ts"],
-    cmd = "echo \"export const foo: number\" > \"$@\"",
-)
+# The './cli' export references a raw file with no extension. It is a file,
+# not a library, despite the lack of an extension in its label name -- the
+# inverse of the dotted-npm-package case.
 
 npm_link_all_packages(name = "node_modules")
 
@@ -14,7 +11,7 @@ js_library(
     name = "pkg",
     srcs = [
         "package.json",
-        ":types.d.ts",
+        "//exports-extensionless/bin:cli",
     ],
     visibility = ["//:__pkg__"],
 )
