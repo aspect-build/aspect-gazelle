@@ -88,8 +88,8 @@ jobs:
         working-directory: language/js/e2e/smoke
         # smoke's .bazelversion symlink pins bazel for bazelisk (BCR's presubmit
         # overrides it via USE_BAZEL_VERSION, so it doesn't fight the version
-        # matrix). --config=ci sets lockfile_mode=off (MODULE.bazel.lock isn't
-        # committed; pnpm-lock.yaml is a separate, committed file).
+        # matrix). --config=ci sets lockfile_mode=error to enforce the committed
+        # MODULE.bazel.lock.
         run: |
           bazel run --config=ci //:gazelle
           bazel test --config=ci //...

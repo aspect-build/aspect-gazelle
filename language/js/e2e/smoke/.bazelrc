@@ -13,5 +13,7 @@ common --linkopt=-no-pie
 # Transpile ts_project targets with tsc (rules_ts requires an explicit choice).
 common --@aspect_rules_ts//ts:default_to_tsc_transpiler
 
-# The lock isn't committed; turn off lockfile enforcement under --config=ci.
-common:ci --lockfile_mode=off
+# Fail if the committed MODULE.bazel.lock is out of date (matches the preset's
+# CI setting; this .bazelrc is self-contained so it can't import the preset).
+# BCR presubmit ignores this .bazelrc, so its bazel version matrix is unaffected.
+common:ci --lockfile_mode=error

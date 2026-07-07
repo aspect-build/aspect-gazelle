@@ -2,11 +2,5 @@
 # Import bazelrc presets
 import %workspace%/../../tools/preset.bazelrc
 
-# Override the preset's `--lockfile_mode=error` on CI: we don't commit
-# MODULE.bazel.lock (see the root .gitignore), so there's nothing to enforce
-# against. CI runs `aspect gazelle/test` from this workspace, so the root
-# .bazelrc override does not apply here.
-common:ci --lockfile_mode=off
-
 # Toolchain config for building the Rust js parser and linking it via cgo.
 import %workspace%/../../tools/rust.bazelrc
