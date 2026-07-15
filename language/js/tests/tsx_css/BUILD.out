@@ -6,6 +6,7 @@ ts_project(
     name = "tsx_css",
     srcs = [
         "main.tsx",
+        "sub/data.json",
         "sub/lib.tsx",
     ],
     assets = [
