@@ -6,13 +6,13 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260617211333-3d8b9bffa90f
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
 	github.com/bazelbuild/bazel-gazelle v0.51.3 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260622120422-77b9b380c0a4
+	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5
 	github.com/itchyny/gojq v0.12.19
 	github.com/mikefarah/yq/v4 v4.53.3
-	go.starlark.net v0.0.0-20260630144053-529d8e869a14
-	golang.org/x/sync v0.21.0
+	go.starlark.net v0.0.0-20260708150628-5395d018f003
+	golang.org/x/sync v0.22.0
 )
 
 require (
@@ -41,11 +41,11 @@ require (
 	github.com/yuin/gopher-lua v1.1.2 // indirect
 	github.com/zclconf/go-cty v1.18.1 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
-	golang.org/x/mod v0.37.0 // indirect
-	golang.org/x/net v0.56.0 // indirect
-	golang.org/x/sys v0.46.0 // indirect
-	golang.org/x/text v0.38.0 // indirect
-	golang.org/x/tools v0.47.0 // indirect
+	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/tools v0.48.0 // indirect
 	golang.org/x/tools/go/vcs v0.1.0-deprecated // indirect
 	gopkg.in/op/go-logging.v1 v1.0.0-20160211212156-b2cb9fa56473 // indirect
 )
