@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "foo",
+    srcs = ["test.ts"],
+    tsconfig = "//myapp:tsconfig",
+    deps = ["//myapp/src"],
+)
