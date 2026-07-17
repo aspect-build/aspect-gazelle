@@ -84,10 +84,6 @@ func (sock *jsonClientSocket[S, R]) connect(socketPath string) error {
 	return nil
 }
 
-func (sock *jsonServerSocket[S, R]) HasConnection() bool {
-	return sock.conn != nil
-}
-
 func (sock *jsonServerSocket[S, R]) Close() error {
 	var err error
 	if sock.serv != nil {

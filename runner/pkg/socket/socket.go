@@ -10,5 +10,4 @@ type Server[S, R any] interface {
 	Socket[S, R]
 	Serve(path string) error
 	Accept() error
-	HasConnection() bool
 }
