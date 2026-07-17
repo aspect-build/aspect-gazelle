@@ -562,12 +562,12 @@ func parseTsConfigJSON(parsed map[string]*TsConfig, resolver TsConfigResolver, r
 	if c.CompilerOptions.BaseUrl != nil {
 		BaseUrl = expandConfigDirPath(*c.CompilerOptions.BaseUrl)
 		baseUrlSet = true
-	} else if baseConfig != nil {
+	} else if baseConfig != nil && baseConfig.set.baseUrl {
 		// baseUrl is inherited across `extends`, re-anchored to the base config's
 		// directory (relative paths resolve relative to the file they originate
 		// in) — matching how inherited Paths.Rel is rebased just below.
 		BaseUrl = path.Join(baseConfigRel, baseConfig.BaseUrl)
-		baseUrlSet = baseConfig.set.baseUrl
+		baseUrlSet = true
 	} else {
 		BaseUrl = "."
 	}
