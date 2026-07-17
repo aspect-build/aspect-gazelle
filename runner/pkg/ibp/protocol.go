@@ -54,7 +54,7 @@ const (
 const PROTOCOL_SOCKET_ENV = "ABAZEL_WATCH_SOCKET_FILE"
 
 type IncrementalBazel interface {
-	// Messaging to the client
+	// Messaging to the client. Must not be called until IsReady().
 	Init(ctx context.Context, scope WatchScope, sources SourceInfoMap) error
 	Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error
 	CycleReset(ctx context.Context) error
@@ -63,9 +63,15 @@ type IncrementalBazel interface {
 	// Server + Connection to client
 	Serve(ctx context.Context) error
 	Close() error
-	HasConnection() bool
 
-	WaitForConnection() <-chan ProtocolVersion
+	// If the handshake with a connected client has completed and messaging may begin.
+	IsReady() bool
+
+	// A channel closed once the handshake completes; see NegotiatedVersion for the result.
+	WaitForReady() <-chan struct{}
+
+	// The protocol version negotiated with the client, or -1 until IsReady.
+	NegotiatedVersion() ProtocolVersion
 
 	// If this connection is watching the given scope, e.g. sources or runfiles.
 	WatchingScope(s WatchScope) bool
@@ -152,10 +158,10 @@ type aspectBazelProtocol struct {
 	socket     aspectBazelSocket
 	socketPath string
 
-	// connectedCh is used to signal when a connection has been established and the protocol version that was negotiated.
-	connectedCh chan ProtocolVersion
+	// connectedCh is closed once the handshake completes, making connectedVersion+caps safe to read.
+	connectedCh chan struct{}
 
-	// Available once connectedCh emits a version
+	// Available once connectedCh is closed
 	connectedVersion ProtocolVersion
 	caps             map[WatchCapability]any
 
@@ -171,18 +177,25 @@ func NewServer() IncrementalBazel {
 		socketPath: socketPath,
 		socket:     socket.NewJsonServer[any, map[string]any](),
 
-		connectedCh:      make(chan ProtocolVersion, 1),
+		connectedCh:      make(chan struct{}),
 		connectedVersion: -1, // Invalid version to indicate not connected
 	}
 }
 
-func (p *aspectBazelProtocol) WaitForConnection() <-chan ProtocolVersion {
+func (p *aspectBazelProtocol) WaitForReady() <-chan struct{} {
 	return p.connectedCh
 }
 
+func (p *aspectBazelProtocol) NegotiatedVersion() ProtocolVersion {
+	if !p.IsReady() {
+		return -1
+	}
+	return p.connectedVersion
+}
+
 func (p *aspectBazelProtocol) WatchingScope(s WatchScope) bool {
-	// No caps or no scope cap means default to runfiles only
-	if p.caps == nil || p.caps[WatchCapability_WatchScope] == nil {
+	// Caps are not readable until the handshake completes; no caps or no scope cap means default to runfiles only
+	if !p.IsReady() || p.caps == nil || p.caps[WatchCapability_WatchScope] == nil {
 		return s == WatchScope_Runfiles
 	}
 
@@ -246,8 +259,21 @@ func (p *aspectBazelProtocol) Serve(ctx context.Context) error {
 	return nil
 }
 
-func (p *aspectBazelProtocol) HasConnection() bool {
-	return p.socket != nil && p.socket.HasConnection()
+func (p *aspectBazelProtocol) IsReady() bool {
+	select {
+	case <-p.connectedCh:
+		return true
+	default:
+		return false
+	}
+}
+
+// errNotReady guards messaging methods from racing the handshake and corrupting the protocol.
+func (p *aspectBazelProtocol) errNotReady(msg string) error {
+	if p.IsReady() {
+		return nil
+	}
+	return fmt.Errorf("cannot send %s: watch protocol handshake not complete, see IsReady()", msg)
 }
 
 func (p *aspectBazelProtocol) acceptNegotiation(ctx context.Context) error {
@@ -289,7 +315,7 @@ func (p *aspectBazelProtocol) acceptNegotiation(ctx context.Context) error {
 	}
 
 	p.connectedVersion = version
-	p.connectedCh <- version
+	close(p.connectedCh)
 
 	return nil
 }
@@ -337,6 +363,10 @@ func (p *aspectBazelProtocol) Init(ctx context.Context, scope WatchScope, source
 }
 
 func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, changes SourceInfoMap) error {
+	if err := p.errNotReady("CYCLE"); err != nil {
+		return err
+	}
+
 	cycle_id := int(p.cycle_id.Add(1))
 
 	fmt.Printf("%s Sending cycle #%v (%v changes) to %s\n", color.GreenString("INFO:"), cycle_id, len(changes), p.socketPath)
@@ -363,6 +393,10 @@ func (p *aspectBazelProtocol) Cycle(ctx context.Context, scope WatchScope, chang
 }
 
 func (p *aspectBazelProtocol) CycleReset(ctx context.Context) error {
+	if err := p.errNotReady("CYCLE_RESET"); err != nil {
+		return err
+	}
+
 	if !p.connectedVersion.HasResetMessage() {
 		return fmt.Errorf("CYCLE_RESET requires protocol >= v%d, negotiated v%d", VERSION_2, p.connectedVersion)
 	}
@@ -421,6 +455,10 @@ func (p *aspectBazelProtocol) awaitCycleResponse(cycle_id int) error {
 }
 
 func (p *aspectBazelProtocol) Exit(ctx context.Context, err error) error {
+	if notReadyErr := p.errNotReady("EXIT"); notReadyErr != nil {
+		return notReadyErr
+	}
+
 	d := ""
 	if err != nil {
 		d = err.Error()
