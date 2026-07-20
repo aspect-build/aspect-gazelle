@@ -1,0 +1,1 @@
+# BUG: app_tests imports //lib but gets no deps (should be deps = ["//lib"]).

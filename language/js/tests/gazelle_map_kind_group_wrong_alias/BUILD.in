@@ -1,0 +1,4 @@
+# A group-scoped map_kind whose alias_kind names the wrong wrapped kind
+# (js_library instead of ts_project) is a user error: generation is aborted.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project js_library

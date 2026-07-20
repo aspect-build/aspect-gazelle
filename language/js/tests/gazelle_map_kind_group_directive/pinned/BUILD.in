@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# A scoped macro rule with a pinned srcs expression remains managed: Gazelle
+# preserves the expression while still parses its files and resolves deps.
+
+ts_project(
+    name = "pinned",
+    srcs = ["lib.ts"],
+)
+
+jest_ts_project(
+    name = "pinned_tests",
+    testonly = True,
+    srcs = glob(["*.spec.ts"]),  # keep
+)

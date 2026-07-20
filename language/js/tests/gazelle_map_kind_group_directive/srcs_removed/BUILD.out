@@ -1,0 +1,9 @@
+# A deleted test source is removed from the existing mapped rule's srcs.
+
+load("//tools:jest.bzl", "jest_ts_project")
+
+jest_ts_project(
+    name = "srcs_removed_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+)

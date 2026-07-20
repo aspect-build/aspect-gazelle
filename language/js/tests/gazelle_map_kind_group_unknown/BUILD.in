@@ -1,0 +1,5 @@
+# The map_kind names a group ("speshul") that does not exist (the group is
+# "special"): the directive is ignored with a warning and the group generates
+# a plain ts_project.
+# gazelle:js_files special *.special.ts
+# gazelle:map_kind ts_project:speshul special_project //tools:special.bzl

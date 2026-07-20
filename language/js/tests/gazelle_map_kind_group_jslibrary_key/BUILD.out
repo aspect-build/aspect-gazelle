@@ -1,0 +1,4 @@
+# js_library:<group> is not the group key (ts_project:<group> is): using it is
+# a user error, generation is aborted.
+# gazelle:map_kind js_library:{dirname}_tests jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project ts_project

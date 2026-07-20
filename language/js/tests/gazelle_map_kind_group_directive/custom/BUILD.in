@@ -1,0 +1,4 @@
+# Map a custom group, declared in a subdirectory.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project

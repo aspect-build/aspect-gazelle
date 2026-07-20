@@ -1,0 +1,3 @@
+# A group-scoped map_kind mapping to a built-in kind is a user error:
+# generation is aborted.
+# gazelle:map_kind ts_project:{dirname}_tests js_library //tools:defs.bzl

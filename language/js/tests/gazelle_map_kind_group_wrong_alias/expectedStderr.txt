@@ -1,0 +1,1 @@
+invalid '# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project ...': requires '# gazelle:alias_kind jest_ts_project ts_project' declaring the kind the jest_ts_project macro wraps

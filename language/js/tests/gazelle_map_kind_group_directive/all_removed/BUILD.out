@@ -1,0 +1,5 @@
+# All rules of the custom kinds become empty: the targets and their load
+# statements are removed, leaving no targets in the package.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project
