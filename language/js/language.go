@@ -40,10 +40,22 @@ type typeScriptLang struct {
 
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
+
+	// Group-scoped map_kind directives already warned about as unsupported
+	// (see scopedMapKind).
+	mapKindWarned map[string]struct{}
+
+	// Group-scoped map_kind KindMap keys seen in any directory, and the
+	// subset addressed by a real target group. Keys never claimed by a group
+	// are reported at the end of generation (see recordMapKindScopes and
+	// DoneGeneratingRules).
+	mapKindScopeSeen map[string]struct{}
+	mapKindScopeUsed map[string]struct{}
 }
 
 var _ language.Language = (*typeScriptLang)(nil)
 var _ language.ModuleAwareLanguage = (*typeScriptLang)(nil)
+var _ language.FinishableLanguage = (*typeScriptLang)(nil)
 
 // NewLanguage initializes a new TypeScript that satisfies the language.Language
 // interface. This is the entrypoint for the extension initialization.
@@ -52,11 +64,14 @@ func NewLanguage() language.Language {
 	packageJsonDirs := make(map[string]struct{})
 
 	return &typeScriptLang{
-		fileLabels:      make(map[string]*label.Label),
-		moduleTypes:     make(map[string][]*label.Label),
-		pnpmProjects:    pnpmProjects,
-		packageJsonDirs: packageJsonDirs,
-		packageJsons:    make(map[string]*node.PackageJson),
+		fileLabels:       make(map[string]*label.Label),
+		moduleTypes:      make(map[string][]*label.Label),
+		pnpmProjects:     pnpmProjects,
+		packageJsonDirs:  packageJsonDirs,
+		packageJsons:     make(map[string]*node.PackageJson),
+		mapKindWarned:    make(map[string]struct{}),
+		mapKindScopeSeen: make(map[string]struct{}),
+		mapKindScopeUsed: make(map[string]struct{}),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found

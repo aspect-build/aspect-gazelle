@@ -1,0 +1,7 @@
+# A plain map_kind combined with a group-scoped map_kind: the tests group
+# maps to combo_jest_project, everything else to my_ts_project. The
+# combo_jest_project macro wraps the plain-mapped kind, so its alias_kind
+# points at my_ts_project.
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests combo_jest_project //tools:jest.bzl
+# gazelle:alias_kind combo_jest_project my_ts_project

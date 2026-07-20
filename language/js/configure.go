@@ -92,6 +92,8 @@ func (ts *typeScriptLang) Configure(c *config.Config, rel string, f *rule.File) 
 	}
 
 	ts.readConfigurations(c, rel)
+
+	ts.recordMapKindScopes(c, c.Exts[LanguageName].(*JsGazelleConfig))
 }
 
 func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {

@@ -1,0 +1,18 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:e2e.bzl", "e2e_project")
+
+# Map a custom group, declared in a subdirectory.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project
+
+ts_project(
+    name = "custom",
+    srcs = ["main.ts"],
+)
+
+e2e_project(
+    name = "e2e",
+    srcs = ["main.e2e.ts"],
+    deps = [":custom"],
+)

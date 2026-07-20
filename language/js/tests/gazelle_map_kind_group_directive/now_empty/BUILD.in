@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+ts_project(
+    name = "now_empty",
+    srcs = ["index.ts"],
+)
+
+jest_ts_project(
+    name = "now_empty_tests",
+    testonly = True,
+    srcs = ["gone.spec.ts"],
+    deps = [":now_empty"],
+)

@@ -1,0 +1,12 @@
+# The e2e group no longer has any matching sources: the mapped rule and its
+# load statement are removed.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project
+
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "custom_removed",
+    srcs = ["main.ts"],
+)
