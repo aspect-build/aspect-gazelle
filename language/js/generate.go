@@ -315,8 +315,12 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 		var ruleSrcs, ruleGenSrcs []string
 
+		// Resolve once; also aborts on a misconfigured directive.
+		scopedKey, scopedTarget := ts.scopedMapKind(args.Config, group.name)
+
 		existing := ruleUtils.GetFileRuleByName(args, ruleName)
-		existingIsManaged := existing != nil && sourceRuleKinds.Contains(existing.Kind())
+		groupKinds := ts.groupSourceRuleKinds(scopedTarget)
+		existingIsManaged := existing != nil && isManagedKind(args, groupKinds, existing.Kind())
 		pinned := existingIsManaged && srcsArePinned(existing)
 
 		// If the existing rule's srcs are pinned, parse and use that list as-is.
@@ -363,7 +367,16 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		if len(ruleSrcs) == 0 {
 			// No walkable sources; remove the rule unless it is pinned.
 			if !pinned {
-				ruleUtils.RemoveRule(args, ruleName, sourceRuleKinds, result)
+				if scopedTarget != "" {
+					// Two empty rules: the wrapped kind deletes the macro rule
+					// via alias_kind; the pseudo-kind drops the macro's load.
+					result.Empty = append(result.Empty,
+						rule.NewRule(ruleUtils.MapKind(args, TsProjectKind), ruleName),
+						rule.NewRule(scopedKey, ruleName),
+					)
+				} else {
+					ruleUtils.RemoveRule(args, ruleName, groupKinds, result)
+				}
 			}
 		} else {
 			gt := groupTsconfigs[group.name]
@@ -374,6 +387,8 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 				gt.config,
 				args,
 				group,
+				scopedKey,
+				scopedTarget,
 				ruleName,
 				ruleSrcs,
 				ruleGenSrcs,
@@ -846,9 +861,13 @@ func setToSlice(s map[string]struct{}) []string {
 	return out
 }
 
-func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, targetName string, sourceFiles, genFiles, assetFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
+func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel string, tsconfig *typescript.TsConfig, args language.GenerateArgs, group *TargetGroup, scopedKey string, scopedTarget string, targetName string, sourceFiles, genFiles, assetFiles, dataFiles []string, result *language.GenerateResult) (*rule.Rule, error) {
 	// Check for name-collisions with the rule being generated.
-	colError := ruleUtils.CheckCollisionErrors(targetName, TsProjectKind, sourceRuleKinds, args)
+	expectedKind := TsProjectKind
+	if scopedTarget != "" {
+		expectedKind = scopedTarget
+	}
+	colError := ruleUtils.CheckCollisionErrors(targetName, expectedKind, ts.groupSourceRuleKinds(scopedTarget), args)
 	if colError != nil {
 		return nil, fmt.Errorf("%v "+
 			"Use the '# aspect:%s' directive to change the naming convention.\n\n"+
@@ -951,12 +970,25 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 	if !hasTranspiledSources(info.sources) {
 		ruleKind = JsLibraryKind
 	}
-	sourceRule := rule.NewRule(ruleKind, targetName)
+
+	// Scoped map_kind: new rules use the pseudo-kind so map_kind adds the
+	// load; existing macro rules merge via ts_project + alias_kind.
+	genKind := ruleKind
+	finalKind := ruleUtils.MapKind(args, ruleKind)
+	if scopedTarget != "" {
+		finalKind = scopedTarget
+		if existing == nil {
+			genKind = scopedKey
+		} else {
+			genKind = TsProjectKind
+		}
+	}
+	sourceRule := rule.NewRule(genKind, targetName)
 
 	// TODO: this seems like a hack...
 	// Gazelle should support new rules changing the type of existing rules?
-	if existing != nil && existing.Kind() != ruleKind {
-		existing.SetKind(ruleKind)
+	if existing != nil && existing.Kind() != finalKind {
+		existing.SetKind(finalKind)
 	}
 
 	sourceRule.SetPrivateAttr("ts_project_info", info)

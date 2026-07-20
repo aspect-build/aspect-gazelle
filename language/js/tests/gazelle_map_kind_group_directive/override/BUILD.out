@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:vitest.bzl", "vitest_ts_project")
+
+# Overrides the root's inherited test-group mapping.
+# gazelle:map_kind ts_project:{dirname}_tests vitest_ts_project //tools:vitest.bzl
+
+ts_project(
+    name = "override",
+    srcs = ["lib.ts"],
+)
+
+vitest_ts_project(
+    name = "override_tests",
+    testonly = True,
+    srcs = ["lib.spec.ts"],
+    deps = [":override"],
+)

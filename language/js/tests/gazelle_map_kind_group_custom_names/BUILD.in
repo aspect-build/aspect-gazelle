@@ -1,0 +1,5 @@
+# Groups are addressed by their configured target names, including renamed defaults.
+# gazelle:js_project_naming_convention mylib
+# gazelle:js_tests_naming_convention myspec
+# gazelle:map_kind ts_project:mylib my_ts_project //tools:lib.bzl
+# gazelle:map_kind ts_project:myspec jest_ts_project //tools:jest.bzl
