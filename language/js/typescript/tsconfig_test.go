@@ -139,6 +139,16 @@ func TestTsconfigLoad(t *testing.T) {
 		assertEqual(t, extender.BaseUrl, "src", "should inherit baseUrl from extended config")
 	})
 
+	t.Run("does not inherit baseUrl from base config containing no baseUrl", func(t *testing.T) {
+		// empty.tsconfig.json does not set `baseUrl` so the child should not inherit any `baseUrl`.
+		extender, err := parseTsConfigJSONFile(make(map[string]*TsConfig), identityResolver, ".", "tests/subdir/extends-empty.tsconfig.json")
+		if err != nil {
+			t.Errorf("parseTsConfigJSONFile: %v", err)
+		}
+
+		assertEqual(t, extender.BaseUrl, ".", "should not inherit baseUrl from empty base config")
+	})
+
 	t.Run("inherits baseUrl re-anchored to the base's directory", func(t *testing.T) {
 		// This child lives in subdir/ and extends ../base.tsconfig.json, which
 		// sets `baseUrl: "src"`. Per tsc, relative paths "are resolved relative to
