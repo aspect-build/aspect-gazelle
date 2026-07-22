@@ -1,0 +1,16 @@
+# The test sources no longer import anything: deps are removed from the
+# existing mapped rule.
+
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+ts_project(
+    name = "deps_removed",
+    srcs = ["lib.ts"],
+)
+
+jest_ts_project(
+    name = "deps_removed_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+)

@@ -1,0 +1,4 @@
+# Map only the default tests group to a custom macro. The alias_kind
+# directive declares which kind the macro wraps.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project ts_project

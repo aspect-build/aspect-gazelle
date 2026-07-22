@@ -1,0 +1,9 @@
+load("//tools:jest.bzl", "my_ts_project")
+
+# gazelle:map_kind ts_project:{dirname} my_ts_project //tools:jest.bzl
+# gazelle:alias_kind my_ts_project ts_project
+
+my_ts_project(
+    name = "libmapped",
+    srcs = ["lib.ts"],
+)

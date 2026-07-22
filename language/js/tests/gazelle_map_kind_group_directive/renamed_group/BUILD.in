@@ -1,0 +1,5 @@
+# The tests group is renamed via a naming convention; the group-scoped
+# map_kind addresses it by that configured name, like js_files does.
+# gazelle:js_tests_naming_convention {dirname}_unit
+# gazelle:map_kind ts_project:{dirname}_unit jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project ts_project

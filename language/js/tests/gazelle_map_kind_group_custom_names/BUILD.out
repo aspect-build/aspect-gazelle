@@ -1,0 +1,25 @@
+load("//tools:jest.bzl", "jest_ts_project")
+load("//tools:lib.bzl", "my_ts_project")
+
+# Group-scoped map_kind addresses groups by their configured target name, so
+# it works with customized default library/tests naming conventions too, not
+# only the stock {dirname}/{dirname}_tests names. Here both default groups are
+# renamed to fixed names (no {dirname}) and both are mapped via those names.
+# gazelle:js_project_naming_convention mylib
+# gazelle:js_tests_naming_convention myspec
+# gazelle:map_kind ts_project:mylib my_ts_project //tools:lib.bzl
+# gazelle:map_kind ts_project:myspec jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind my_ts_project ts_project
+# gazelle:alias_kind jest_ts_project ts_project
+
+my_ts_project(
+    name = "mylib",
+    srcs = ["index.ts"],
+)
+
+jest_ts_project(
+    name = "myspec",
+    testonly = True,
+    srcs = ["index.spec.ts"],
+    deps = [":mylib"],
+)

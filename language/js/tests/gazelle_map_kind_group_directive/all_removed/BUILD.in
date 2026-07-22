@@ -1,0 +1,19 @@
+# All rules of the custom kinds become empty: the targets and their load
+# statements are removed, leaving no targets in the package.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project
+
+load("//tools:e2e.bzl", "e2e_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+e2e_project(
+    name = "e2e",
+    srcs = ["gone.e2e.ts"],
+)
+
+jest_ts_project(
+    name = "all_removed_tests",
+    testonly = True,
+    srcs = ["gone.spec.ts"],
+)

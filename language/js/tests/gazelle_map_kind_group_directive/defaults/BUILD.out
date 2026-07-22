@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+ts_project(
+    name = "defaults",
+    srcs = ["index.ts"],
+)
+
+jest_ts_project(
+    name = "defaults_tests",
+    testonly = True,
+    srcs = ["index.spec.ts"],
+    deps = [":defaults"],
+)

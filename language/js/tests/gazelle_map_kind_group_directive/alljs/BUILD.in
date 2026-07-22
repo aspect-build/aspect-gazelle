@@ -1,0 +1,12 @@
+# A group with no transpiled sources generates a js_library, but the
+# ts_project-scoped map_kind still applies to the group.
+# gazelle:js_files e2e *.e2e.js
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+# gazelle:alias_kind e2e_project ts_project
+
+load("//tools:e2e.bzl", "e2e_project")
+
+e2e_project(
+    name = "e2e",
+    srcs = ["old.e2e.js"],
+)
