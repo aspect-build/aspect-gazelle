@@ -8,7 +8,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260617211333-3d8b9bffa90f
 	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260617211333-3d8b9bffa90f
 	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260618025646-5c32fa99b8b0
+	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260725225235-87a6f0c77d5d
 	github.com/bazelbuild/bazel-gazelle v0.51.3 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/bufbuild/rules_buf v0.5.4 // NOTE: keep in sync with MODULE.bazel
@@ -29,7 +29,8 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f // indirect
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
-	github.com/bazel-contrib/rules_jvm v0.33.0 // indirect
+	github.com/bazel-contrib/rules_jvm v0.34.0 // indirect
+	github.com/bazelbuild/rules_go v0.62.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
