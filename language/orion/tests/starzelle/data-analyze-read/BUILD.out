@@ -4,5 +4,5 @@ probe_lib(name = "lib")
 
 probe_consumer(
     name = "consumer",
-    dep = "//:lib",
+    dep = ":lib",
 )

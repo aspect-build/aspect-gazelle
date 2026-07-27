@@ -1,13 +1,23 @@
 diff --git a/v2/rule/directives.go b/v2/rule/directives.go
-index 229f382d..7b2879fc 100644
+index 01cd5c0..a3e632d 100644
 --- a/v2/rule/directives.go
 +++ b/v2/rule/directives.go
-@@ -75,7 +75,7 @@ func parseDirectives(stmt []bzl.Expr) []Directive {
+@@ -75,13 +75,14 @@ func parseDirectives(stmt []bzl.Expr) []Directive {
  	return directives
  }
  
 -var directiveRe = regexp.MustCompile(`^#\s*gazelle:(\w+)\s*(.*?)\s*$`)
+-var fileDirectiveRe = regexp.MustCompile(`^(?:#\s*gazelle:)?(\w+)\s*(.*?)\s*$`)
 +var directiveRe = regexp.MustCompile(`^#\s*(?:gazelle|aspect):(\w+)\s*(.*?)\s*$`)
++var fileDirectiveRe = regexp.MustCompile(`^(?:#\s*(?:gazelle|aspect):)?(\w+)\s*(.*?)\s*$`)
  
  // ParseDirectivesFromFile reads a file and extracts Gazelle directives from it.
- // Each line is matched against the same pattern used for BUILD file comments
+ // Each line is matched against a permissive version of the pattern used
+-// for BUILD file comments ("# gazelle:key value" or "key value"). Blank lines
+-// and comment lines that don't match the directive pattern are ignored.
++// for BUILD file comments ("# gazelle:key value", "# aspect:key value" or
++// "key value"). Blank lines and comment lines that don't match the directive
++// pattern are ignored.
+ func ParseDirectivesFromFile(filePath string) ([]Directive, error) {
+ 	f, err := os.Open(filePath)
+ 	if err != nil {

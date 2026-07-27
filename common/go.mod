@@ -4,7 +4,7 @@ go 1.26.4
 
 require (
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/bazelbuild/bazel-gazelle v0.51.3
+	github.com/bazelbuild/bazel-gazelle v0.52.2
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
@@ -13,7 +13,7 @@ require (
 )
 
 require (
-	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
+	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2.0.20260723205321-b1e9c9d32e76 // indirect
 	github.com/bazelbuild/rules_go v0.62.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	golang.org/x/mod v0.38.0 // indirect

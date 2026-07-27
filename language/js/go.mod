@@ -4,8 +4,8 @@ go 1.26.4
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/bazelbuild/bazel-gazelle v0.51.3 // NOTE: keep in sync with MODULE.bazel
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260727212629-e7da9bd20a4b
+	github.com/bazelbuild/bazel-gazelle v0.52.2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5
@@ -13,8 +13,7 @@ require (
 )
 
 require (
-	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2 // indirect
-	github.com/bazelbuild/rules_go v0.62.0 // indirect
+	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2.0.20260723205321-b1e9c9d32e76 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect

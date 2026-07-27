@@ -1,0 +1,8 @@
+load("//:defs.bzl", "ts_my_project")
+
+# gazelle:directive_file ./directives
+
+ts_my_project(
+    name = "branded-directive-file",
+    srcs = ["a.ts"],
+)

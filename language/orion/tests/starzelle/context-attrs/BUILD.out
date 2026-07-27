@@ -2,7 +2,7 @@ load("@ctx-test//:rules.bzl", "ctx_attrs")
 
 ctx_attrs(
     name = "ctx",
-    analyze_ctx_attrs = "//:analyze_ctx",
+    analyze_ctx_attrs = ":analyze_ctx",
     declare_ctx_attrs = [
         "add_symbol",
         "data",

@@ -6,5 +6,5 @@ lib(name = "c")
 
 consumer(
     name = "consumer",
-    dep = "//:c",
+    dep = ":c",
 )
