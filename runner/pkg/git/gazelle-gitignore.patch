@@ -1,7 +1,7 @@
-diff --git a/walk/config.go b/walk/config.go
-index f02c721..5bcd10e 100644
---- a/walk/config.go
-+++ b/walk/config.go
+diff --git a/v2/walk/config.go b/v2/walk/config.go
+index f3f482c..65f4904 100644
+--- a/v2/walk/config.go
++++ b/v2/walk/config.go
 @@ -58,6 +58,11 @@ type walkConfig struct {
  	ignore              bool
  	follow              []string
@@ -12,23 +12,23 @@ index f02c721..5bcd10e 100644
 +	isGitIgnoredExt func([]string, bool) bool
 +	// END PATCH(gitignore) ---
  }
-
+ 
  const (
-diff --git a/walk/dirinfo.go b/walk/dirinfo.go
-index 97097aa..1dd733b 100644
---- a/walk/dirinfo.go
-+++ b/walk/dirinfo.go
+diff --git a/v2/walk/dirinfo.go b/v2/walk/dirinfo.go
+index 60be63c..bc7aeb5 100644
+--- a/v2/walk/dirinfo.go
++++ b/v2/walk/dirinfo.go
 @@ -6,6 +6,7 @@ import (
  	"os"
  	"path"
  	"path/filepath"
 +	"strings"
  	"sync"
-
- 	"github.com/bazelbuild/bazel-gazelle/rule"
+ 
+ 	"github.com/bazel-contrib/bazel-gazelle/v2/rule"
 @@ -79,14 +80,58 @@ func (w *walker) loadDirInfo(rel string) (DirInfo, error) {
  	}
-
+ 
  	info.config = configureForWalk(parentConfig, rel, info.File)
 +
 +	// PATCH(gitignore) ---
@@ -52,7 +52,7 @@ index 97097aa..1dd733b 100644
  		// Build file excludes the current directory. Ignore contents.
  		entries = nil
  	}
-
+ 
 +	// PATCH(gitignore) ---
 +	// Pre-compute gitignore path components once per directory to avoid
 +	// a strings.Split allocation per entry.
@@ -85,11 +85,11 @@ index 97097aa..1dd733b 100644
  		if e.IsDir() && !info.config.isExcludedDir(entryRel) {
  			info.Subdirs = append(info.Subdirs, e.Name())
  		} else if !e.IsDir() && !info.config.isExcludedFile(entryRel) {
-diff --git a/walk/walk.go b/walk/walk.go
-index ca88b43..8c9859a 100644
---- a/walk/walk.go
-+++ b/walk/walk.go
-@@ -313,6 +313,10 @@ type walker struct {
+diff --git a/v2/walk/walk.go b/v2/walk/walk.go
+index 416682a..8c3c347 100644
+--- a/v2/walk/walk.go
++++ b/v2/walk/walk.go
+@@ -314,6 +314,10 @@ type walker struct {
  	// If the Config.Strict flag is set in the root configuration, we return
  	// quickly after the first error.
  	errs []error
@@ -98,12 +98,12 @@ index ca88b43..8c9859a 100644
 +	gitignoreProcessor func(string, string, interface{}) (func([]string, bool) bool, interface{})
 +	// END-PATCH(gitignore) ---
  }
-
+ 
  type visitInfo struct {
-@@ -375,6 +379,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
+@@ -376,6 +380,12 @@ func newWalker(c *config.Config, cexts []config.Configurer, dirs []string, mode
  		relsToVisitSeen: make(map[string]struct{}),
  	}
-
+ 
 +	// PATCH(gitignore) ---
 +	if ext, hasExt := c.Exts["__aspect:gitignoreProcessor"]; hasExt {
 +		w.gitignoreProcessor = ext.(func(string, string, interface{}) (func([]string, bool) bool, interface{}))
@@ -112,4 +112,4 @@ index ca88b43..8c9859a 100644
 +
  	// Asynchronously populate the walker cache in the background.
  	go w.populateCache(mode)
-
+ 

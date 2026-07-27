@@ -1,1 +1,2 @@
 # gazelle:resolve p ext-lib //vendor:ext
+# gazelle:resolve p local-lib :local-dep

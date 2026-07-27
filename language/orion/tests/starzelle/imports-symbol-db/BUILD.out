@@ -8,10 +8,10 @@ db_lib(name = "c")
 
 db_consumer(
     name = "consumer",
-    fallback_dep = "//:a",
+    fallback_dep = ":a",
     one_deps = [
-        "//:a",
-        "//:b",
+        ":a",
+        ":b",
     ],
-    two_dep = "//:c",
+    two_dep = ":c",
 )

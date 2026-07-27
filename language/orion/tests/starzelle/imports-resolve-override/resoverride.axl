@@ -5,9 +5,16 @@
 #
 # The import is optional, so without the provider-keyed override lookup it would
 # simply drop (no dep); the override makes it resolve to //vendor:ext.
+#
+# `local_dep` covers an override pointing into the consumer's own package. Such
+# an override comes back with an empty repo and only collapses to a relative
+# label once qualified with the main repo name, otherwise rendering "//:local-dep".
 aspect.gazelle_rule_kind("ro_consumer", {
     "From": "@resoverride-test//:rules.bzl",
-    "ResolveAttrs": ["dep"],
+    "ResolveAttrs": [
+        "dep",
+        "local_dep",
+    ],
 })
 
 def prepare(_):
@@ -21,7 +28,10 @@ def declare(ctx):
             ctx.targets.add(
                 name = "consumer",
                 kind = "ro_consumer",
-                attrs = {"dep": aspect.Import(id = "ext-lib", provider = "p", optional = True)},
+                attrs = {
+                    "dep": aspect.Import(id = "ext-lib", provider = "p", optional = True),
+                    "local_dep": aspect.Import(id = "local-lib", provider = "p", optional = True),
+                },
             )
 
 aspect.orion_extension(
