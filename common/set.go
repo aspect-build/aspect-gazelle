@@ -45,6 +45,13 @@ func NewLabelSet(from label.Label) *LabelSet {
 }
 
 func (s *LabelSet) Add(l *label.Label) {
+	// An empty Repo denotes the main repository, the same as s.from.Repo.
+	if l.Repo == "" && !l.Relative && s.from.Repo != "" {
+		qualified := *l
+		qualified.Repo = s.from.Repo
+		l = &qualified
+	}
+
 	if s.from.Equal(*l) {
 		BazelLog.Debugf("ignore %v dependency on self", s.from)
 		return

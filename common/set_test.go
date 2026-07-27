@@ -420,3 +420,82 @@ func TestLabelSet_IntegrationScenarios(t *testing.T) {
 		}
 	})
 }
+
+func TestLabelSet_AddMainRepoQualification(t *testing.T) {
+	// A label with no repo refers to the main repository, the same repo as
+	// `from`. Same-package labels must therefore collapse to a relative label
+	// rather than rendering absolute.
+	t.Run("same package collapses to relative", func(t *testing.T) {
+		from := label.Label{Repo: "repo", Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		l := label.Label{Pkg: "pkg", Name: "dep"}
+		ls.Add(&l)
+
+		if got, want := ls.String(), "[:dep]"; got != want {
+			t.Errorf("String: got %s, want %s", got, want)
+		}
+	})
+
+	t.Run("other package stays absolute", func(t *testing.T) {
+		from := label.Label{Repo: "repo", Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		l := label.Label{Pkg: "other", Name: "dep"}
+		ls.Add(&l)
+
+		if got, want := ls.String(), "[//other:dep]"; got != want {
+			t.Errorf("String: got %s, want %s", got, want)
+		}
+	})
+
+	t.Run("external repo untouched", func(t *testing.T) {
+		from := label.Label{Repo: "repo", Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		l := label.Label{Repo: "npm", Pkg: "pkg", Name: "dep"}
+		ls.Add(&l)
+
+		if got, want := ls.String(), "[@npm//pkg:dep]"; got != want {
+			t.Errorf("String: got %s, want %s", got, want)
+		}
+	})
+
+	t.Run("relative label untouched", func(t *testing.T) {
+		from := label.Label{Repo: "repo", Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		l := label.Label{Name: "dep", Relative: true}
+		ls.Add(&l)
+
+		if got, want := ls.String(), "[:dep]"; got != want {
+			t.Errorf("String: got %s, want %s", got, want)
+		}
+	})
+
+	t.Run("unnamed main repo is a no-op", func(t *testing.T) {
+		from := label.Label{Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		l := label.Label{Pkg: "pkg", Name: "dep"}
+		ls.Add(&l)
+
+		if got, want := ls.String(), "[:dep]"; got != want {
+			t.Errorf("String: got %s, want %s", got, want)
+		}
+	})
+
+	// The self-dependency guard compares against `from`, so it only catches an
+	// unqualified self-reference once the repo has been filled in.
+	t.Run("self dependency with no repo is filtered", func(t *testing.T) {
+		from := label.Label{Repo: "repo", Pkg: "pkg", Name: "target"}
+		ls := NewLabelSet(from)
+
+		self := label.Label{Pkg: "pkg", Name: "target"}
+		ls.Add(&self)
+
+		if !ls.Empty() {
+			t.Errorf("expected the self-dependency to be filtered, got %s", ls.String())
+		}
+	})
+}
