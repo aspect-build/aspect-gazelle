@@ -1690,36 +1690,48 @@ func isDataFileExt(e string) bool {
 	return e == ".json"
 }
 
-func toJsExt(e string) string {
+func jsExt(e string) (string, bool) {
 	switch e {
-	case ".ts", ".tsx":
-		return ".js"
+	case ".ts", ".tsx", ".jsx":
+		return ".js", true
 	case ".cts":
-		return ".cjs"
+		return ".cjs", true
 	case ".mts":
-		return ".mjs"
-	case ".jsx":
-		return ".js"
+		return ".mjs", true
 	case ".js", ".cjs", ".mjs", ".json":
-		return e
+		return e, true
 	default:
-		BazelLog.Errorf("Unknown extension %q", e)
-		return ".js"
+		return ".js", false
 	}
 }
 
-func toDtsExt(e string) string {
+func dtsExt(e string) (string, bool) {
 	switch e {
-	case ".ts", ".tsx":
-		return ".d.ts"
+	case ".ts", ".tsx", ".jsx":
+		return ".d.ts", true
 	case ".cts":
-		return ".d.cts"
+		return ".d.cts", true
 	case ".mts":
-		return ".d.mts"
+		return ".d.mts", true
 	default:
-		BazelLog.Errorf("Unknown extension %q", e)
-		return ".d.ts"
+		return ".d.ts", false
 	}
+}
+
+func toJsExt(e string) string {
+	js, known := jsExt(e)
+	if !known {
+		BazelLog.Errorf("Unknown extension %q, assuming it compiles to %q", e, js)
+	}
+	return js
+}
+
+func toDtsExt(e string) string {
+	dts, known := dtsExt(e)
+	if !known {
+		BazelLog.Errorf("Unknown extension %q, assuming it declares %q", e, dts)
+	}
+	return dts
 }
 
 // Normalize the given import statement from a relative path
