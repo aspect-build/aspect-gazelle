@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_files **/*.{ts,tsx,jsx}
+
+ts_project(
+    name = "jsx_transpiled",
+    srcs = ["main.ts"],
+    deps = ["//lib"],
+)

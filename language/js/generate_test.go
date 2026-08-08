@@ -237,6 +237,11 @@ func TestGenerate(t *testing.T) {
 		assertImports(t, "bar/index.d.ts", []string{"bar/index", "bar/index.d.ts", "bar/index.js", "bar"})
 		assertImports(t, "bar/index.tsx", []string{"bar/index", "bar/index.d.ts", "bar/index.js", "bar"})
 
+		// .jsx is transpiled to .js + .d.ts like .tsx
+		assertImports(t, "bar.jsx", []string{"bar", "bar.d.ts", "bar.js"})
+		assertImports(t, "foo/bar.jsx", []string{"foo/bar", "foo/bar.d.ts", "foo/bar.js"})
+		assertImports(t, "bar/index.jsx", []string{"bar/index", "bar/index.d.ts", "bar/index.js", "bar"})
+
 		// .mjs and .cjs files require an extension
 		assertImports(t, "bar.mts", []string{"bar.mjs", "bar.d.mts"})
 		assertImports(t, "bar/index.mts", []string{"bar/index.mjs", "bar/index.d.mts", "bar"})
@@ -484,6 +489,26 @@ func TestSrcsArePinned(t *testing.T) {
 			}
 			if got := srcsArePinned(f.Rules[0]); got != tc.want {
 				t.Errorf("srcsArePinned = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
+// Every extension the generator transpiles must have an explicit js+dts mapping,
+// otherwise it falls through to the "Unknown extension" branch.
+func TestTranspiledExtsAreMapped(t *testing.T) {
+	for _, ext := range []string{".ts", ".tsx", ".jsx", ".cts", ".mts", ".js", ".cjs", ".mjs", ".json", ".png"} {
+		t.Run(ext, func(t *testing.T) {
+			transpiled := isTranspiledSourceFileExt(ext)
+
+			if _, known := dtsExt(ext); known != transpiled {
+				t.Errorf("dtsExt(%q) known = %v, want %v (isTranspiledSourceFileExt)", ext, known, transpiled)
+			}
+
+			// Non-transpiled source and data files still have a known js extension.
+			wantJs := transpiled || isSourceFileExt(ext) || isDataFileExt(ext)
+			if _, known := jsExt(ext); known != wantJs {
+				t.Errorf("jsExt(%q) known = %v, want %v", ext, known, wantJs)
 			}
 		})
 	}
