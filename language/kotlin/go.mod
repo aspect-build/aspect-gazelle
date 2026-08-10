@@ -3,8 +3,8 @@ module github.com/aspect-build/aspect-gazelle/language/kotlin
 go 1.26.4
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260727212629-e7da9bd20a4b
-	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/bazel-contrib/rules_jvm v0.34.0
 	github.com/bazelbuild/bazel-gazelle v0.52.2
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
@@ -16,8 +16,8 @@ require (
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect

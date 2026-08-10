@@ -4,19 +4,19 @@ go 1.26.4
 
 require (
 	github.com/EngFlow/gazelle_cc v0.6.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260727212629-e7da9bd20a4b
-	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260617211333-3d8b9bffa90f
-	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260725225235-87a6f0c77d5d
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/aspect-build/aspect-gazelle/language/js v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/aspect-build/aspect-gazelle/language/kotlin v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/aspect-build/aspect-gazelle/language/orion v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260808031245-caa22bd9229c
 	github.com/bazelbuild/bazel-gazelle v0.52.2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/bufbuild/rules_buf v0.5.4 // NOTE: keep in sync with MODULE.bazel
 	github.com/fatih/color v1.19.0
-	github.com/go-git/go-git/v5 v5.19.1
+	github.com/go-git/go-git/v5 v5.19.2
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
-	go.opentelemetry.io/otel v1.44.0
-	go.opentelemetry.io/otel/trace v1.44.0
+	go.opentelemetry.io/otel v1.45.0
+	go.opentelemetry.io/otel/trace v1.45.0
 	golang.org/x/term v0.45.0
 	gopkg.in/yaml.v3 v3.0.1
 )
@@ -27,7 +27,8 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
-	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f // indirect
+	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de // indirect
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2.0.20260723205321-b1e9c9d32e76 // indirect
 	github.com/bazel-contrib/rules_jvm v0.34.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
@@ -37,9 +38,9 @@ require (
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
-	github.com/go-git/go-billy/v5 v5.9.0 // indirect
+	github.com/go-git/go-billy/v5 v5.9.1 // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
+	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/goccy/go-yaml v1.19.2 // indirect
@@ -51,20 +52,20 @@ require (
 	github.com/itchyny/timefmt-go v0.1.8 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
-	github.com/magiconair/properties v1.8.10 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/magiconair/properties v1.18.11 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mikefarah/yq/v4 v4.53.3 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
+	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.2 // indirect
-	github.com/zclconf/go-cty v1.18.1 // indirect
+	github.com/zclconf/go-cty v1.19.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/otel/metric v1.44.0 // indirect
+	go.opentelemetry.io/otel/metric v1.45.0 // indirect
 	go.starlark.net v0.0.0-20260708150628-5395d018f003 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect

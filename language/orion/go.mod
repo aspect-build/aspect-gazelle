@@ -3,8 +3,8 @@ module github.com/aspect-build/aspect-gazelle/language/orion
 go 1.26.4
 
 require (
-	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260727212629-e7da9bd20a4b
-	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
+	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
+	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/bazelbuild/bazel-gazelle v0.52.2 // NOTE: keep in sync with MODULE.bazel
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
@@ -20,6 +20,7 @@ require (
 	github.com/agext/levenshtein v1.2.3 // indirect
 	github.com/alecthomas/participle/v2 v2.1.4 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2.0.20260723205321-b1e9c9d32e76 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
@@ -32,15 +33,15 @@ require (
 	github.com/hashicorp/hcl/v2 v2.24.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.8 // indirect
 	github.com/jinzhu/copier v0.4.0 // indirect
-	github.com/magiconair/properties v1.8.10 // indirect
-	github.com/mattn/go-colorable v0.1.14 // indirect
-	github.com/mattn/go-isatty v0.0.22 // indirect
+	github.com/magiconair/properties v1.18.11 // indirect
+	github.com/mattn/go-colorable v0.1.15 // indirect
+	github.com/mattn/go-isatty v0.0.24 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
+	github.com/pelletier/go-toml/v2 v2.4.3 // indirect
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82 // indirect
 	github.com/yuin/gopher-lua v1.1.2 // indirect
-	github.com/zclconf/go-cty v1.18.1 // indirect
-	go.yaml.in/yaml/v4 v4.0.0-rc.5 // indirect
+	github.com/zclconf/go-cty v1.19.0 // indirect
+	go.yaml.in/yaml/v4 v4.0.0-rc.6 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
