@@ -1,0 +1,10 @@
+# Exclude wrapped.ts from source target generation.
+# gazelle:js_files *.js
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+load("//tools:kinds.bzl", "my_ts_project")
+
+my_ts_project(
+    name = "provider",
+    out_dir = "gen",
+    srcs = ["wrapped.ts"],
+)
