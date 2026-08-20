@@ -88,6 +88,28 @@ We plan to provide more examples in the future. For now, consult the API docs be
 
 Additional plugins will be loaded from `${ORION_EXTENSIONS_DIR}/*.axl` glob or from `${ORION_EXTENSIONS}` comma-separated list of paths.
 
+Plugin paths are relative to the workspace root. A plugin in an external repository
+(for example one passed to `aspect_gazelle(extensions = ["@my_module//plugins:maven.star"])`)
+is not present in the workspace, so it is resolved in the runfiles tree instead.
+
+## Sharing code between plugins
+
+`load()` accepts three path forms:
+
+| Form | Resolved against |
+| --- | --- |
+| `load("tools/configure/util.star", ...)` | the workspace root |
+| `load("./util.star", ...)`, `load("../shared/util.star", ...)` | the directory of the file doing the load |
+| `load("@my_module//plugins:util.star", ...)` | the runfiles tree, via Bazel's repository mapping |
+
+Prefer the relative form inside a set of plugins meant to be reused: it keeps them
+loadable no matter where the repository providing them is materialized, which a
+workspace-root-relative path cannot express.
+
+The repository form requires a runfiles tree, so the loaded file must be reachable
+from the gazelle target — list it in `data` if it is not already an entry in
+`extensions`.
+
 ## Enabling plugins
 
 Individual plugins can be enabled/disabled via BUILD directives:
