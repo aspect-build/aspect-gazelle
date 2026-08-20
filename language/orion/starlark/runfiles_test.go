@@ -3,6 +3,7 @@ package stareval
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"go.starlark.net/starlark"
@@ -26,6 +27,17 @@ func writeFile(t *testing.T, dir, name, content string) string {
 func evalIn(t *testing.T, rootDir, starpath string) (starlark.StringDict, error) {
 	t.Helper()
 	return Eval(rootDir, starpath, make(map[string]starlark.Value), make(map[string]any))
+}
+
+func assertErrorContains(t *testing.T, err error, want string) {
+	t.Helper()
+
+	if err == nil {
+		t.Fatalf("expected an error containing %q, got none", want)
+	}
+	if !strings.Contains(err.Error(), want) {
+		t.Errorf("expected an error containing %q, got: %v", want, err)
+	}
 }
 
 func assertGreeting(t *testing.T, globals starlark.StringDict, want string) {
@@ -201,51 +213,71 @@ greeting = VALUE
 		assertGreeting(t, globals, "from external repo")
 	})
 
-	t.Run("missing file reports the runfiles path", func(t *testing.T) {
+	t.Run("a plugin loading its own files relatively", func(t *testing.T) {
+		// The shared plugin's own load() needs no repository mapping, which is
+		// why relative paths are the form to reach for when publishing plugins.
+		root, _ := setupRunfiles(t, mapping)
+		writeFile(t, root, "tools/main.star", `
+load("@shared_orion//orion:lib.star", "SHARED")
+greeting = SHARED
+`)
+
+		globals, err := evalIn(t, root, "tools/main.star")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertGreeting(t, globals, "from external repo")
+	})
+
+	t.Run("missing file reports the runfiles lookup", func(t *testing.T) {
 		root, _ := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion//orion:nope.star", "VALUE")
 `)
 
-		if _, err := evalIn(t, root, "tools/main.star"); err == nil {
-			t.Fatal("expected an error for a file missing from runfiles")
-		}
+		_, err := evalIn(t, root, "tools/main.star")
+		assertErrorContains(t, err, "not found in runfiles")
 	})
 
-	t.Run("without a runfiles tree", func(t *testing.T) {
-		root := t.TempDir()
-		t.Setenv("RUNFILES_DIR", "")
-		t.Setenv("RUNFILES_MANIFEST_FILE", "")
+	t.Run("unknown repository names the label", func(t *testing.T) {
+		root, _ := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
-load("@shared_orion//orion:helper.star", "VALUE")
+load("@never_declared//orion:helper.star", "VALUE")
 `)
 
 		_, err := evalIn(t, root, "tools/main.star")
-		if err == nil {
-			t.Fatal("expected an error when RUNFILES_DIR is unset")
-		}
+		assertErrorContains(t, err, "@never_declared//orion:helper.star")
 	})
 }
 
 func TestSourceRepo(t *testing.T) {
-	runfiles := "/tmp/x.runfiles"
+	dir := filepath.Join(t.TempDir(), "x.runfiles")
+	t.Setenv("RUNFILES_DIR", dir)
 
 	for _, tc := range []struct {
 		name string
 		file string
 		want string
 	}{
-		{"external repo", filepath.Join(runfiles, "shared_orion+", "orion", "lib.star"), "shared_orion+"},
-		{"main repo in runfiles", filepath.Join(runfiles, "_main", "tools", "main.star"), ""},
+		{"external repo", filepath.Join(dir, "shared_orion+", "orion", "lib.star"), "shared_orion+"},
+		{"main repo in runfiles", filepath.Join(dir, "_main", "tools", "main.star"), ""},
 		{"outside the runfiles tree", "/workspace/tools/main.star", ""},
+		{"sibling sharing a name prefix", filepath.Join(dir+"2", "shared_orion+", "lib.star"), ""},
 		{"empty", "", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			if got := sourceRepo(runfiles, tc.file); got != tc.want {
+			if got := sourceRepo(tc.file); got != tc.want {
 				t.Errorf("sourceRepo(%q) = %q, want %q", tc.file, got, tc.want)
 			}
 		})
 	}
+
+	t.Run("without a runfiles directory", func(t *testing.T) {
+		t.Setenv("RUNFILES_DIR", "")
+		if got := sourceRepo(filepath.Join(dir, "shared_orion+", "lib.star")); got != "" {
+			t.Errorf("expected the main repository, got %q", got)
+		}
+	})
 }
 
 func TestResolveRunfile(t *testing.T) {

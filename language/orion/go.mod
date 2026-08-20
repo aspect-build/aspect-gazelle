@@ -15,6 +15,8 @@ require (
 	golang.org/x/sync v0.22.0
 )
 
+require github.com/bazelbuild/rules_go v0.62.0
+
 require (
 	github.com/a8m/envsubst v1.4.3 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect

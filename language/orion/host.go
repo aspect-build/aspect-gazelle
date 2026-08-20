@@ -142,9 +142,15 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 	// Only relativize if builtinPluginDir is not absolute
 	for i, p := range builtinPlugins {
 		// Plugins in an external repository are not present in the source tree,
-		// so resolve them within the runfiles tree instead.
-		if runfile, ok := stareval.ResolveRunfile(p); ok {
-			p = runfile
+		// so fall back to the runfiles tree for them. Only when the path names
+		// nothing in the source tree, so a path deliberately pointing outside
+		// the workspace keeps resolving there.
+		if !filepath.IsAbs(p) {
+			if _, err := os.Stat(filepath.Join(builtinPluginDir, p)); err != nil {
+				if runfile, ok := stareval.ResolveRunfile(p); ok {
+					p = runfile
+				}
+			}
 		}
 
 		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
