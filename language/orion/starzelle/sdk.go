@@ -15,6 +15,20 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// pluginState returns the registration state of the plugin being evaluated.
+//
+// It is only present on the thread evaluating a plugin file itself. Files
+// reached via load() are evaluated on their own thread, so a registration call
+// made from one would otherwise panic on the type assertion.
+func pluginState(t *starlark.Thread, api string) (*starzelleState, error) {
+	state, ok := t.Local(proxyStateKey).(*starzelleState)
+	if !ok {
+		return nil, fmt.Errorf("%s must be called from a plugin, not from a file it load()s", api)
+	}
+
+	return state, nil
+}
+
 func deprecatedRegisterConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	fmt.Printf("DEPRECATED: 'register_configure_extension' is deprecated, please use 'orion_extension' instead.\n")
 	return registerOrionPlugin(t, b, args, kwargs)
@@ -39,7 +53,12 @@ func registerOrionPlugin(t *starlark.Thread, b *starlark.Builtin, args starlark.
 		return nil, err
 	}
 
-	err = t.Local(proxyStateKey).(*starzelleState).addPlugin(
+	state, err := pluginState(t, "orion_extension")
+	if err != nil {
+		return nil, err
+	}
+
+	err = state.addPlugin(
 		t,
 		pluginId,
 		properties,
@@ -72,7 +91,13 @@ func registerGazelleRuleKind(t *starlark.Thread, b *starlark.Builtin, args starl
 		return nil, err
 	}
 
-	err = t.Local(proxyStateKey).(*starzelleState).addKind(t, kind, attributes)
+	state, err := pluginState(t, "gazelle_rule_kind")
+	if err != nil {
+		return nil, err
+	}
+
+	err = state.addKind(t, kind, attributes)
+
 	return starlark.None, err
 }
 

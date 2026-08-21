@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/label"
 	"go.starlark.net/lib/json"
@@ -15,6 +16,18 @@ import (
 
 // The signature for a starlark module loader (see starlark.Thread.Load)
 type moduleLoader = func(thread *starlark.Thread, module string) (starlark.StringDict, error)
+
+// Thread-local holding the path of the file currently being evaluated, so that
+// load() can resolve paths relative to the loading file rather than only
+// relative to the workspace root.
+const currentFileKey = "orion:current_file"
+
+func currentFile(thread *starlark.Thread) string {
+	if f, ok := thread.Local(currentFileKey).(string); ok {
+		return f
+	}
+	return ""
+}
 
 // Remain simple and strict like bazel starlark.
 var opts = &syntax.FileOptions{
@@ -47,6 +60,7 @@ func makeLoadOptions(opts *syntax.FileOptions, predeclared starlark.StringDict) 
 
 			// Load it.
 			thread := &starlark.Thread{Name: "exec " + module, Load: thread.Load}
+			thread.SetLocal(currentFileKey, module)
 			globals, err := starlark.ExecFileOptions(opts, thread, module, nil, predeclared)
 			e = &entry{globals, err}
 
@@ -60,14 +74,41 @@ func makeLoadOptions(opts *syntax.FileOptions, predeclared starlark.StringDict) 
 // Wrap a `moduleLoader` and add support for load()ing similar to bazel rulesets.
 func createRepoLoader(rootDir string, loader moduleLoader) moduleLoader {
 	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
+		// A "./" prefix is relative to the file doing the load. This lets a set
+		// of plugin files load each other regardless of where they are
+		// materialized, which a workspace-root-relative path cannot express for
+		// files outside the workspace (eg an external repo). Reach a parent
+		// directory with "./../".
+		//
+		// Bare and "../" prefixed paths keep resolving from the workspace root:
+		// "../" already works there as an escape out of the workspace, and
+		// reinterpreting it would break plugins relying on that.
+		if strings.HasPrefix(module, "./") {
+			from := currentFile(thread)
+			if from == "" {
+				return nil, fmt.Errorf("relative load() outside of a file: %s", module)
+			}
+			return loader(thread, path.Join(path.Dir(from), module))
+		}
+
 		moduleLabel, err := label.Parse(module)
 		if err != nil {
 			return nil, fmt.Errorf("invalid load() label: %s", module)
 		}
 
 		if moduleLabel.Repo != "" {
-			// FUTURE: loading from external repositories, local repository by name.
-			return nil, fmt.Errorf("repository load() unsupported: %s", module)
+			// Without an explicit target, label.Parse infers Name from the last
+			// segment of Pkg, so joining both would repeat it.
+			repoPath := moduleLabel.Pkg
+			if strings.Contains(module, ":") {
+				repoPath = path.Join(moduleLabel.Pkg, moduleLabel.Name)
+			}
+
+			modulePath, err := runfilesPath(currentFile(thread), moduleLabel.Repo, repoPath)
+			if err != nil {
+				return nil, err
+			}
+			return loader(thread, modulePath)
 		}
 
 		modulePath := path.Join(rootDir, moduleLabel.Pkg, moduleLabel.Name)
@@ -104,5 +145,8 @@ func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]
 		thread.SetLocal(localName, local)
 	}
 
-	return starlark.ExecFileOptions(opts, &thread, path.Join(rootDir, starpath), nil, predeclared)
+	entrypoint := path.Join(rootDir, starpath)
+	thread.SetLocal(currentFileKey, entrypoint)
+
+	return starlark.ExecFileOptions(opts, &thread, entrypoint, nil, predeclared)
 }

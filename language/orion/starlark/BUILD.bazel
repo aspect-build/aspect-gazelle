@@ -2,7 +2,10 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "starlark",
-    srcs = ["eval.go"],
+    srcs = [
+        "eval.go",
+        "runfiles.go",
+    ],
     importpath = "github.com/aspect-build/aspect-gazelle/language/orion/starlark",
     visibility = ["//visibility:public"],
     deps = [
@@ -11,12 +14,16 @@ go_library(
         "@net_starlark_go//lib/json",
         "@net_starlark_go//starlark",
         "@net_starlark_go//syntax",
+        "@rules_go//go/runfiles",
     ],
 )
 
 go_test(
     name = "starlark_test",
-    srcs = ["eval_test.go"],
+    srcs = [
+        "eval_test.go",
+        "runfiles_test.go",
+    ],
     embed = [":starlark"],
     deps = ["@net_starlark_go//starlark"],
 )

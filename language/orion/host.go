@@ -16,6 +16,7 @@ import (
 	"github.com/aspect-build/aspect-gazelle/common/bazel/workspace"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	plugin "github.com/aspect-build/aspect-gazelle/language/orion/plugin"
+	stareval "github.com/aspect-build/aspect-gazelle/language/orion/starlark"
 	starzelle "github.com/aspect-build/aspect-gazelle/language/orion/starzelle"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -140,6 +141,18 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 	// Split the plugin paths to dir + rel for better logging and load API
 	// Only relativize if builtinPluginDir is not absolute
 	for i, p := range builtinPlugins {
+		// Plugins in an external repository are not present in the source tree,
+		// so fall back to the runfiles tree for them. Only when the path names
+		// nothing in the source tree, so a path deliberately pointing outside
+		// the workspace keeps resolving there.
+		if !filepath.IsAbs(p) {
+			if _, err := os.Stat(filepath.Join(builtinPluginDir, p)); err != nil {
+				if runfile, ok := stareval.ResolveRunfile(p); ok {
+					p = runfile
+				}
+			}
+		}
+
 		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
 			builtinPlugins[i] = relPath
 		} else {
