@@ -6,13 +6,13 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/bazel-contrib/rules_jvm v0.34.0
-	github.com/bazelbuild/bazel-gazelle v0.52.2
+	github.com/bazelbuild/bazel-gazelle v0.53.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/rs/zerolog v1.35.1
 )
 
 require (
-	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-2.0.20260723205321-b1e9c9d32e76 // indirect
+	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-3 // indirect
 	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/google/btree v1.1.3 // indirect
