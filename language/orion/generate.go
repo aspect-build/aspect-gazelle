@@ -20,12 +20,6 @@ import (
 	gazelleLabel "github.com/bazelbuild/bazel-gazelle/label"
 	gazelleLanguage "github.com/bazelbuild/bazel-gazelle/language"
 	gazelleRule "github.com/bazelbuild/bazel-gazelle/rule"
-	"golang.org/x/sync/errgroup"
-)
-
-const (
-	// TODO: move to common
-	MaxWorkerCount = 12
 )
 
 const (
@@ -58,10 +52,9 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	//  - iterating over source files by plugin file group
 	pluginSourceFiles, sourceFilePlugins, pluginSourceGroupFiles := host.collectSourceFilesByPlugin(cfg, args.Config, args.RegularFiles)
 
-	// Run queries on source files. Cap concurrency at MaxWorkerCount: more
-	// in-flight blocking opens just churn the scheduler spinning up OS threads.
-	eg := errgroup.Group{}
-	eg.SetLimit(MaxWorkerCount)
+	// Run the staged work below on the shared worker pool, which bounds total
+	// concurrency (more in-flight blocking opens just churn the scheduler).
+	var eg common.WorkerGroup
 
 	// Stage 2:
 	// Parse and query source files and collect results
