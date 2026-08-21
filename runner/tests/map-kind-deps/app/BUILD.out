@@ -1,0 +1,10 @@
+load("//tools:kinds.bzl", "my_ts_project")
+
+# Generate a ts_project for main.ts.
+# gazelle:js_files **/*.{js,ts}
+
+my_ts_project(
+    name = "app",
+    srcs = ["main.ts"],
+    deps = ["//:provider"],
+)

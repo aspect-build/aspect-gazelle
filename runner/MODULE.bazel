@@ -69,8 +69,8 @@ go_deps2.module_override(
     patch_strip = 1,
     patches = [
         "//patches:bazelbuild_bazel-gazelle_aspect-cli.patch",
-        "//patches:bazelbuild_bazel-gazelle_aspect-watchman.patch",
         "//pkg/git:gazelle-gitignore.patch",
+        "//patches:bazelbuild_bazel-gazelle_aspect-watchman.patch",
     ],
     path = "github.com/bazelbuild/bazel-gazelle",
 )

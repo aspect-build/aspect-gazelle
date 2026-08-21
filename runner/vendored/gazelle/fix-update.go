@@ -358,13 +358,16 @@ func runFixUpdate(wd string, languages []language.Language, cmd command, args []
 		regularFiles := args.RegularFiles
 		genFiles := args.GenFiles
 
+		// Register aliases with every configured mapping: an alias may wrap a
+		// mapped kind even when this package generated no rule of that kind.
 		mrslv.AliasedKinds(rel, c.AliasMap)
+		for _, repl := range c.KindMap {
+			mrslv.MappedKind(rel, repl)
+		}
+
 		// If this file is ignored or if Gazelle was not asked to update this
 		// directory, just index the build file and move on.
 		if !update {
-			for _, repl := range c.KindMap {
-				mrslv.MappedKind(rel, repl)
-			}
 			if c.IndexLibraries && f != nil {
 				for _, r := range f.Rules {
 					ruleIndex.AddRule(c, r, f)
