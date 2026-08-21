@@ -1,0 +1,4 @@
+# Generate a ts_project for main.ts.
+# gazelle:js_files **/*.{js,ts}
+
+# BUG: main.ts imports //:provider but app gets no deps.
