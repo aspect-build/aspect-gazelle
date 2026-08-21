@@ -1,0 +1,9 @@
+load("//tools:jest.bzl", "jest_ts_project")
+
+# BUG: app_tests imports //lib but gets no deps (should be deps = ["//lib"]).
+
+jest_ts_project(
+    name = "app_tests",
+    testonly = True,
+    srcs = ["app.spec.ts"],
+)

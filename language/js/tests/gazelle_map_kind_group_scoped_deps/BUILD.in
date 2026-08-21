@@ -1,0 +1,15 @@
+# Demonstrates a known bug (PR #443, codex P1): when a plain map_kind is
+# combined with a group-scoped map_kind, a package that generates ONLY the
+# scoped (tests) group loses its resolved deps.
+#
+# Here the tests macro wraps the plain-mapped kind (alias_kind -> my_ts_project).
+# In app/ below, app.spec.ts imports //lib, so app_tests SHOULD get
+# deps = ["//lib"] -- but see app/BUILD.out: deps is missing. gazelle registers
+# the ts_project->my_ts_project reverse mapping only per-rule, and app/ has no
+# ts_project/my_ts_project rule to trigger it, so it can't route the aliased
+# macro back to the JS resolver and skips resolution.
+#
+# lib/ (which does generate a my_ts_project rule) is unaffected.
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project my_ts_project

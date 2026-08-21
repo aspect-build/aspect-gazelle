@@ -1,0 +1,6 @@
+load("//tools:kinds.bzl", "my_ts_project")
+
+my_ts_project(
+    name = "lib",
+    srcs = ["lib.ts"],
+)

@@ -1,0 +1,9 @@
+# A new test source is added to the existing mapped rule's srcs.
+
+load("//tools:jest.bzl", "jest_ts_project")
+
+jest_ts_project(
+    name = "srcs_added_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+)

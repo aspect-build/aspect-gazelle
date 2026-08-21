@@ -1,0 +1,20 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# The tests group is renamed via a naming convention; the group-scoped
+# map_kind addresses it by that configured name, like js_files does.
+# gazelle:js_tests_naming_convention {dirname}_unit
+# gazelle:map_kind ts_project:{dirname}_unit jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project ts_project
+
+ts_project(
+    name = "renamed_group",
+    srcs = ["mod.ts"],
+)
+
+jest_ts_project(
+    name = "renamed_group_unit",
+    testonly = True,
+    srcs = ["mod.spec.ts"],
+    deps = [":renamed_group"],
+)

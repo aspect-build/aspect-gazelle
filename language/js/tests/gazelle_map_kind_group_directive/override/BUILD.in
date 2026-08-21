@@ -1,0 +1,4 @@
+# This child overrides the root's inherited test-group mapping. The library
+# remains plain while the test group uses the child macro.
+# gazelle:map_kind ts_project:{dirname}_tests vitest_ts_project //tools:vitest.bzl
+# gazelle:alias_kind vitest_ts_project ts_project
