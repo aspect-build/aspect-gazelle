@@ -6,6 +6,9 @@ import %workspace%/../tools/preset.bazelrc
 # cgo. The LLVM + Rust toolchains are registered by @aspect_gazelle_js.
 import %workspace%/../tools/rust.bazelrc
 
+# Rewrite flaky download hosts to mirrors.
+common --downloader_config=../tools/downloader.cfg
+
 # Optimized compilation_mode for release builds.
 common:release --compilation_mode=opt
 

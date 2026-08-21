@@ -4,3 +4,6 @@ import %workspace%/../../tools/preset.bazelrc
 
 # Toolchain config for building the Rust js parser and linking it via cgo.
 import %workspace%/../../tools/rust.bazelrc
+
+# Rewrite flaky download hosts to mirrors.
+common --downloader_config=../../tools/downloader.cfg

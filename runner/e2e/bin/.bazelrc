@@ -5,3 +5,6 @@ import %workspace%/../../../tools/preset.bazelrc
 # Toolchain config for the Rust js parser, linked into the gazelle binary via
 # cgo. The LLVM + Rust toolchains are registered by @aspect_gazelle_js.
 import %workspace%/../../../tools/rust.bazelrc
+
+# Rewrite flaky download hosts to mirrors.
+common --downloader_config=../../../tools/downloader.cfg
