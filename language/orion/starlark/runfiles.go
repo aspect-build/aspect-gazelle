@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/bazelbuild/bazel-gazelle/label"
 	"github.com/bazelbuild/rules_go/go/runfiles"
 )
 
@@ -117,16 +116,16 @@ func sourceRepo(fromFile string) string {
 	return repo
 }
 
-// runfilesPath maps a repository-qualified load() label onto a path in the
-// runfiles tree, resolving the apparent repository name relative to the
-// repository holding fromFile.
-func runfilesPath(fromFile string, l label.Label) (string, error) {
+// runfilesPath maps a file in the repository named by apparentRepo onto a path
+// in the runfiles tree, resolving that apparent name relative to the repository
+// holding fromFile.
+func runfilesPath(fromFile, apparentRepo, repoPath string) (string, error) {
 	tree, err := bazelRunfiles()
 	if err != nil {
-		return "", fmt.Errorf("a Bazel runfiles tree is required to load from a repository: %w", err)
+		return "", fmt.Errorf("@%s: a Bazel runfiles tree is required to load from a repository: %w", apparentRepo, err)
 	}
 
-	resolved, err := tree.WithSourceRepo(sourceRepo(fromFile)).Rlocation(path.Join(l.Repo, l.Pkg, l.Name))
+	resolved, err := tree.WithSourceRepo(sourceRepo(fromFile)).Rlocation(path.Join(apparentRepo, repoPath))
 	if err != nil {
 		return "", fmt.Errorf("not found in runfiles: %w", err)
 	}

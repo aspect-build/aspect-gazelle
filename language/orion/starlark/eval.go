@@ -97,9 +97,16 @@ func createRepoLoader(rootDir string, loader moduleLoader) moduleLoader {
 		}
 
 		if moduleLabel.Repo != "" {
-			modulePath, err := runfilesPath(currentFile(thread), moduleLabel)
+			// Without an explicit target, label.Parse infers Name from the last
+			// segment of Pkg, so joining both would repeat it.
+			repoPath := moduleLabel.Pkg
+			if strings.Contains(module, ":") {
+				repoPath = path.Join(moduleLabel.Pkg, moduleLabel.Name)
+			}
+
+			modulePath, err := runfilesPath(currentFile(thread), moduleLabel.Repo, repoPath)
 			if err != nil {
-				return nil, fmt.Errorf("cannot load %s: %w", module, err)
+				return nil, err
 			}
 			return loader(thread, modulePath)
 		}

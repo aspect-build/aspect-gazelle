@@ -253,6 +253,22 @@ greeting = SHARED
 		assertGreeting(t, globals, "from external repo")
 	})
 
+	t.Run("path without an explicit target", func(t *testing.T) {
+		// label.Parse infers Name from the last segment of Pkg when no target
+		// is given, so the file must not be appended twice.
+		root, _ := setupRunfiles(t, mapping)
+		writeFile(t, root, "tools/main.star", `
+load("@shared_orion//orion/helper.star", "VALUE")
+greeting = VALUE
+`)
+
+		globals, err := evalIn(t, root, "tools/main.star")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertGreeting(t, globals, "from external repo")
+	})
+
 	t.Run("missing file reports the runfiles lookup", func(t *testing.T) {
 		root, _ := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
