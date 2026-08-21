@@ -1,0 +1,18 @@
+# Plugin files shared with consumers. MODULE.bazel is deliberately not part of
+# the filegroup: the generation test discovers test cases by walking runfiles
+# for WORKSPACE/MODULE.bazel files, so staging it would turn this repository
+# into a bogus test case.
+filegroup(
+    name = "plugins",
+    srcs = [
+        "helper.star",
+        "lib/util.star",
+        "test.axl",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+exports_files(
+    ["test.axl"],
+    visibility = ["//visibility:public"],
+)

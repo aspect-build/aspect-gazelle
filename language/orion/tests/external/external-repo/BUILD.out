@@ -1,0 +1,9 @@
+filegroup(
+    name = "external-files",
+    srcs = ["a.txt"],
+)
+
+filegroup(
+    name = "local-files",
+    srcs = ["doc.md"],
+)
