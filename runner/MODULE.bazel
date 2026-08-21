@@ -30,7 +30,7 @@ local_path_override(
     path = "../treesitter",
 )
 
-bazel_dep(name = "rules_go", version = "0.62.0")
+bazel_dep(name = "rules_go", version = "0.63.0")
 bazel_dep(name = "gazelle", version = "0.53.0")  # must match go.mod
 
 # Gazelle languages via bzlmod

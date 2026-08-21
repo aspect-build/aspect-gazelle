@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/common
 
-go 1.26.4
+go 1.27.0
 
 require (
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-3 // indirect
-	github.com/bazelbuild/rules_go v0.62.0 // indirect
+	github.com/bazelbuild/rules_go v0.63.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
