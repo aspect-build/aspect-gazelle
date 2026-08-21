@@ -98,13 +98,15 @@ is not present in the workspace, so it is resolved in the runfiles tree instead.
 
 | Form | Resolved against |
 | --- | --- |
-| `load("tools/configure/util.star", ...)` | the workspace root |
-| `load("./util.star", ...)`, `load("../shared/util.star", ...)` | the directory of the file doing the load |
+| `load("tools/configure/util.star", ...)`, `load("../beside/util.star", ...)` | the workspace root |
+| `load("./util.star", ...)`, `load("./../shared/util.star", ...)` | the directory of the file doing the load |
 | `load("@my_module//plugins:util.star", ...)` | the runfiles tree, via Bazel's repository mapping |
 
-Prefer the relative form inside a set of plugins meant to be reused: it keeps them
+Prefer the `./` form inside a set of plugins meant to be reused: it keeps them
 loadable no matter where the repository providing them is materialized, which a
-workspace-root-relative path cannot express.
+workspace-root-relative path cannot express. Note that a leading `../` is *not*
+that form — it resolves from the workspace root, which is how plugins reach
+shared code kept beside the workspace.
 
 The repository form requires a runfiles tree, so the loaded file must be reachable
 from the gazelle target — list it in `data` if it is not already an entry in

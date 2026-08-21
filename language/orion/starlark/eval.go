@@ -74,11 +74,16 @@ func makeLoadOptions(opts *syntax.FileOptions, predeclared starlark.StringDict) 
 // Wrap a `moduleLoader` and add support for load()ing similar to bazel rulesets.
 func createRepoLoader(rootDir string, loader moduleLoader) moduleLoader {
 	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-		// Paths starting with "./" or "../" are relative to the file doing the
-		// load. This lets a set of plugin files load each other regardless of
-		// where they are materialized, which a workspace-root-relative path
-		// cannot express for files outside the workspace (eg an external repo).
-		if strings.HasPrefix(module, "./") || strings.HasPrefix(module, "../") {
+		// A "./" prefix is relative to the file doing the load. This lets a set
+		// of plugin files load each other regardless of where they are
+		// materialized, which a workspace-root-relative path cannot express for
+		// files outside the workspace (eg an external repo). Reach a parent
+		// directory with "./../".
+		//
+		// Bare and "../" prefixed paths keep resolving from the workspace root:
+		// "../" already works there as an escape out of the workspace, and
+		// reinterpreting it would break plugins relying on that.
+		if strings.HasPrefix(module, "./") {
 			from := currentFile(thread)
 			if from == "" {
 				return nil, fmt.Errorf("relative load() outside of a file: %s", module)

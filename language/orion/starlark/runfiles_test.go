@@ -73,7 +73,7 @@ greeting = VALUE
 		root := t.TempDir()
 		writeFile(t, root, "shared/helper.star", `VALUE = "from parent"`)
 		writeFile(t, root, "plugins/main.star", `
-load("../shared/helper.star", "VALUE")
+load("./../shared/helper.star", "VALUE")
 greeting = VALUE
 `)
 
@@ -126,20 +126,44 @@ greeting = VALUE
 }
 
 func TestWorkspaceRelativeLoadUnchanged(t *testing.T) {
-	// Paths without a "./" or "../" prefix keep resolving from the workspace
-	// root, independent of the loading file's location.
-	root := t.TempDir()
-	writeFile(t, root, "shared/helper.star", `VALUE = "root relative"`)
-	writeFile(t, root, "deep/nested/main.star", `
+	t.Run("bare path", func(t *testing.T) {
+		// Paths without a "./" prefix keep resolving from the workspace root,
+		// independent of the loading file's location.
+		root := t.TempDir()
+		writeFile(t, root, "shared/helper.star", `VALUE = "root relative"`)
+		writeFile(t, root, "deep/nested/main.star", `
 load("shared/helper.star", "VALUE")
 greeting = VALUE
 `)
 
-	globals, err := evalIn(t, root, "deep/nested/main.star")
-	if err != nil {
-		t.Fatal(err)
-	}
-	assertGreeting(t, globals, "root relative")
+		globals, err := evalIn(t, root, "deep/nested/main.star")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertGreeting(t, globals, "root relative")
+	})
+
+	t.Run("escaping the workspace with ..", func(t *testing.T) {
+		// A "../" path resolves from the workspace root, not from the loading
+		// file, so a plugin can reach shared code kept beside the workspace.
+		// Plugins already depend on this; "./../" is the file-relative form.
+		base := t.TempDir()
+		root := filepath.Join(base, "workspace")
+		if err := os.MkdirAll(root, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		writeFile(t, base, "shared/helper.star", `VALUE = "beside the workspace"`)
+		writeFile(t, root, "deep/nested/main.star", `
+load("../shared/helper.star", "VALUE")
+greeting = VALUE
+`)
+
+		globals, err := evalIn(t, root, "deep/nested/main.star")
+		if err != nil {
+			t.Fatal(err)
+		}
+		assertGreeting(t, globals, "beside the workspace")
+	})
 }
 
 // setupRunfiles builds a minimal runfiles tree containing the main repo and one
