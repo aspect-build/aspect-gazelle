@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/bazelbuild/rules_go/go/runfiles"
 )
 
@@ -77,7 +78,7 @@ func ResolveRunfile(shortPath string) (string, bool) {
 		return "", false
 	}
 
-	if _, err := os.Stat(resolved); err != nil {
+	if info, err := os.Stat(resolved); err != nil || info.IsDir() {
 		return "", false
 	}
 
@@ -150,6 +151,7 @@ func manifestRepo(fromFile string) (string, bool) {
 func parseManifestRepos(manifest string) map[string]string {
 	content, err := os.ReadFile(manifest)
 	if err != nil {
+		BazelLog.Warnf("Failed to read runfiles manifest %q, attributing loads to the main repository: %v", manifest, err)
 		return nil
 	}
 
@@ -197,7 +199,9 @@ func runfilesPath(fromFile, apparentRepo, repoPath string) (string, error) {
 
 	// A directory-layout runfiles tree resolves any path under it, staged or
 	// not, so report the missing input here rather than as a bare open error.
-	if _, err := os.Stat(resolved); err != nil {
+	// A directory is equally unloadable, eg a target-less label whose inferred
+	// name is the package directory itself.
+	if info, err := os.Stat(resolved); err != nil || info.IsDir() {
 		return "", fmt.Errorf("not found in runfiles at %s, add it to the gazelle target's data", resolved)
 	}
 

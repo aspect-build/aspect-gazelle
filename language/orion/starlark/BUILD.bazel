@@ -10,6 +10,7 @@ go_library(
     visibility = ["//visibility:public"],
     deps = [
         "//starlark/stdlib",
+        "@com_github_aspect_build_aspect_gazelle_common//logger",
         "@gazelle//label",
         "@net_starlark_go//lib/json",
         "@net_starlark_go//starlark",

@@ -280,6 +280,17 @@ load("@shared_orion//orion:nope.star", "VALUE")
 		assertErrorContains(t, err, "not found in runfiles")
 	})
 
+	t.Run("directory reports the runfiles lookup", func(t *testing.T) {
+		// A target-less label whose inferred name is the package directory.
+		root, _ := setupRunfiles(t, mapping)
+		writeFile(t, root, "tools/main.star", `
+load("@shared_orion//orion", "VALUE")
+`)
+
+		_, err := evalIn(t, root, "tools/main.star")
+		assertErrorContains(t, err, "not found in runfiles")
+	})
+
 	t.Run("unknown repository names the label", func(t *testing.T) {
 		root, _ := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
@@ -451,6 +462,12 @@ func TestResolveRunfile(t *testing.T) {
 	t.Run("missing external file does not resolve", func(t *testing.T) {
 		if _, ok := ResolveRunfile("../shared_orion+/orion/nope.star"); ok {
 			t.Error("expected a missing file not to resolve")
+		}
+	})
+
+	t.Run("directory does not resolve", func(t *testing.T) {
+		if _, ok := ResolveRunfile("../shared_orion+/orion"); ok {
+			t.Error("expected a directory not to resolve")
 		}
 	})
 
