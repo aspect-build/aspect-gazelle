@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -123,6 +124,10 @@ func threadPrint(t *starlark.Thread, msg string) {
 }
 
 func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]any) (starlark.StringDict, error) {
+	// load() resolution is slash-only; normalize OS-separator inputs (eg a Windows RUNFILES_DIR)
+	rootDir = filepath.ToSlash(rootDir)
+	starpath = filepath.ToSlash(starpath)
+
 	// Predeclared libs in addition to the go.starlark.net/starlark standard library:
 	// * https://github.com/google/starlark-go/blob/f86470692795f8abcf9f837a3c53cf031c5a3d7e/starlark/library.go#L36-L73
 	// * https://github.com/google/starlark-go/blob/f86470692795f8abcf9f837a3c53cf031c5a3d7e/cmd/starlark/starlark.go#L96-L100

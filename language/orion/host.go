@@ -161,7 +161,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		p = resolveEnvPluginPath(builtinPluginDir, p)
 
 		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
-			builtinPlugins[i] = relPath
+			builtinPlugins[i] = filepath.ToSlash(relPath)
 		} else {
 			// Fallback to original path if relativization fails
 			builtinPlugins[i] = p

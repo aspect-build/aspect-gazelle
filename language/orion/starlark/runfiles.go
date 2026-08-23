@@ -89,31 +89,96 @@ func ResolveRunfile(shortPath string) (string, bool) {
 // labels are mapped.
 //
 // Files staged in a runfiles directory are prefixed by their canonical repo
-// name. Anything else is attributed to the main repository: a plugin read from
-// the source tree, and any file when runfiles are provided as a manifest rather
-// than a directory. The latter only matters for a plugin in an external
-// repository loading a *third* repository under an apparent name that only it
-// knows; loading its own files relatively needs no mapping at all.
+// name; files delivered through a runfiles manifest are reverse-mapped onto
+// their manifest key. Anything else is attributed to the main repository, such
+// as a plugin read from the source tree.
 func sourceRepo(fromFile string) string {
-	dir := os.Getenv("RUNFILES_DIR")
-	if dir == "" || fromFile == "" {
+	if fromFile == "" {
 		return ""
 	}
 
-	rel, err := filepath.Rel(dir, filepath.FromSlash(fromFile))
-	if err != nil || rel == "" || strings.HasPrefix(rel, "..") {
-		return ""
+	if dir := os.Getenv("RUNFILES_DIR"); dir != "" {
+		rel, err := filepath.Rel(dir, filepath.FromSlash(fromFile))
+		if err == nil && rel != "" && !strings.HasPrefix(rel, "..") {
+			repo := rel
+			if idx := strings.IndexAny(rel, `/\`); idx >= 0 {
+				repo = rel[:idx]
+			}
+			if repo == mainRepoRunfilesDir {
+				return ""
+			}
+			return repo
+		}
 	}
 
-	repo := rel
-	if idx := strings.IndexAny(rel, `/\`); idx >= 0 {
-		repo = rel[:idx]
-	}
-	if repo == mainRepoRunfilesDir {
-		return ""
+	if repo, ok := manifestRepo(fromFile); ok && repo != mainRepoRunfilesDir {
+		return repo
 	}
 
-	return repo
+	return ""
+}
+
+var (
+	manifestMu      sync.Mutex
+	manifestRevPath string
+	manifestRev     map[string]string
+)
+
+// manifestRepo determines the canonical repository of a file delivered through
+// a runfiles manifest by reverse-mapping its resolved path onto its key.
+func manifestRepo(fromFile string) (string, bool) {
+	manifest := os.Getenv("RUNFILES_MANIFEST_FILE")
+	if manifest == "" {
+		return "", false
+	}
+
+	manifestMu.Lock()
+	defer manifestMu.Unlock()
+
+	if manifestRevPath != manifest {
+		manifestRevPath = manifest
+		manifestRev = parseManifestRepos(manifest)
+	}
+
+	repo, ok := manifestRev[filepath.ToSlash(fromFile)]
+	return repo, ok
+}
+
+// parseManifestRepos maps each file path in a runfiles manifest back to the
+// repository prefix of its key. Each line is "<key> <path>"; a line starting
+// with a space escapes both fields (\s space, \b backslash, \n newline).
+func parseManifestRepos(manifest string) map[string]string {
+	content, err := os.ReadFile(manifest)
+	if err != nil {
+		return nil
+	}
+
+	unescape := strings.NewReplacer(`\s`, " ", `\n`, "\n", `\b`, `\`)
+
+	rev := make(map[string]string)
+	for _, line := range strings.Split(string(content), "\n") {
+		line = strings.TrimSuffix(line, "\r")
+		escaped := strings.HasPrefix(line, " ")
+		if escaped {
+			line = line[1:]
+		}
+
+		key, file, ok := strings.Cut(line, " ")
+		if !ok || key == "" || file == "" {
+			continue
+		}
+		if escaped {
+			key, file = unescape.Replace(key), unescape.Replace(file)
+		}
+
+		repo := key
+		if idx := strings.IndexByte(key, '/'); idx >= 0 {
+			repo = key[:idx]
+		}
+		rev[filepath.ToSlash(file)] = repo
+	}
+
+	return rev
 }
 
 // runfilesPath maps a file in the repository named by apparentRepo onto a path

@@ -291,6 +291,46 @@ load("@never_declared//orion:helper.star", "VALUE")
 	})
 }
 
+// TestRepositoryLoadFromManifest loads through manifest-only runfiles (no
+// RUNFILES_DIR), as on Windows: the external plugin loads a third repository
+// under an apparent name only its own repository knows, so the plugin must be
+// attributed to its canonical repository via the manifest.
+func TestRepositoryLoadFromManifest(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "workspace")
+	if err := os.MkdirAll(root, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	store := filepath.Join(base, "store")
+	helper := writeFile(t, store, "helper.star", `VALUE = "from the third repo"`)
+	lib := writeFile(t, store, "lib.star", `
+load("@third_alias//orion:helper.star", "VALUE")
+SHARED = VALUE
+`)
+	mapping := writeFile(t, store, "repo_mapping",
+		",shared_orion,shared_orion+\nshared_orion+,third_alias,third_repo+\n")
+	manifest := writeFile(t, store, "MANIFEST", strings.Join([]string{
+		"_repo_mapping " + mapping,
+		"shared_orion+/orion/lib.star " + lib,
+		"third_repo+/orion/helper.star " + helper,
+	}, "\n")+"\n")
+
+	t.Setenv("RUNFILES_DIR", "")
+	t.Setenv("RUNFILES_MANIFEST_FILE", manifest)
+
+	writeFile(t, root, "tools/main.star", `
+load("@shared_orion//orion:lib.star", "SHARED")
+greeting = SHARED
+`)
+
+	globals, err := evalIn(t, root, "tools/main.star")
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertGreeting(t, globals, "from the third repo")
+}
+
 // TestRepositoryLoadFromBazelRunfiles resolves a repository load() through the
 // runfiles tree Bazel staged for this test, covering the real tree layout and
 // the real _repo_mapping rather than the fakes built by setupRunfiles.
@@ -342,10 +382,45 @@ func TestSourceRepo(t *testing.T) {
 
 	t.Run("without a runfiles directory", func(t *testing.T) {
 		t.Setenv("RUNFILES_DIR", "")
+		t.Setenv("RUNFILES_MANIFEST_FILE", "")
 		if got := sourceRepo(filepath.Join(dir, "shared_orion+", "lib.star")); got != "" {
 			t.Errorf("expected the main repository, got %q", got)
 		}
 	})
+}
+
+func TestSourceRepoFromManifest(t *testing.T) {
+	base := t.TempDir()
+	lib := writeFile(t, base, "store/lib.star", "")
+	main := writeFile(t, base, "store/main.star", "")
+	spaced := writeFile(t, base, "store/with space.star", "")
+
+	escape := strings.NewReplacer(`\`, `\b`, " ", `\s`, "\n", `\n`)
+	manifest := writeFile(t, base, "MANIFEST", strings.Join([]string{
+		"shared_orion+/orion/lib.star " + lib,
+		"_main/tools/main.star " + main,
+		" spaced+/with\\sspace.star " + escape.Replace(spaced),
+	}, "\n")+"\n")
+
+	t.Setenv("RUNFILES_DIR", "")
+	t.Setenv("RUNFILES_MANIFEST_FILE", manifest)
+
+	for _, tc := range []struct {
+		name string
+		file string
+		want string
+	}{
+		{"external repo", lib, "shared_orion+"},
+		{"main repo", main, ""},
+		{"not in the manifest", filepath.Join(base, "store", "unlisted.star"), ""},
+		{"escaped manifest line", spaced, "spaced+"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := sourceRepo(tc.file); got != tc.want {
+				t.Errorf("sourceRepo(%q) = %q, want %q", tc.file, got, tc.want)
+			}
+		})
+	}
 }
 
 func TestResolveRunfile(t *testing.T) {
