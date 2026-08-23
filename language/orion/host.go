@@ -155,8 +155,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		return
 	}
 
-	// Split the plugin paths to dir + rel for better logging and load API
-	// Only relativize if builtinPluginDir is not absolute
+	// Split the plugin paths to dir + rel for better logging and load API.
 	for i, p := range builtinPlugins {
 		p = resolveEnvPluginPath(builtinPluginDir, p)
 

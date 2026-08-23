@@ -25,11 +25,10 @@ import (
 const mainRepoRunfilesDir = "_main"
 
 var (
-	runfilesMu     sync.Mutex
-	runfilesLoaded bool
-	runfilesEnv    string
-	runfilesTree   *runfiles.Runfiles
-	runfilesErr    error
+	runfilesMu       sync.Mutex
+	runfilesEnv      string
+	runfilesResolver *runfiles.Runfiles
+	runfilesErr      error
 )
 
 // bazelRunfiles returns the runfiles tree of the running process, resolving
@@ -39,17 +38,23 @@ var (
 // makes it a cache rather than a one-shot: the tree cannot change underneath a
 // fixed environment.
 func bazelRunfiles() (*runfiles.Runfiles, error) {
+	// Always contains the separator, so it never equals the initial "".
 	env := os.Getenv("RUNFILES_DIR") + "\x00" + os.Getenv("RUNFILES_MANIFEST_FILE")
 
 	runfilesMu.Lock()
 	defer runfilesMu.Unlock()
 
-	if !runfilesLoaded || env != runfilesEnv {
-		runfilesLoaded, runfilesEnv = true, env
-		runfilesTree, runfilesErr = runfiles.New()
+	if env != runfilesEnv {
+		runfilesEnv = env
+		runfilesResolver, runfilesErr = runfiles.New()
 	}
 
-	return runfilesTree, runfilesErr
+	return runfilesResolver, runfilesErr
+}
+
+func isFile(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && !info.IsDir()
 }
 
 // ResolveRunfile maps a runfiles short path naming a file in an external
@@ -78,7 +83,7 @@ func ResolveRunfile(shortPath string) (string, bool) {
 		return "", false
 	}
 
-	if info, err := os.Stat(resolved); err != nil || info.IsDir() {
+	if !isFile(resolved) {
 		return "", false
 	}
 
@@ -98,25 +103,35 @@ func sourceRepo(fromFile string) string {
 		return ""
 	}
 
-	if dir := os.Getenv("RUNFILES_DIR"); dir != "" {
-		rel, err := filepath.Rel(dir, filepath.FromSlash(fromFile))
-		if err == nil && rel != "" && !strings.HasPrefix(rel, "..") {
-			repo := rel
-			if idx := strings.IndexAny(rel, `/\`); idx >= 0 {
-				repo = rel[:idx]
-			}
-			if repo == mainRepoRunfilesDir {
-				return ""
-			}
-			return repo
-		}
+	repo, ok := runfilesDirRepo(fromFile)
+	if !ok {
+		repo, _ = manifestRepo(fromFile)
+	}
+	if repo == mainRepoRunfilesDir {
+		return ""
 	}
 
-	if repo, ok := manifestRepo(fromFile); ok && repo != mainRepoRunfilesDir {
-		return repo
+	return repo
+}
+
+// runfilesDirRepo reports the repository prefix of a file staged in a
+// directory-layout runfiles tree.
+func runfilesDirRepo(fromFile string) (string, bool) {
+	dir := os.Getenv("RUNFILES_DIR")
+	if dir == "" {
+		return "", false
 	}
 
-	return ""
+	rel, err := filepath.Rel(dir, filepath.FromSlash(fromFile))
+	if err != nil || rel == "" || strings.HasPrefix(rel, "..") {
+		return "", false
+	}
+
+	if idx := strings.IndexAny(rel, `/\`); idx >= 0 {
+		rel = rel[:idx]
+	}
+
+	return rel, true
 }
 
 var (
@@ -201,7 +216,7 @@ func runfilesPath(fromFile, apparentRepo, repoPath string) (string, error) {
 	// not, so report the missing input here rather than as a bare open error.
 	// A directory is equally unloadable, eg a target-less label whose inferred
 	// name is the package directory itself.
-	if info, err := os.Stat(resolved); err != nil || info.IsDir() {
+	if !isFile(resolved) {
 		return "", fmt.Errorf("not found in runfiles at %s, add it to the gazelle target's data", resolved)
 	}
 

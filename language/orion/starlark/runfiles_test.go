@@ -168,17 +168,18 @@ greeting = VALUE
 }
 
 // setupRunfiles builds a minimal runfiles tree containing the main repo and one
-// external repo, plus the _repo_mapping file Bazel writes alongside them.
-func setupRunfiles(t *testing.T, repoMapping string) (root, runfiles string) {
+// external repo, plus the _repo_mapping file Bazel writes alongside them, and
+// returns the workspace root beside it.
+func setupRunfiles(t *testing.T, repoMapping string) string {
 	t.Helper()
 
 	base := t.TempDir()
-	root = filepath.Join(base, "workspace")
+	root := filepath.Join(base, "workspace")
 	if err := os.MkdirAll(root, 0o755); err != nil {
 		t.Fatal(err)
 	}
 
-	runfiles = filepath.Join(base, "bin", "gazelle.runfiles")
+	runfiles := filepath.Join(base, "bin", "gazelle.runfiles")
 	writeFile(t, runfiles, "shared_orion+/orion/helper.star", `VALUE = "from external repo"`)
 	writeFile(t, runfiles, "shared_orion+/orion/lib.star", `
 load("./helper.star", "VALUE")
@@ -188,14 +189,14 @@ SHARED = VALUE
 
 	t.Setenv("RUNFILES_DIR", runfiles)
 
-	return root, runfiles
+	return root
 }
 
 func TestRepositoryLoad(t *testing.T) {
 	const mapping = ",shared_orion,shared_orion+\nshared_orion+,shared_orion,shared_orion+\n"
 
 	t.Run("from a main repository plugin", func(t *testing.T) {
-		root, _ := setupRunfiles(t, mapping)
+		root := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion//orion:lib.star", "SHARED")
 greeting = SHARED
@@ -211,7 +212,7 @@ greeting = SHARED
 	t.Run("apparent name resolved via repo mapping", func(t *testing.T) {
 		// The main repo knows the module under a different apparent name than
 		// its canonical one.
-		root, _ := setupRunfiles(t, ",my_alias,shared_orion+\n")
+		root := setupRunfiles(t, ",my_alias,shared_orion+\n")
 		writeFile(t, root, "tools/main.star", `
 load("@my_alias//orion:helper.star", "VALUE")
 greeting = VALUE
@@ -225,7 +226,7 @@ greeting = VALUE
 	})
 
 	t.Run("canonical name without a mapping entry", func(t *testing.T) {
-		root, _ := setupRunfiles(t, "")
+		root := setupRunfiles(t, "")
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion+//orion:helper.star", "VALUE")
 greeting = VALUE
@@ -238,26 +239,10 @@ greeting = VALUE
 		assertGreeting(t, globals, "from external repo")
 	})
 
-	t.Run("a plugin loading its own files relatively", func(t *testing.T) {
-		// The shared plugin's own load() needs no repository mapping, which is
-		// why relative paths are the form to reach for when publishing plugins.
-		root, _ := setupRunfiles(t, mapping)
-		writeFile(t, root, "tools/main.star", `
-load("@shared_orion//orion:lib.star", "SHARED")
-greeting = SHARED
-`)
-
-		globals, err := evalIn(t, root, "tools/main.star")
-		if err != nil {
-			t.Fatal(err)
-		}
-		assertGreeting(t, globals, "from external repo")
-	})
-
 	t.Run("path without an explicit target", func(t *testing.T) {
 		// label.Parse infers Name from the last segment of Pkg when no target
 		// is given, so the file must not be appended twice.
-		root, _ := setupRunfiles(t, mapping)
+		root := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion//orion/helper.star", "VALUE")
 greeting = VALUE
@@ -271,7 +256,7 @@ greeting = VALUE
 	})
 
 	t.Run("missing file reports the runfiles lookup", func(t *testing.T) {
-		root, _ := setupRunfiles(t, mapping)
+		root := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion//orion:nope.star", "VALUE")
 `)
@@ -282,7 +267,7 @@ load("@shared_orion//orion:nope.star", "VALUE")
 
 	t.Run("directory reports the runfiles lookup", func(t *testing.T) {
 		// A target-less label whose inferred name is the package directory.
-		root, _ := setupRunfiles(t, mapping)
+		root := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@shared_orion//orion", "VALUE")
 `)
@@ -292,7 +277,7 @@ load("@shared_orion//orion", "VALUE")
 	})
 
 	t.Run("unknown repository names the label", func(t *testing.T) {
-		root, _ := setupRunfiles(t, mapping)
+		root := setupRunfiles(t, mapping)
 		writeFile(t, root, "tools/main.star", `
 load("@never_declared//orion:helper.star", "VALUE")
 `)
