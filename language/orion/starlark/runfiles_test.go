@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"go.starlark.net/starlark"
+	"go.starlark.net/starlarkstruct"
 )
 
 // writeFile creates dir/name with the given content, creating parents.
@@ -288,6 +289,33 @@ load("@never_declared//orion:helper.star", "VALUE")
 		_, err := evalIn(t, root, "tools/main.star")
 		assertErrorContains(t, err, "@never_declared//orion:helper.star")
 	})
+}
+
+// TestRepositoryLoadFromBazelRunfiles resolves a repository load() through the
+// runfiles tree Bazel staged for this test, covering the real tree layout and
+// the real _repo_mapping rather than the fakes built by setupRunfiles.
+// paths.bzl is staged via the test target's data.
+func TestRepositoryLoadFromBazelRunfiles(t *testing.T) {
+	if os.Getenv("RUNFILES_DIR") == "" && os.Getenv("RUNFILES_MANIFEST_FILE") == "" {
+		t.Skip("no Bazel runfiles tree; run via bazel test")
+	}
+
+	root := t.TempDir()
+	writeFile(t, root, "tools/main.star", `
+load("@bazel_skylib//lib:paths.bzl", "paths")
+greeting = paths.basename("dir/leaf")
+`)
+
+	// paths.bzl uses the bazel `struct` builtin, which is not part of the
+	// starlark-go base environment.
+	libs := starlark.StringDict{
+		"struct": starlark.NewBuiltin("struct", starlarkstruct.Make),
+	}
+	globals, err := Eval(root, "tools/main.star", libs, make(map[string]any))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assertGreeting(t, globals, "leaf")
 }
 
 func TestSourceRepo(t *testing.T) {

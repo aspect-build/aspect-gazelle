@@ -24,6 +24,10 @@ go_test(
         "eval_test.go",
         "runfiles_test.go",
     ],
+    data = ["@bazel_skylib//lib:paths"],
     embed = [":starlark"],
-    deps = ["@net_starlark_go//starlark"],
+    deps = [
+        "@net_starlark_go//starlark",
+        "@net_starlark_go//starlarkstruct",
+    ],
 )
