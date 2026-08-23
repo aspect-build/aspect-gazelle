@@ -16,6 +16,7 @@ import (
 	"github.com/aspect-build/aspect-gazelle/common/bazel/workspace"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	plugin "github.com/aspect-build/aspect-gazelle/language/orion/plugin"
+	stareval "github.com/aspect-build/aspect-gazelle/language/orion/starlark"
 	starzelle "github.com/aspect-build/aspect-gazelle/language/orion/starzelle"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/label"
@@ -93,6 +94,23 @@ func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
 	}
 }
 
+// resolveEnvPluginPath resolves an ORION_EXTENSIONS entry. Plugins in an
+// external repository are not present in the source tree, so fall back to the
+// runfiles tree for them. Only when the path names nothing in the source tree,
+// so a path deliberately pointing outside the workspace keeps resolving there.
+func resolveEnvPluginPath(pluginDir, p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	if _, err := os.Stat(filepath.Join(pluginDir, p)); err == nil {
+		return p
+	}
+	if runfile, ok := stareval.ResolveRunfile(p); ok {
+		return runfile
+	}
+	return p
+}
+
 func (h *GazelleHost) loadEnvStarzellePlugins() {
 	builtinPlugins := []string{}
 
@@ -137,11 +155,12 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		return
 	}
 
-	// Split the plugin paths to dir + rel for better logging and load API
-	// Only relativize if builtinPluginDir is not absolute
+	// Split the plugin paths to dir + rel for better logging and load API.
 	for i, p := range builtinPlugins {
+		p = resolveEnvPluginPath(builtinPluginDir, p)
+
 		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
-			builtinPlugins[i] = relPath
+			builtinPlugins[i] = filepath.ToSlash(relPath)
 		} else {
 			// Fallback to original path if relativization fails
 			builtinPlugins[i] = p

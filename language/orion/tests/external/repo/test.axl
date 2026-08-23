@@ -1,0 +1,30 @@
+load("@orion_test_plugins//:lib/util.star", "make_target_name")
+
+# A plugin published by an external repository. Loads a sibling file with a
+# file-relative path and a helper via its own repository label.
+load("./helper.star", "EXTERNAL_SUFFIX")
+
+def _prepare(_):
+    return aspect.PrepareResult(
+        sources = [
+            aspect.SourceGlobs("**/*.txt"),
+        ],
+    )
+
+def _declare_targets(ctx):
+    if len(ctx.sources) == 0:
+        return
+
+    ctx.targets.add(
+        name = make_target_name("external"),
+        kind = "filegroup",
+        attrs = {
+            "srcs": [s.path for s in ctx.sources],
+        },
+    )
+
+aspect.orion_extension(
+    id = "external-repo-plugin",
+    prepare = _prepare,
+    declare = _declare_targets,
+)

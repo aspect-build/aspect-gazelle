@@ -26,6 +26,16 @@ go_deps_dev.module_override(
     path = "github.com/smacker/go-tree-sitter",
 )
 
+# Provides a real external-repository .bzl file for //starlark:starlark_test.
+bazel_dep(name = "bazel_skylib", version = "1.7.1", dev_dependency = True)
+
+# An external repository publishing orion plugins, for //tests/external.
+bazel_dep(name = "orion_test_plugins", version = "0.0.0", dev_dependency = True)
+local_path_override(
+    module_name = "orion_test_plugins",
+    path = "tests/external/repo",
+)
+
 # The repo root module, used only for the shared @aspect_gazelle//tools/nogo.
 bazel_dep(name = "aspect_gazelle", version = "0.0.0", dev_dependency = True)
 local_path_override(

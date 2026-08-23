@@ -1,0 +1,26 @@
+load("@com_github_aspect_build_aspect_gazelle_common//:gazelle.bzl", "gazelle_generation_test")
+
+# Plugins loaded from an external repository (@orion_test_plugins, a
+# dev_dependency local_path_override module). Unlike the fake runfiles trees in
+# starlark/runfiles_test.go, this exercises the real Bazel-staged runfiles tree
+# and _repo_mapping.
+
+# Disable the gazelle extensions
+# gazelle:ignore
+# gazelle:generation_mode update_only
+
+gazelle_generation_test(
+    name = "external-repo_test",
+    data = [
+        "@orion_test_plugins//:plugins",
+        "@orion_test_plugins//:test.axl",
+    ],
+    dir = "external-repo",
+    env = {
+        # The runfiles short path an aspect_gazelle(extensions = [...]) caller
+        # would produce via $(rootpath @orion_test_plugins//:test.axl).
+        "ORION_EXTENSIONS": "$(rootpath @orion_test_plugins//:test.axl)",
+        "ORION_EXTENSIONS_DIR": package_name() + "/external-repo",
+    },
+    gazelle_binary = "//tests:gazelle_orion_binary",
+)
