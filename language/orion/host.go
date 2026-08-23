@@ -94,6 +94,23 @@ func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
 	}
 }
 
+// resolveEnvPluginPath resolves an ORION_EXTENSIONS entry. Plugins in an
+// external repository are not present in the source tree, so fall back to the
+// runfiles tree for them. Only when the path names nothing in the source tree,
+// so a path deliberately pointing outside the workspace keeps resolving there.
+func resolveEnvPluginPath(pluginDir, p string) string {
+	if filepath.IsAbs(p) {
+		return p
+	}
+	if _, err := os.Stat(filepath.Join(pluginDir, p)); err == nil {
+		return p
+	}
+	if runfile, ok := stareval.ResolveRunfile(p); ok {
+		return runfile
+	}
+	return p
+}
+
 func (h *GazelleHost) loadEnvStarzellePlugins() {
 	builtinPlugins := []string{}
 
@@ -141,17 +158,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 	// Split the plugin paths to dir + rel for better logging and load API
 	// Only relativize if builtinPluginDir is not absolute
 	for i, p := range builtinPlugins {
-		// Plugins in an external repository are not present in the source tree,
-		// so fall back to the runfiles tree for them. Only when the path names
-		// nothing in the source tree, so a path deliberately pointing outside
-		// the workspace keeps resolving there.
-		if !filepath.IsAbs(p) {
-			if _, err := os.Stat(filepath.Join(builtinPluginDir, p)); err != nil {
-				if runfile, ok := stareval.ResolveRunfile(p); ok {
-					p = runfile
-				}
-			}
-		}
+		p = resolveEnvPluginPath(builtinPluginDir, p)
 
 		if relPath, err := filepath.Rel(builtinPluginDir, p); err == nil {
 			builtinPlugins[i] = relPath

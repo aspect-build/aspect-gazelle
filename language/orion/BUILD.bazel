@@ -52,7 +52,10 @@ go_library(
 
 go_test(
     name = "orion_test",
-    srcs = ["generate_test.go"],
+    srcs = [
+        "generate_test.go",
+        "host_test.go",
+    ],
     embed = [":orion"],
     deps = ["//plugin"],
 )

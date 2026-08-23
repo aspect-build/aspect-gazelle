@@ -378,4 +378,12 @@ func TestResolveRunfile(t *testing.T) {
 			t.Error("expected a missing file not to resolve")
 		}
 	})
+
+	t.Run("climbing past the runfiles root does not resolve", func(t *testing.T) {
+		// $(rootpath) prefixes an external repository with exactly one "../";
+		// anything climbing further is not a runfiles entry.
+		if _, ok := ResolveRunfile("../../gazelle.runfiles/shared_orion+/orion/maven.star"); ok {
+			t.Error("expected a path with remaining .. segments not to resolve")
+		}
+	})
 }

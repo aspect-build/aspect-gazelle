@@ -1,0 +1,1 @@
+Failed to load orion plugin cannot load ./lib.star: gazelle_rule_kind must be called from a plugin, not from a file it load()s

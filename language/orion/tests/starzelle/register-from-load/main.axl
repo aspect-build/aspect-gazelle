@@ -1,0 +1,5 @@
+# Registration APIs are only available to the plugin file itself, not to files
+# it load()s. This plugin must fail to load with a clear error, not a panic.
+load("./lib.star", "unused")
+
+aspect.orion_extension(id = "never-registered")
