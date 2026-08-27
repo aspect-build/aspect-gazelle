@@ -61,7 +61,7 @@ fn expr_string<'a, 'b>(expr: &'b Expression<'a>) -> Option<&'b StringLiteral<'a>
 fn is_import_meta_url(arg: &Argument) -> bool {
     match arg.as_expression() {
         Some(Expression::StaticMemberExpression(m)) => {
-            m.property.name.as_str() == "url" && matches!(m.object, Expression::MetaProperty(_))
+            m.property.name.as_str() == "url" && matches!(m.object, Expression::ImportMeta(_))
         }
         _ => false,
     }
@@ -75,11 +75,10 @@ impl<'a> Visit<'a> for ParseResult {
         walk::walk_import_declaration(self, it);
     }
 
-    fn visit_export_named_declaration(&mut self, it: &ExportNamedDeclaration<'a>) {
-        if let Some(source) = &it.source {
-            self.imports.push(source.value.as_str().to_string());
-        }
-        walk::walk_export_named_declaration(self, it);
+    fn visit_export_from_declaration(&mut self, it: &ExportFromDeclaration<'a>) {
+        // export {x} from "y", export type {x} from "y"
+        self.imports.push(it.source.value.as_str().to_string());
+        walk::walk_export_from_declaration(self, it);
     }
 
     fn visit_export_all_declaration(&mut self, it: &ExportAllDeclaration<'a>) {
@@ -136,12 +135,10 @@ impl<'a> Visit<'a> for ParseResult {
         walk::walk_new_expression(self, it);
     }
 
-    fn visit_ts_module_declaration(&mut self, it: &TSModuleDeclaration<'a>) {
+    fn visit_ts_external_module_declaration(&mut self, it: &TSExternalModuleDeclaration<'a>) {
         // declare module "y" { ... }
-        if let TSModuleDeclarationName::StringLiteral(s) = &it.id {
-            self.modules.push(s.value.as_str().to_string());
-        }
-        walk::walk_ts_module_declaration(self, it);
+        self.modules.push(it.id.value.as_str().to_string());
+        walk::walk_ts_external_module_declaration(self, it);
     }
 
     fn visit_jsx_opening_element(&mut self, it: &JSXOpeningElement<'a>) {
@@ -215,11 +212,11 @@ fn extract_imports(path: &str, source: &str) -> ParseResult {
         }
     }
 
-    // Surface parser diagnostics so the caller can report that a file failed to
+    // Surface parser errors so the caller can report that a file failed to
     // parse cleanly (and that its extracted imports may therefore be partial).
-    // oxc has no error recovery: on a syntax error it bails with an empty AST,
-    // so without this the dropped imports would be silent.
-    result.errors = ret.errors.iter().map(|d| d.message.to_string()).collect();
+    // On a fatal syntax error oxc bails with an empty AST, so without this the
+    // dropped imports would be silent.
+    result.errors = ret.diagnostics.errors().map(|d| d.message.to_string()).collect();
 
     result
 }
