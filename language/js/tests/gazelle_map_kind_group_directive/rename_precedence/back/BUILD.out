@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:vitest.bzl", "vitest_ts_project")
+
+# gazelle:js_tests_naming_convention {dirname}_tests
+
+ts_project(
+    name = "back",
+    srcs = ["b.ts"],
+)
+
+vitest_ts_project(
+    name = "back_tests",
+    testonly = True,
+    srcs = ["b.spec.ts"],
+    deps = [":back"],
+)

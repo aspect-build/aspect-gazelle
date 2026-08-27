@@ -1,0 +1,18 @@
+load("//tools:jest.bzl", "jest_ts_project")
+load("//tools:kinds.bzl", "my_ts_project")
+
+# The alias defaults to the plain-mapped kind (my_ts_project).
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+
+my_ts_project(
+    name = "gazelle_map_kind_group_default_alias_combo",
+    srcs = ["index.ts"],
+)
+
+jest_ts_project(
+    name = "gazelle_map_kind_group_default_alias_combo_tests",
+    testonly = True,
+    srcs = ["index.spec.ts"],
+    deps = [":gazelle_map_kind_group_default_alias_combo"],
+)

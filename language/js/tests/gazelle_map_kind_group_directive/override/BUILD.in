@@ -1,0 +1,2 @@
+# Overrides the root's inherited test-group mapping.
+# gazelle:map_kind ts_project:{dirname}_tests vitest_ts_project //tools:vitest.bzl
