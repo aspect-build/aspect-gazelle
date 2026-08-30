@@ -400,7 +400,27 @@ func (ts *GazelleHost) CrossResolve(c *config.Config, ix *resolve.RuleIndex, imp
 
 	// Search for results within this gazelle language, without further invoking CrossResolve
 	// via FindRulesByImportWithConfig.
-	return ix.FindRulesByImport(imp, GazelleLanguageName)
+	results := ix.FindRulesByImport(imp, GazelleLanguageName)
+	labels := make(map[label.Label]struct{}, len(results))
+	for _, result := range results {
+		labels[result.Label] = struct{}{}
+	}
+
+	for _, symbol := range ts.database.LookupSymbols(imp.Imp) {
+		if symbol.Provider != imp.Lang {
+			continue
+		}
+
+		l := symbolLabel(symbol)
+		if _, found := labels[l]; found {
+			continue
+		}
+
+		labels[l] = struct{}{}
+		results = append(results, resolve.FindResult{Label: l})
+	}
+
+	return results
 }
 
 // targetListFromResults returns a string with the human-readable list of
