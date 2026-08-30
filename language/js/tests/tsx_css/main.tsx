@@ -1,6 +1,7 @@
 import "./styles.css?no-inline"
 import "./styles.css#no-inline"
 import "./styles.css"
+import data from './sub/data.json'
 
 export const App = () => (
   <div>
