@@ -32,8 +32,8 @@ github.com/bazel-contrib/rules_jvm v0.34.0 h1:xHh9z6+LCiAuy963+bEn4HKIKyma1x0HSL
 github.com/bazel-contrib/rules_jvm v0.34.0/go.mod h1:HxRDtmRlh/ErR+2QlVwYs4BcIrB248HeheKi5uyKeN4=
 github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260808031245-caa22bd9229c h1:TFwprkvF5ebUodfd9GA+2jxuYcn5R0vdFaC4WfFWxoY=
 github.com/bazel-contrib/rules_python/gazelle v0.0.0-20260808031245-caa22bd9229c/go.mod h1:BJbb/9MDQTFr8wlzDF5GGVJPdmBGBcSpC2U0BruJy6Q=
-github.com/bazelbuild/bazel-gazelle v0.53.0 h1:qNh2WraxM8cjIeHZQ7QPTTSPbkrX9Z0GkhtGbiz1ToE=
-github.com/bazelbuild/bazel-gazelle v0.53.0/go.mod h1:ncMNvFUTYi5NRQ7wVrOmxjKaR0+mvm02lhBt7UOXlVc=
+github.com/bazelbuild/bazel-gazelle v0.54.0 h1:BtOU6xkQjZmXVcrxirX3SwUq0PCp9FGls8foOZj5Eu0=
+github.com/bazelbuild/bazel-gazelle v0.54.0/go.mod h1:ncMNvFUTYi5NRQ7wVrOmxjKaR0+mvm02lhBt7UOXlVc=
 github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423 h1:scNMqf+FgmWYYwsX4TNjQcDLZu5kbWSwNsbrGkiF23I=
 github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423/go.mod h1:jWjcMGVH6hAgMG98abRQOIvoFFLPx/p3e5eeTGIHUMc=
 github.com/bazelbuild/rules_go v0.63.0 h1:G/hGy2pBLxlrxbpQBJKdHSLhu3KFIkFsuNg8m59mn3c=

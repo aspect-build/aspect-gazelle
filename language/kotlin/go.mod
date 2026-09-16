@@ -6,7 +6,7 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/bazel-contrib/rules_jvm v0.34.0
-	github.com/bazelbuild/bazel-gazelle v0.53.0
+	github.com/bazelbuild/bazel-gazelle v0.54.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/rs/zerolog v1.35.1
 )
