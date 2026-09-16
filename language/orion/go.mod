@@ -6,7 +6,8 @@ require (
 	github.com/aspect-build/aspect-gazelle/common v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260808083927-0bc6ad37d6de
 	github.com/bazelbuild/bazel-gazelle v0.53.0 // NOTE: keep in sync with MODULE.bazel
-	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
+	github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423
+	github.com/bazelbuild/rules_go v0.63.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/goexlib/jsonc v0.0.0-20260107034751-fa4908886bd5
 	github.com/itchyny/gojq v0.12.19
@@ -15,8 +16,6 @@ require (
 	golang.org/x/sync v0.22.0
 )
 
-require github.com/bazelbuild/rules_go v0.62.0
-
 require (
 	github.com/a8m/envsubst v1.4.3 // indirect
 	github.com/agext/levenshtein v1.2.3 // indirect
@@ -24,7 +23,6 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v17 v17.0.1 // indirect
 	github.com/bazel-contrib/bazel-gazelle/v2 v2.0.0-3 // indirect
-	github.com/bazelbuild/rules_go v0.63.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.10.0 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/elliotchance/orderedmap v1.8.0 // indirect

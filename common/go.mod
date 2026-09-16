@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f
 	github.com/bazelbuild/bazel-gazelle v0.53.0
-	github.com/bazelbuild/buildtools v0.0.0-20260716142318-04cf7de1434f
+	github.com/bazelbuild/buildtools v0.0.0-20260904073137-eaa4d125b423
 	github.com/bmatcuk/doublestar/v4 v4.10.0
 	github.com/emirpasic/gods/v2 v2.0.0-alpha.0.20250312000129-1d83d5ae39fb
 	github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
