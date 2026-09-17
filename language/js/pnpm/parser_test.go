@@ -32,6 +32,45 @@ func TestPnpmLockParseDependencies(t *testing.T) {
 		}
 	})
 
+	t.Run("pnpm 12 multi-document lockfile", func(t *testing.T) {
+		content := `---
+lockfileVersion: '9.0'
+
+importers:
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.0.0
+        version: 12.0.0
+
+---
+lockfileVersion: '9.0'
+
+importers:
+  .:
+    dependencies:
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+`
+
+		for _, lineEnding := range []string{"\n", "\r\n"} {
+			lock, err := ParsePnpmLockFileDependencies([]byte(strings.ReplaceAll(content, "\n", lineEnding)))
+			if err != nil {
+				t.Error("Parse failure: ", err)
+			}
+
+			if len(lock) != 1 || lock["."] == nil {
+				t.Error("Simple deps parse error. Expected only '.' workspace, found ", len(lock))
+			}
+
+			if lock["."]["jquery"] != "3.6.1" {
+				t.Errorf("Simple deps parse error. Expected 3.6.1 for jquery, found %q", lock["."]["jquery"])
+			}
+		}
+	})
+
 	t.Run("empty lock file", func(t *testing.T) {
 		emptyLock, err := parsePnpmLockDependencies(strings.NewReader(""))
 		if err != nil {
