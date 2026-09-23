@@ -757,10 +757,15 @@ func (ts *typeScriptLang) collectTsConfigImports(cfg *JsGazelleConfig, args lang
 			referenceDir = reference
 		}
 
+		imp := path.Join(referenceDir, referenceFile)
+		if cfg.IsImportIgnored(imp) {
+			continue
+		}
+
 		imports = append(imports, ImportStatement{
 			ImportSpec: resolve.ImportSpec{
 				Lang: LanguageName,
-				Imp:  path.Join(referenceDir, referenceFile),
+				Imp:  imp,
 			},
 			ImportPath: reference,
 			SourcePath: SourcePath,

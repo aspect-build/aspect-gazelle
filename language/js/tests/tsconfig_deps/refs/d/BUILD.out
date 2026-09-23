@@ -1,0 +1,24 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# gazelle:js_ignore_imports refs/a/tsconfig.json
+
+ts_project(
+    name = "d",
+    srcs = ["index.ts"],
+    composite = True,
+    tsconfig = ":tsconfig",
+    deps = [
+        "//refs/a",
+        "//refs/b",
+    ],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//:tsconfig",
+        "//refs/b:tsconfig",
+    ],
+)
