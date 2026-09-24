@@ -2,18 +2,13 @@ package pnpm
 
 import (
 	"fmt"
-	"io"
 
 	"gopkg.in/yaml.v3"
 )
 
-func parsePnpmLockDependenciesV6(yamlReader io.Reader) (WorkspacePackageVersionMap, error) {
+func parsePnpmLockDependenciesV6(document *yaml.Node) (WorkspacePackageVersionMap, error) {
 	lockfile := PnpmLockfileV6{}
-	unmarshalErr := yaml.NewDecoder(yamlReader).Decode(&lockfile)
-	if unmarshalErr == io.EOF {
-		return nil, nil
-	}
-	if unmarshalErr != nil {
+	if unmarshalErr := document.Decode(&lockfile); unmarshalErr != nil {
 		return nil, fmt.Errorf("parse error: %v", unmarshalErr)
 	}
 
@@ -25,10 +20,17 @@ func parsePnpmLockDependenciesV6(yamlReader io.Reader) (WorkspacePackageVersionM
 		for pkg, pkgDeps := range lockfile.Importers {
 			result[pkg] = mergeDependenciesV6(pkgDeps.Dependencies, pkgDeps.DevDependencies, pkgDeps.PeerDependencies, pkgDeps.OptionalDependencies)
 		}
-	} else {
-		// Non-workspace lockfiles have one set of dependencies at the root
-		result["."] = mergeDependenciesV6(lockfile.Dependencies, lockfile.DevDependencies, lockfile.PeerDependencies, lockfile.OptionalDependencies)
+		return result, nil
 	}
+
+	// Non-workspace lockfiles have one set of dependencies at the root.
+	rootDependencies := mergeDependenciesV6(lockfile.Dependencies, lockfile.DevDependencies, lockfile.PeerDependencies, lockfile.OptionalDependencies)
+
+	if len(rootDependencies) == 0 {
+		return nil, nil
+	}
+
+	result["."] = rootDependencies
 
 	return result, nil
 }
