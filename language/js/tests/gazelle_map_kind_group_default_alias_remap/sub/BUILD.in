@@ -1,0 +1,2 @@
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:alias_kind jest_ts_project my_ts_project

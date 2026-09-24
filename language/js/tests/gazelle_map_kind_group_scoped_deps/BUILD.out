@@ -1,0 +1,3 @@
+# app/ generates only the scoped tests group and must still resolve deps (see #443, #453).
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl

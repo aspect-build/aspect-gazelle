@@ -1,0 +1,3 @@
+# An alias_kind naming the wrong wrapped kind is an error.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+# gazelle:alias_kind jest_ts_project js_library

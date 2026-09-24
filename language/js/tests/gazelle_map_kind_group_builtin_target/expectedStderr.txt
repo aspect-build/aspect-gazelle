@@ -1,0 +1,1 @@
+invalid '# gazelle:map_kind ts_project:{dirname}_tests js_library ...': group-scoped map_kind cannot map to the built-in kind "js_library"

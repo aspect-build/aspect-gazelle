@@ -1,0 +1,1 @@
+invalid '# gazelle:map_kind js_library:{dirname}_tests ...': use the group key 'ts_project:{dirname}_tests'; the ts_project group key also covers packages whose group is generated as js_library

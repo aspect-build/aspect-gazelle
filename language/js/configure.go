@@ -92,6 +92,8 @@ func (ts *typeScriptLang) Configure(c *config.Config, rel string, f *rule.File) 
 	}
 
 	ts.readConfigurations(c, rel)
+
+	ts.mapKinds.configure(c, c.Exts[LanguageName].(*JsGazelleConfig))
 }
 
 func (ts *typeScriptLang) readConfigurations(c *config.Config, rel string) {
@@ -124,6 +126,14 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 		value := strings.TrimSpace(d.Value)
 
 		switch d.Key {
+		case "map_kind":
+			// Core directive; scoped keys are resolved to their group in
+			// scopedMapKindState.configure.
+			if fields := strings.Fields(value); len(fields) == 3 {
+				if kind, group, isScoped := strings.Cut(fields[0], ":"); isScoped && group != "" && (kind == TsProjectKind || kind == JsLibraryKind) {
+					config.scopedMapKindKeys = append(config.scopedMapKindKeys, fields[0])
+				}
+			}
 		case Directive_TypeScriptExtension:
 			config.SetGenerationEnabled(common.ReadEnabled(d))
 		case Directive_TypeScriptConfigExtension:
