@@ -1,0 +1,21 @@
+def declare(ctx):
+    ctx.add_symbol(
+        id = "example.com/provider",
+        provider_type = "proto",
+        label = aspect.Label(name = "wrong_provider"),
+    )
+    ctx.add_symbol(
+        id = "example.com/provider",
+        provider_type = "go",
+        label = aspect.Label(name = "provider"),
+    )
+    ctx.add_symbol(
+        id = "example.com/provider",
+        provider_type = "go",
+        label = aspect.Label(name = "provider"),
+    )
+
+aspect.orion_extension(
+    id = "go-provider",
+    declare = declare,
+)
