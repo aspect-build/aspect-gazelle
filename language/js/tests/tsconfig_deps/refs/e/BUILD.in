@@ -1,0 +1,10 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# A `# keep` inline tsconfig dict is preserved; ts_config(deps) still reflects `references`.
+ts_project(
+    name = "e",
+    srcs = ["index.ts"],
+    extends = ":tsconfig",
+    # keep
+    tsconfig = {"compilerOptions": {"composite": True}},
+)

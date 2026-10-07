@@ -1,0 +1,20 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# Without `# keep` the dict is replaced by the ts_config label, so tsc reads `references`.
+ts_project(
+    name = "f",
+    srcs = ["index.ts"],
+    composite = True,
+    tsconfig = ":tsconfig",
+    deps = ["//refs/a"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//:tsconfig",
+        "//refs/a:tsconfig",
+    ],
+)

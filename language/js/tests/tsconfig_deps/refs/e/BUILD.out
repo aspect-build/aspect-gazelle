@@ -1,0 +1,26 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# A `# keep` inline tsconfig dict is preserved; ts_config(deps) still reflects `references`.
+ts_project(
+    name = "e",
+    srcs = ["index.ts"],
+    composite = True,
+    extends = ":tsconfig",
+    # keep
+    tsconfig = {"compilerOptions": {"composite": True}},
+    deps = [
+        "//refs/a",
+        "//refs/b",
+    ],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [
+        "//:tsconfig",
+        "//refs/a:tsconfig",
+        "//refs/b:tsconfig",
+    ],
+)
