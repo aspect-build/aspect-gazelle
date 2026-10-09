@@ -1,0 +1,7 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "subdir_assets_existing_build",
+    srcs = ["main.ts"],
+    assets = ["//img:logo.svg"],
+)
