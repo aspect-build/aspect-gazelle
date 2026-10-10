@@ -1,3 +1,0 @@
-Failed to invoke ancestor-multiple:DeclareTargets(): Error in aspect.Import: import cannot be both ancestor and multiple
-Traceback (most recent call last):
-  imports-ancestor-multiple/conflict.axl:14:30: in declare

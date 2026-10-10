@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
@@ -36,8 +37,8 @@ func main() {
 
 	// Add additional starlark plugins
 	fmt.Printf("Plugins: %v\n", plugins)
-	c.AddLanguageFactory(host.GazelleLanguageName, func() language.Language {
-		return host.NewLanguage(plugins...)
+	c.AddLanguageFactoryOrError(host.GazelleLanguageName, func() (language.Language, error) {
+		return host.NewLanguageOrError(plugins...)
 	})
 
 	fmt.Printf("Mode: %s\n", mode)
@@ -55,6 +56,14 @@ func main() {
 
 		// Handle command errors
 		if err != nil {
+			var setupErr *runner.SetupError
+			if errors.As(err, &setupErr) {
+				// A broken gazelle setup is the user's to fix, not a gazelle
+				// crash; keep it out of log.Fatalf's exit 1, which `aspect
+				// gazelle` cannot tell from "BUILD files are out of date".
+				fmt.Fprintln(os.Stderr, setupErr)
+				os.Exit(runner.ExitCodeSetupError)
+			}
 			log.Fatalf("Error running gazelle: %v", err)
 		}
 	}

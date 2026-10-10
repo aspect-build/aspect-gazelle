@@ -1,0 +1,3 @@
+Failed to invoke bad-attrs-test:DeclareTargets(): Error in add: expected dict, got QueryResults
+Traceback (most recent call last):
+  declare-bad-attrs/bad-attrs.axl:17:24: in declare
