@@ -182,15 +182,18 @@ func (h *GazelleHost) LoadPlugin(pluginDir, pluginPath string) {
 
 	err := starzelle.LoadProxy(h, pluginDir, pluginPath)
 	if err != nil {
-		BazelLog.Infof("Failed to load orion plugin %v\n", err)
-
-		// Try to remove the `parentDir` from the error message to align paths
-		// with the user's workspace relative paths, and to remove sandbox paths
-		// when run in tests.
+		// Strip `pluginDir` so paths read as the user's workspace-relative ones,
+		// and so sandbox paths do not leak into test output.
 		errStr := strings.ReplaceAll(err.Error(), pluginDir+"/", "")
 
-		fmt.Printf("Failed to load orion plugin %v\n", errStr)
-		return
+		// Fatal, not a warning: a plugin that did not load generates none of its
+		// targets, so continuing writes BUILD files that are silently missing
+		// whatever the extension was responsible for. Written to os.Stderr
+		// rather than through BazelLog because the logger is redirected to a
+		// file under test and whenever ASPECT_LOG_FILE is set, and this is the
+		// one message the user must see.
+		fmt.Fprintf(os.Stderr, "Failed to load orion plugin %v\n", errStr)
+		os.Exit(1)
 	}
 }
 
@@ -214,7 +217,7 @@ func (h *GazelleHost) AddKind(k plugin.RuleKind) {
 		if existingFrom == "" {
 			existingFrom = "<builtin>"
 		}
-		fmt.Printf("WARN: gazelle_rule_kind(%q) registered by %q overrides existing registration by %q\n", k.Name, from, existingFrom)
+		fmt.Fprintf(os.Stderr, "WARN: gazelle_rule_kind(%q) registered by %q overrides existing registration by %q\n", k.Name, from, existingFrom)
 	}
 
 	BazelLog.Infof("Kind added: %q", k.Name)
@@ -272,7 +275,7 @@ func (h *GazelleHost) ApparentLoads(moduleToApparentName func(string) string) []
 			from, err := label.Parse(r.From)
 			if err != nil {
 				BazelLog.Errorf("Failed to parse label %q: %v", r.From, err)
-				fmt.Printf("Invalid rule 'From' label %q: %v", r.From, err)
+				fmt.Fprintf(os.Stderr, "Invalid rule 'From' label %q: %v\n", r.From, err)
 				continue
 			}
 

@@ -7,6 +7,7 @@ package starzelle
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
@@ -131,7 +132,7 @@ func (p starzellePluginProxy) Prepare(ctx plugin.PrepareContext) plugin.PrepareR
 	v, err := starlark.Call(p.t, p.prepare, starlark.Tuple{ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:Prepare()", p.name), err)
-		fmt.Print(errStr)
+		fmt.Fprint(os.Stderr, errStr)
 		if isFatal(err) {
 			BazelLog.Fatal(errStr)
 		} else {
@@ -151,7 +152,7 @@ func (p starzellePluginProxy) Prepare(ctx plugin.PrepareContext) plugin.PrepareR
 	if !isPR {
 		errStr := fmt.Sprintf("Prepare %v is not a PrepareResult", v)
 		BazelLog.Error(errStr)
-		fmt.Print(errStr)
+		fmt.Fprint(os.Stderr, errStr)
 		return EmptyPrepareResult
 	}
 
@@ -166,7 +167,7 @@ func (p starzellePluginProxy) Analyze(ctx plugin.AnalyzeContext) error {
 	_, err := starlark.Call(p.t, p.analyze, starlark.Tuple{&ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:Analyze()", p.name), err)
-		fmt.Print(errStr)
+		fmt.Fprint(os.Stderr, errStr)
 		if isFatal(err) {
 			BazelLog.Fatal(errStr)
 		} else {
@@ -185,7 +186,7 @@ func (p starzellePluginProxy) DeclareTargets(ctx plugin.DeclareTargetsContext) p
 	_, err := starlark.Call(p.t, p.declare, starlark.Tuple{ctx}, starUtils.EmptyKwArgs)
 	if err != nil {
 		errStr := starUtils.ErrorStr(fmt.Sprintf("Failed to invoke %s:DeclareTargets()", p.name), err)
-		fmt.Print(errStr)
+		fmt.Fprint(os.Stderr, errStr)
 		if isFatal(err) {
 			BazelLog.Fatal(errStr)
 		} else {
