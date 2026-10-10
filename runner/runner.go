@@ -59,7 +59,35 @@ type GazelleRunner struct {
 	showProgress bool
 
 	languageKeys []string
-	languages    []func() language.Language
+	languages    []func() (language.Language, error)
+}
+
+// ExitCodeSetupError is the process exit status callers should use for a
+// *SetupError. It aliases orion.ExitCodeSetupError, which orion needs in its
+// own right because `gazelle_binary` gives orion.NewLanguage nowhere to return
+// an error to; one definition keeps both exits reporting the same code. See
+// that constant for why it is not 1.
+const ExitCodeSetupError = orion.ExitCodeSetupError
+
+// SetupError marks a failure in the user's gazelle setup — today, an orion
+// extension that does not load — as opposed to a gazelle malfunction or
+// BUILD files merely being out of date. Generate returns it unreported so the
+// caller can map it to ExitCodeSetupError instead of overloading the exit 1
+// that already means "run gazelle".
+type SetupError struct {
+	Err error
+}
+
+func (e *SetupError) Error() string { return e.Err.Error() }
+
+func (e *SetupError) Unwrap() error { return e.Err }
+
+// reportSetupError prints a setup failure on stderr — never stdout, which
+// carries the generated patch under `--mode=diff` — and returns, leaving the
+// caller running. Used by the --watch paths, where exiting would take down the
+// watcher and strand the IBP subscription over a typo the user is about to fix.
+func reportSetupError(err error) {
+	fmt.Fprintln(os.Stderr, err)
 }
 
 // Builtin Gazelle languages
@@ -120,7 +148,18 @@ func (c *GazelleRunner) Languages() []string {
 	return c.languageKeys
 }
 
+// AddLanguageFactory registers a language constructor that cannot fail.
 func (c *GazelleRunner) AddLanguageFactory(lang string, langFactory func() language.Language) {
+	c.AddLanguageFactoryOrError(lang, func() (language.Language, error) {
+		return langFactory(), nil
+	})
+}
+
+// AddLanguageFactoryOrError registers a language constructor that can fail to
+// build, such as an orion host whose extensions may not parse. The failure
+// surfaces as a *SetupError from Generate; under --watch it is reported and
+// the cycle skipped, so a broken extension does not kill the watcher.
+func (c *GazelleRunner) AddLanguageFactoryOrError(lang string, langFactory func() (language.Language, error)) {
 	c.languageKeys = append(c.languageKeys, lang)
 	c.languages = append(c.languages, langFactory)
 }
@@ -133,8 +172,8 @@ func (c *GazelleRunner) AddLanguage(lang GazelleLanguage) {
 	case Kotlin:
 		c.AddLanguageFactory(lang, kotlin.NewLanguage)
 	case Orion:
-		c.AddLanguageFactory(lang, func() language.Language {
-			return orion.NewLanguage()
+		c.AddLanguageFactoryOrError(lang, func() (language.Language, error) {
+			return orion.NewLanguageOrError()
 		})
 	case Buf:
 		c.AddLanguageFactory(lang, buf.NewLanguage)
@@ -166,7 +205,11 @@ func (runner *GazelleRunner) prepareGazelleArgs(mode GazelleMode, args []string)
 }
 
 // Instantiate an instance of each language enabled in this GazelleRunner instance.
-func (runner *GazelleRunner) instantiateLanguages() []language.Language {
+//
+// A language that fails to build comes back as a *SetupError and no languages.
+// Nothing is retained, so a later --watch cycle can simply call this again
+// once the user has fixed whatever was broken.
+func (runner *GazelleRunner) instantiateLanguages() ([]language.Language, error) {
 	languages := make([]language.Language, 0, len(runner.languages)+1)
 
 	if runner.interactive && runner.showProgress {
@@ -174,12 +217,16 @@ func (runner *GazelleRunner) instantiateLanguages() []language.Language {
 	}
 
 	for _, lang := range runner.languages {
-		languages = append(languages, lang())
+		l, err := lang()
+		if err != nil {
+			return nil, &SetupError{Err: err}
+		}
+		languages = append(languages, l)
 	}
 
 	failOnOrionKindOverlaps(languages)
 
-	return languages
+	return languages, nil
 }
 
 // failOnOrionKindOverlaps aborts when an orion plugin registered a rule
@@ -241,7 +288,10 @@ func (runner *GazelleRunner) Generate(cmd GazelleCommand, mode GazelleMode, args
 	}
 
 	// Run gazelle
-	langs := runner.instantiateLanguages()
+	langs, err := runner.instantiateLanguages()
+	if err != nil {
+		return false, err
+	}
 	configs := runner.instantiateConfigs()
 	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(runner.workspaceDir, cmd, configs, langs, fixArgs)
 
@@ -279,16 +329,21 @@ func (p *GazelleRunner) Watch(watchAddress string, cmd GazelleCommand, mode Gaze
 
 	// Initial run and status update to stdout.
 	fmt.Printf("Initialize BUILD file generation --watch in %v\n", p.workspaceDir)
-	languages := p.instantiateLanguages()
-	configs := append(p.instantiateConfigs(), invalidator)
-	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, fixArgs)
-	if err != nil {
-		return fmt.Errorf("failed to run gazelle fix/update: %w", err)
-	}
-	if updated > 0 {
-		fmt.Printf("Initial %v/%v BUILD files updated\n", updated, visited)
+	if languages, err := p.instantiateLanguages(); err != nil {
+		// Report and keep watching rather than returning: the user fixes the
+		// setup and saves, and the next cycle rebuilds the languages.
+		reportSetupError(err)
 	} else {
-		fmt.Printf("Initial %v BUILD files visited\n", visited)
+		configs := append(p.instantiateConfigs(), invalidator)
+		visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, fixArgs)
+		if err != nil {
+			return fmt.Errorf("failed to run gazelle fix/update: %w", err)
+		}
+		if updated > 0 {
+			fmt.Printf("Initial %v/%v BUILD files updated\n", updated, visited)
+		} else {
+			fmt.Printf("Initial %v BUILD files visited\n", visited)
+		}
 	}
 
 	ctx, t := p.tracer.Start(context.Background(), "GazelleRunner.Watch", trace.WithAttributes(
@@ -362,7 +417,13 @@ func (p *GazelleRunner) runWatchCycle(
 	}
 
 	// Run gazelle
-	languages := p.instantiateLanguages()
+	languages, err := p.instantiateLanguages()
+	if err != nil {
+		// Skip this cycle, do not kill the watcher: the edit that broke the
+		// setup is usually followed by the edit that fixes it.
+		reportSetupError(err)
+		return nil
+	}
 	configs := append(p.instantiateConfigs(), invalidator)
 	visited, updated, err := vendoredGazelle.RunGazelleFixUpdate(p.workspaceDir, cmd, configs, languages, runArgs)
 	if err != nil {
