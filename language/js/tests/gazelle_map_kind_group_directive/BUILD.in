@@ -1,0 +1,2 @@
+# Map only the default tests group to a custom macro.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl

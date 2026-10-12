@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# sub/ changes the wrapped kind, so it must declare the alias_kind explicitly.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+
+ts_project(
+    name = "gazelle_map_kind_group_default_alias_remap",
+    srcs = ["index.ts"],
+)
+
+jest_ts_project(
+    name = "gazelle_map_kind_group_default_alias_remap_tests",
+    testonly = True,
+    srcs = ["index.spec.ts"],
+    deps = [":gazelle_map_kind_group_default_alias_remap"],
+)

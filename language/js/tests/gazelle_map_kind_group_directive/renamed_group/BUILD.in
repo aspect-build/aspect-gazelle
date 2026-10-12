@@ -1,0 +1,3 @@
+# The scoped map_kind addresses the renamed group by its configured name.
+# gazelle:js_tests_naming_convention {dirname}_unit
+# gazelle:map_kind ts_project:{dirname}_unit jest_ts_project //tools:jest.bzl

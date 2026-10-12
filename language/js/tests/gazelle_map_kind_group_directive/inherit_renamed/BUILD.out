@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# The inherited scoped map_kind still applies to the renamed group.
+# gazelle:js_tests_naming_convention {dirname}_unit
+
+ts_project(
+    name = "inherit_renamed",
+    srcs = ["r.ts"],
+)
+
+jest_ts_project(
+    name = "inherit_renamed_unit",
+    testonly = True,
+    srcs = ["r.spec.ts"],
+    deps = [":inherit_renamed"],
+)

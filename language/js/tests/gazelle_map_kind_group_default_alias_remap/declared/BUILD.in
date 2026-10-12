@@ -1,0 +1,2 @@
+# An explicit alias_kind matching the defaulted one is allowed.
+# gazelle:alias_kind jest_ts_project ts_project

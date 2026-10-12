@@ -1,0 +1,3 @@
+# The alias defaults to the plain-mapped kind (my_ts_project).
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
