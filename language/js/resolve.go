@@ -380,13 +380,18 @@ func (ts *typeScriptLang) Resolve(
 		// For a package target (a js_library representing an npm package), a
 		// package.json 'main'/'exports'/'files' reference to a raw file belongs
 		// in srcs; deps is reserved for JsInfo-providing library targets.
+		// For a ts_project, an asset file in another package belongs in assets.
 		// fileDeps collects the raw-file resolutions so they can be split out.
 		var fileDeps *common.LabelSet
+		var isFileDep func(ImportStatement, *label.Label) bool
 		if isPackageInfo {
 			fileDeps = common.NewLabelSet(from)
+		} else if r.Kind() == TsProjectKind {
+			fileDeps = common.NewLabelSet(from)
+			isFileDep = isAssetDep(c.Exts[LanguageName].(*JsGazelleConfig))
 		}
 
-		err := ts.resolveImports(c, ix, deps, fileDeps, projectInfo.imports, from, projectInfo.groupName)
+		err := ts.resolveImports(c, ix, deps, fileDeps, isFileDep, projectInfo.imports, from, projectInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -408,6 +413,13 @@ func (ts *typeScriptLang) Resolve(
 			if len(srcs) > 0 {
 				r.SetAttr("srcs", srcs)
 			}
+		} else if fileDeps != nil && !fileDeps.Empty() {
+			// Generated assets are local file names, followed by asset labels.
+			assets := r.AttrStrings("assets")
+			for f := range fileDeps.Labels() {
+				assets = append(assets, f.String())
+			}
+			r.SetAttr("assets", assets)
 		}
 
 		if !deps.Empty() {
@@ -423,7 +435,7 @@ func (ts *typeScriptLang) Resolve(
 		srcs := packageInfo.sources.Values()
 
 		deps := common.NewLabelSet(from)
-		err := ts.resolveImports(c, ix, deps, nil, packageInfo.imports, from, packageInfo.groupName)
+		err := ts.resolveImports(c, ix, deps, nil, nil, packageInfo.imports, from, packageInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -458,7 +470,8 @@ func (ts *typeScriptLang) addTsLib(
 }
 
 // resolveImports resolves each import into deps, except raw-file resolutions
-// which, when fileDeps is non-nil, are routed there instead. Callers that do
+// which, when fileDeps is non-nil, are routed there instead. A non-nil
+// isFileDep limits the routing to the raw files it accepts. Callers that do
 // not distinguish files from libraries (all deps in one attribute) pass a nil
 // fileDeps so every resolution lands in deps.
 func (ts *typeScriptLang) resolveImports(
@@ -466,6 +479,7 @@ func (ts *typeScriptLang) resolveImports(
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
 	fileDeps *common.LabelSet,
+	isFileDep func(ImportStatement, *label.Label) bool,
 	imports *treeset.Set[ImportStatement],
 	from label.Label,
 	groupName string,
@@ -501,12 +515,12 @@ func (ts *typeScriptLang) resolveImports(
 		}
 
 		if !imp.TypesOnly || len(types) == 0 {
-			target := deps
-			if resolutionType == Resolution_File && fileDeps != nil {
-				target = fileDeps
-			}
 			for _, dep := range resolved {
-				target.Add(dep)
+				if resolutionType == Resolution_File && fileDeps != nil && (isFileDep == nil || isFileDep(imp, dep)) {
+					fileDeps.Add(dep)
+				} else {
+					deps.Add(dep)
+				}
 			}
 		}
 
@@ -765,4 +779,14 @@ func targetListFromResults(results []resolve.FindResult) string {
 		list[i] = result.Label.String()
 	}
 	return strings.Join(list, ", ")
+}
+
+// isAssetDep returns whether a raw-file resolution is an asset of a ts_project:
+// a non-source, non-data file imported by a kind that collects assets.
+// The same rules decide which local files become assets during generation.
+func isAssetDep(cfg *JsGazelleConfig) func(ImportStatement, *label.Label) bool {
+	return func(imp ImportStatement, dep *label.Label) bool {
+		ext := path.Ext(dep.Name)
+		return cfg.CollectAssetsFrom(imp.Kind) && !isSourceFileExt(ext) && !isDataFileExt(ext)
+	}
 }

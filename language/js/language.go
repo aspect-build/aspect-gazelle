@@ -40,6 +40,11 @@ type typeScriptLang struct {
 
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
+
+	// Non-source files of directories without a BUILD file, keyed by directory.
+	// Bazel assigns such files to the nearest ancestor package, so they are
+	// passed up to the parent directory (in workspace-relative form).
+	subdirectoryFiles map[string][]string
 }
 
 var _ language.Language = (*typeScriptLang)(nil)
@@ -52,11 +57,12 @@ func NewLanguage() language.Language {
 	packageJsonDirs := make(map[string]struct{})
 
 	return &typeScriptLang{
-		fileLabels:      make(map[string]*label.Label),
-		moduleTypes:     make(map[string][]*label.Label),
-		pnpmProjects:    pnpmProjects,
-		packageJsonDirs: packageJsonDirs,
-		packageJsons:    make(map[string]*node.PackageJson),
+		fileLabels:        make(map[string]*label.Label),
+		moduleTypes:       make(map[string][]*label.Label),
+		pnpmProjects:      pnpmProjects,
+		packageJsonDirs:   packageJsonDirs,
+		packageJsons:      make(map[string]*node.PackageJson),
+		subdirectoryFiles: make(map[string][]string),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found
