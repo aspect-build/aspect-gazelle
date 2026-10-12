@@ -1,0 +1,7 @@
+filegroup(
+    name = "provider",
+)
+
+filegroup(
+    name = "wrong_provider",
+)
