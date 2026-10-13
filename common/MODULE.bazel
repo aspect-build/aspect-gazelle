@@ -14,18 +14,18 @@ use_repo(go_deps, "com_github_bazelbuild_buildtools", "com_github_bmatcuk_double
 ####### Dev dependencies ########
 
 # Grammars used only by //treesitter:treesitter_test.
-bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0", dev_dependency = True)
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "0.0.0", dev_dependency = True)
 local_path_override(
-    module_name = "aspect_treesitter_grammars",
+    module_name = "aspect_go_treesitter_grammars",
     path = "../treesitter",
 )
 
 # Effective only when this is the root module. Downstream consumers must reapply
-# this patch themselves (see @aspect_treesitter_grammars//patches).
+# this patch themselves (see @aspect_go_treesitter_grammars//patches).
 go_deps_dev = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps_dev.module_override(
     patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
     path = "github.com/smacker/go-tree-sitter",
 )
 

@@ -1,10 +1,11 @@
 module(
     name = "aspect_gazelle_orion",
+    version = "0.0.0",
     compatibility_level = 0,
 )
 
 bazel_dep(name = "aspect_tools_telemetry", version = "0.5.2")
-bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "0.1.0")
 bazel_dep(name = "rules_go", version = "0.63.0")
 bazel_dep(name = "gazelle", version = "0.54.0")  # must match go.mod
 
@@ -22,7 +23,7 @@ use_repo(tel, "aspect_tools_telemetry_report")
 go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
 go_deps_dev.module_override(
     patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
     path = "github.com/smacker/go-tree-sitter",
 )
 
@@ -44,7 +45,7 @@ local_path_override(
 )
 
 local_path_override(
-    module_name = "aspect_treesitter_grammars",
+    module_name = "aspect_go_treesitter_grammars",
     path = "../../treesitter",
 )
 

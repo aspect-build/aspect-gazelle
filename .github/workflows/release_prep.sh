@@ -75,8 +75,7 @@ emit_changelog() {
 #
 # SRC_MODULE_DEPS lists the in-repo dirs the module depends on, so the changelog
 # also reports changes to those shared modules (e.g. common). Set it to the
-# module's actual deps: js uses common + the oxc Rust parser (no treesitter);
-# tree-sitter languages (orion, kotlin) would add treesitter.
+# module's actual deps. treesitter is excluded: it has its own release line.
 SRC_MODULE_ROOT=""
 SRC_MODULE_DEPS=""
 case "$TAG" in
@@ -84,8 +83,14 @@ js-v*)
 	SRC_MODULE_ROOT="language/js"
 	SRC_MODULE_DEPS="common"
 	;;
-	# orion-v*)  SRC_MODULE_ROOT="language/orion";  SRC_MODULE_DEPS="common treesitter" ;;
-	# kotlin-v*) SRC_MODULE_ROOT="language/kotlin"; SRC_MODULE_DEPS="common treesitter" ;;
+orion-v*)
+	SRC_MODULE_ROOT="language/orion"
+	SRC_MODULE_DEPS="common"
+	;;
+treesitter-v*)
+	SRC_MODULE_ROOT="treesitter"
+	;;
+	# kotlin-v*) SRC_MODULE_ROOT="language/kotlin"; SRC_MODULE_DEPS="common" ;;
 	# runner-v*) SRC_MODULE_ROOT="runner";          SRC_MODULE_DEPS="common" ;;
 esac
 if [[ -n "$SRC_MODULE_ROOT" ]]; then
@@ -109,10 +114,17 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	sed -i "s/^    version = \"0\.0\.0\"/    version = \"${MODULE_VERSION}\"/" \
 		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel"
 
-	# Module name + @llvm pin, surfaced in the consumer setup notes below.
+	# Module name + dep pins, surfaced in the consumer setup notes below.
 	MODULE_NAME=$(sed -n 's/^    name = "\([^"]*\)",$/\1/p' "${UNPACK_DIR}/${PREFIX}/MODULE.bazel" | head -1)
 	LLVM_VERSION=$(sed -n 's/.*bazel_dep(name = "llvm", version = "\([^"]*\)").*/\1/p' \
 		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel")
+	GRAMMARS_VERSION=$(sed -n 's/.*bazel_dep(name = "aspect_go_treesitter_grammars", version = "\([^"]*\)").*/\1/p' \
+		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel")
+	USES_SMACKER=$(grep -c "github.com/smacker/go-tree-sitter" "${UNPACK_DIR}/${PREFIX}/go.mod" || true)
+	if [[ "$GRAMMARS_VERSION" == "0.0.0" ]]; then
+		echo "${MODULE_NAME} depends on unreleased aspect_go_treesitter_grammars 0.0.0; bump it to a published treesitter-v* version" >&2
+		exit 1
+	fi
 
 	# The in-repo .bazelrc imports %workspace%/../../tools/*.bazelrc, which don't
 	# exist in the standalone archive. Nothing in the BCR flow runs bazel at the
@@ -130,6 +142,23 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	# BCR flow doesn't use them (presubmit runs the e2e/smoke test module).
 	rm -rf "${UNPACK_DIR}/${PREFIX}/tests"
 
+	# BCR test modules may local_path_override sibling modules (e.g. the grammars)
+	# that are outside this archive; drop those so BCR resolves them from the
+	# registry. The override of the module under test points inside the archive.
+	for f in "${UNPACK_DIR}/${PREFIX}"/e2e/*/MODULE.bazel; do
+		[[ -f "$f" ]] || continue
+		awk -v keep="$MODULE_NAME" '
+			/^local_path_override\(/ { blk = $0; inblk = 1; drop = 0; next }
+			inblk {
+				blk = blk "\n" $0
+				if ($0 ~ /module_name = "/ && index($0, "\"" keep "\"") == 0) drop = 1
+				if ($0 ~ /^\)/) { if (!drop) print blk; inblk = 0 }
+				next
+			}
+			{ print }
+		' "$f" >"$f.tmp" && mv "$f.tmp" "$f"
+	done
+
 	tar -czf "$ARCHIVE" -C "$UNPACK_DIR" "${PREFIX}"
 	rm -rf "$UNPACK_DIR"
 
@@ -142,10 +171,17 @@ Add to your \`MODULE.bazel\`:
 
 \`\`\`starlark
 bazel_dep(name = "${MODULE_NAME}", version = "${MODULE_VERSION}")
+\`\`\`
+EOF
 
-# The gazelle binary embeds a cgo Rust parser. ${MODULE_NAME} (transitively)
-# registers the LLVM + Rust toolchains, but @llvm must be declared so it's
-# visible by apparent name for the .bazelrc flags below.
+	if [[ -n "$LLVM_VERSION" ]]; then
+		cat <<EOF
+
+The gazelle binary embeds a cgo Rust parser. \`${MODULE_NAME}\` (transitively)
+registers the LLVM + Rust toolchains, but \`@llvm\` must be declared so it's
+visible by apparent name for the \`.bazelrc\` flags below:
+
+\`\`\`starlark
 bazel_dep(name = "llvm", version = "${LLVM_VERSION}")
 \`\`\`
 
@@ -160,6 +196,30 @@ common --@llvm//config:experimental_stub_libgcc_s=True
 common --linkopt=-no-pie
 \`\`\`
 EOF
+	fi
+
+	if [[ "$USES_SMACKER" != "0" ]]; then
+		GRAMMARS_DEP=""
+		if [[ -n "$GRAMMARS_VERSION" ]]; then
+			GRAMMARS_DEP="bazel_dep(name = \"aspect_go_treesitter_grammars\", version = \"${GRAMMARS_VERSION}\")
+"
+		fi
+		cat <<EOF
+
+The tree-sitter grammars need the ABI 15 runtime patch for
+\`github.com/smacker/go-tree-sitter\`. Go module overrides are only honored in the
+root module, so add to your own \`MODULE.bazel\`:
+
+\`\`\`starlark
+${GRAMMARS_DEP}go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.module_override(
+    patch_strip = 1,
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)
+\`\`\`
+EOF
+	fi
 
 	# Changes under this module's subtree and its in-repo deps (e.g. common),
 	# since the previous <prefix> tag.

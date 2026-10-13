@@ -1,0 +1,24 @@
+load("@bazel_skylib//rules:build_test.bzl", "build_test")
+load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
+# A gazelle binary embedding orion, exactly how a downstream consumer of
+# @aspect_gazelle_orion would build one. The greet/BUILD.bazel target is
+# intentionally NOT committed: `bazel run //:gazelle` generates it with the
+# smoke.axl plugin, and the build_test below asserts it was generated.
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = ["@aspect_gazelle_orion"],
+)
+
+gazelle(
+    name = "gazelle",
+    env = {"ORION_EXTENSIONS": "smoke.axl"},
+    gazelle = ":gazelle_bin",
+)
+
+# The target name comes from a tree-sitter query capture, so this fails if the
+# grammars can't be loaded by the (patched) tree-sitter runtime.
+build_test(
+    name = "smoke_build_test",
+    targets = ["//greet:pkg_greet"],
+)

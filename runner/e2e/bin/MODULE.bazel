@@ -31,11 +31,11 @@ local_path_override(
 # tools/rust.bazelrc.
 bazel_dep(name = "llvm", version = "0.8.18")
 
-# aspect_treesitter_grammars is a transitive bazel_dep via aspect_gazelle_runner.
+# aspect_go_treesitter_grammars is a transitive bazel_dep via aspect_gazelle_runner.
 # It isn't published to BCR yet, so wire up the local path.
-bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "0.0.0")
 local_path_override(
-    module_name = "aspect_treesitter_grammars",
+    module_name = "aspect_go_treesitter_grammars",
     path = "../../../treesitter",
 )
 

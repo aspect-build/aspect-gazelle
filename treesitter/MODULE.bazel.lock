@@ -175,7 +175,7 @@
     "@@aspect_tools_telemetry+//:extension.bzl%telemetry": {
       "general": {
         "bzlTransitiveDigest": "ihzLOoAnQP6Y5iSYOhEjvb6uxEbA6ZgH8Qikau2lGRU=",
-        "usagesDigest": "xPNSe/FJ5lJ5QUNwnupt6XiV+hNEeG+Upft+LQ9TVGQ=",
+        "usagesDigest": "sonj6XnB9wJ0uJdR6+t0liTnnq8HK32V+0D7MTcoT0E=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {
@@ -186,10 +186,10 @@
             "repoRuleId": "@@aspect_tools_telemetry+//:extension.bzl%tel_repository",
             "attributes": {
               "deps": {
-                "aspect_treesitter_grammars": "",
+                "aspect_go_treesitter_grammars": "0.0.0",
                 "aspect_tools_telemetry": "0.5.2"
               },
-              "last_notice": 2
+              "last_notice": 3
             }
           }
         },

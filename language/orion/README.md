@@ -36,6 +36,44 @@ Compared with [writing Gazelle extensions in Go](https://github.com/bazelbuild/b
 1. Our API is designed to be easy for novices to use. In contrast, the effort to implement and ship a Gazelle extension is high because the API abstractions are low-level.
 1. Writing and sharing a general-purpose Gazelle extension is difficult because it's expected to handle every possible scenario. In your repo you can make a tradeoff to take shortcuts based on your needs.
 
+## Build setup
+
+> **The setup below is only required when building the Gazelle binary from source.** Users of [`aspect_gazelle_prebuilt`](../../prebuilt/) can skip it entirely.
+
+Tree-sitter AST queries use the grammars from [`aspect_go_treesitter_grammars`](../../treesitter/), which require a patch to the
+`github.com/smacker/go-tree-sitter` runtime. Go module overrides are only honored in the root module, so it must be applied in your `MODULE.bazel`:
+
+```starlark
+bazel_dep(name = "aspect_gazelle_orion", version = "...")
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "...")  # match the version @aspect_gazelle_orion pins
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.module_override(
+    patch_strip = 1,
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)
+```
+
+Then embed orion in a `gazelle_binary` and point it at your plugins:
+
+```starlark
+load("@gazelle//:def.bzl", "gazelle", "gazelle_binary")
+
+gazelle_binary(
+    name = "gazelle_bin",
+    languages = ["@aspect_gazelle_orion"],
+)
+
+gazelle(
+    name = "gazelle",
+    env = {"ORION_EXTENSIONS": "tools/configure/my_extension.star"},
+    gazelle = ":gazelle_bin",
+)
+```
+
+See [`e2e/smoke`](./e2e/smoke/) for a complete example.
+
 ## Design
 
 This extension embeds a starlark interpreter as a Gazelle "language".

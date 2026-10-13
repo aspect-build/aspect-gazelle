@@ -275,7 +275,7 @@
     "@@aspect_tools_telemetry+//:extension.bzl%telemetry": {
       "general": {
         "bzlTransitiveDigest": "ihzLOoAnQP6Y5iSYOhEjvb6uxEbA6ZgH8Qikau2lGRU=",
-        "usagesDigest": "Djgg6UZ9l1q7f6DlCeu159XFdGMgXpkWzwdvysc98NU=",
+        "usagesDigest": "Vf5+K0owZq9oDywBqSiLCAKmfSxnyAUhQj+pLkhT03A=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {
@@ -288,9 +288,9 @@
               "deps": {
                 "aspect_gazelle_kotlin": "",
                 "aspect_tools_telemetry": "0.5.2",
-                "aspect_treesitter_grammars": ""
+                "aspect_go_treesitter_grammars": "0.0.0"
               },
-              "last_notice": 2
+              "last_notice": 3
             }
           }
         },

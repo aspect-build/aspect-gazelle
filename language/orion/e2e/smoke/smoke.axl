@@ -1,0 +1,32 @@
+"Create a filegroup per Go package, named from the tree-sitter parsed package clause"
+
+aspect.gazelle_rule_kind("filegroup", {
+    "MergeableAttrs": ["srcs"],
+})
+
+def declare(ctx):
+    for file in ctx.sources:
+        for r in file.query_results["package"]:
+            ctx.targets.add(
+                name = "pkg_" + r.captures["name"],
+                kind = "filegroup",
+                attrs = {
+                    "srcs": [file.path],
+                    "visibility": ["//visibility:public"],
+                },
+            )
+
+aspect.orion_extension(
+    id = "smoke",
+    prepare = lambda _: aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".go"),
+        queries = {
+            "package": aspect.AstQuery(
+                grammar = "go",
+                filter = "*.go",
+                query = "(package_clause (package_identifier) @name)",
+            ),
+        },
+    ),
+    declare = declare,
+)

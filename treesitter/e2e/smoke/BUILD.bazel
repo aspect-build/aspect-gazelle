@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_test")
+
+go_test(
+    name = "smoke_test",
+    srcs = ["smoke_test.go"],
+    deps = [
+        "@aspect_go_treesitter_grammars//golang",
+        "@aspect_go_treesitter_grammars//hcl",
+        "@aspect_go_treesitter_grammars//java",
+        "@aspect_go_treesitter_grammars//json",
+        "@aspect_go_treesitter_grammars//kotlin",
+        "@aspect_go_treesitter_grammars//python",
+        "@aspect_go_treesitter_grammars//ruby",
+        "@aspect_go_treesitter_grammars//rust",
+        "@aspect_go_treesitter_grammars//starlark",
+        "@aspect_go_treesitter_grammars//tsx",
+        "@aspect_go_treesitter_grammars//typescript",
+        "@com_github_smacker_go_tree_sitter//:go-tree-sitter",
+    ],
+)
