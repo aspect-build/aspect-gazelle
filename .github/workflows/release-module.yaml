@@ -1,6 +1,6 @@
 # Reusable per-module BCR release. Called by thin per-module trigger workflows
-# (release-prebuilt.yaml, release-js.yaml, and later release-orion.yaml /
-# release-runner.yaml) that supply the tag prefix, module root, module name, and
+# (release-prebuilt.yaml, release-js.yaml, release-orion.yaml,
+# release-treesitter.yaml) that supply the tag prefix, module root, module name, and
 # optionally the release assets to upload. Builds the module's archive via
 # release_prep.sh (which branches on the tag prefix) and drives the
 # publish-to-bcr reusable workflow, passing the module root through its native

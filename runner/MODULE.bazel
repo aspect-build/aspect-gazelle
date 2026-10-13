@@ -24,9 +24,9 @@ local_path_override(
     path = "../language/orion",
 )
 
-bazel_dep(name = "aspect_treesitter_grammars", version = "0.0.0")
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "0.0.0")
 local_path_override(
-    module_name = "aspect_treesitter_grammars",
+    module_name = "aspect_go_treesitter_grammars",
     path = "../treesitter",
 )
 
@@ -80,7 +80,7 @@ go_deps2.module_override(
 )
 go_deps2.module_override(
     patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
     path = "github.com/smacker/go-tree-sitter",
 )
 

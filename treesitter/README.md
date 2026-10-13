@@ -1,4 +1,4 @@
-# aspect-treesitter-grammars
+# aspect-go-treesitter-grammars
 
 Tree-sitter grammar cgo wrappers used by [aspect-gazelle][gazelle] language modules.
 
@@ -13,17 +13,17 @@ The parent `treesitter` package (AST, query, and filter wrappers) lives in
 
 | Bazel target | Go import path | Upstream archive |
 | --- | --- | --- |
-| `@aspect_treesitter_grammars//golang` | `.../golang` | `tree-sitter/tree-sitter-go` |
-| `@aspect_treesitter_grammars//hcl` | `.../hcl` | `tree-sitter-grammars/tree-sitter-hcl` |
-| `@aspect_treesitter_grammars//java` | `.../java` | `tree-sitter/tree-sitter-java` |
-| `@aspect_treesitter_grammars//json` | `.../json` | `tree-sitter/tree-sitter-json` |
-| `@aspect_treesitter_grammars//kotlin` | `.../kotlin` | `fwcd/tree-sitter-kotlin` |
-| `@aspect_treesitter_grammars//python` | `.../python` | bundled in `smacker/go-tree-sitter` |
-| `@aspect_treesitter_grammars//ruby` | `.../ruby` | `tree-sitter/tree-sitter-ruby` |
-| `@aspect_treesitter_grammars//rust` | `.../rust` | `tree-sitter/tree-sitter-rust` |
-| `@aspect_treesitter_grammars//starlark` | `.../starlark` | `tree-sitter-grammars/tree-sitter-starlark` |
-| `@aspect_treesitter_grammars//tsx` | `.../tsx` | `tree-sitter/tree-sitter-typescript` |
-| `@aspect_treesitter_grammars//typescript` | `.../typescript` | `tree-sitter/tree-sitter-typescript` |
+| `@aspect_go_treesitter_grammars//golang` | `.../golang` | `tree-sitter/tree-sitter-go` |
+| `@aspect_go_treesitter_grammars//hcl` | `.../hcl` | `tree-sitter-grammars/tree-sitter-hcl` |
+| `@aspect_go_treesitter_grammars//java` | `.../java` | `tree-sitter/tree-sitter-java` |
+| `@aspect_go_treesitter_grammars//json` | `.../json` | `tree-sitter/tree-sitter-json` |
+| `@aspect_go_treesitter_grammars//kotlin` | `.../kotlin` | `fwcd/tree-sitter-kotlin` |
+| `@aspect_go_treesitter_grammars//python` | `.../python` | bundled in `smacker/go-tree-sitter` |
+| `@aspect_go_treesitter_grammars//ruby` | `.../ruby` | `tree-sitter/tree-sitter-ruby` |
+| `@aspect_go_treesitter_grammars//rust` | `.../rust` | `tree-sitter/tree-sitter-rust` |
+| `@aspect_go_treesitter_grammars//starlark` | `.../starlark` | `tree-sitter-grammars/tree-sitter-starlark` |
+| `@aspect_go_treesitter_grammars//tsx` | `.../tsx` | `tree-sitter/tree-sitter-typescript` |
+| `@aspect_go_treesitter_grammars//typescript` | `.../typescript` | `tree-sitter/tree-sitter-typescript` |
 
 `http_archive` blocks are declared in this module's `MODULE.bazel`. They're fetched lazily —
 depending on `//typescript` does not download `@tree-sitter-rust`.
@@ -34,14 +34,16 @@ depending on `//typescript` does not download `@tree-sitter-rust`.
 [`smacker/go-tree-sitter`][smacker] to ABI 15 so it can parse the grammars above.
 
 The patch is applied automatically when this module is the root (via the dev-only
-`go_deps.module_override` in `MODULE.bazel`). Downstream consumers that materialize
-`github.com/smacker/go-tree-sitter` through their own `go_deps` must reapply it, e.g.:
+`go_deps.module_override` in `MODULE.bazel`). Go module overrides are only honored in the
+root module, so every consumer must apply it in its own `MODULE.bazel`:
 
-```python
-go_deps_dev = use_extension("@gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
-go_deps_dev.module_override(
+```starlark
+bazel_dep(name = "aspect_go_treesitter_grammars", version = "...")
+
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.module_override(
     patch_strip = 1,
-    patches = ["@aspect_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
     path = "github.com/smacker/go-tree-sitter",
 )
 ```

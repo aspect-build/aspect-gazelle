@@ -1,5 +1,6 @@
 module(
-    name = "aspect_treesitter_grammars",
+    name = "aspect_go_treesitter_grammars",
+    version = "0.0.0",
     compatibility_level = 0,
 )
 

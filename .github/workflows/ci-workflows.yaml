@@ -133,6 +133,23 @@ jobs:
       - name: Test (language/orion)
         working-directory: language/orion
         run: aspect test --task-key=test-language-orion -- //...
+  # The orion BCR smoke module (also driven by the bcr_test_module presubmit).
+  # Same generate + test shape as test-language-js-e2e-smoke.
+  test-language-orion-e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-test-language-orion-e2e-smoke
+          repository-cache: true
+          external-cache: true
+      - name: Orion BCR smoke test
+        working-directory: language/orion/e2e/smoke
+        run: |
+          bazel run --config=ci //:gazelle
+          bazel test --config=ci //...
   gazelle-runner:
     runs-on: ubuntu-latest
     steps:
@@ -211,6 +228,20 @@ jobs:
       - name: Test (treesitter)
         working-directory: treesitter
         run: aspect test --task-key=test-treesitter -- //...
+  # The treesitter BCR smoke module (also driven by the bcr_test_module presubmit).
+  test-treesitter-e2e-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: bazel-contrib/setup-bazel@c5acdfb288317d0b5c0bbd7a396a3dc868bb0f86 # 0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-test-treesitter-e2e-smoke
+          repository-cache: true
+          external-cache: true
+      - name: Treesitter BCR smoke test
+        working-directory: treesitter/e2e/smoke
+        run: bazel test --config=ci //...
   # macOS platform coverage via the Aspect CLI (mirrors the Linux `test` job).
   test-macos:
     # Only run on main branch (not PRs) to minimize minutes (billed at 10X).
@@ -241,6 +272,7 @@ jobs:
       - test-language-kotlin
       - gazelle-language-orion
       - test-language-orion
+      - test-language-orion-e2e-smoke
       - gazelle-runner
       - aspect-gazelle-runner
       - test-runner
@@ -248,6 +280,7 @@ jobs:
       - gazelle-runner-e2e-bin
       - test-runner-e2e-bin
       - test-treesitter
+      - test-treesitter-e2e-smoke
       - test-macos
     runs-on: ubuntu-latest
     if: always()

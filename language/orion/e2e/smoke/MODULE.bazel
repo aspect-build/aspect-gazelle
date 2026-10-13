@@ -1,0 +1,39 @@
+module(
+    name = "aspect_gazelle_orion_e2e_smoke",
+    version = "0.0.0",
+)
+
+# Module under test. BCR's bcr_test_module presubmit overrides this with the
+# version being published; the local_path_override lets it build in-repo.
+bazel_dep(name = "aspect_gazelle_orion")
+local_path_override(
+    module_name = "aspect_gazelle_orion",
+    path = "../..",
+)
+
+# Direct dep only to reference the patch below; the version comes from orion.
+# release_prep.sh strips this override from the published archive.
+bazel_dep(name = "aspect_go_treesitter_grammars")
+local_path_override(
+    module_name = "aspect_go_treesitter_grammars",
+    path = "../../../../treesitter",
+)
+
+bazel_dep(name = "gazelle", version = "0.54.0")
+bazel_dep(name = "rules_go", version = "0.63.0")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
+
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+go_sdk.from_file(
+    name = "go_sdk",
+    go_mod = "@aspect_gazelle_orion//:go.mod",
+)
+use_repo(go_sdk, "go_sdk")
+
+# The ABI 15 runtime patch every consumer must apply in its root module.
+go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
+go_deps.module_override(
+    patch_strip = 1,
+    patches = ["@aspect_go_treesitter_grammars//patches:go-tree-sitter-abi15.patch"],
+    path = "github.com/smacker/go-tree-sitter",
+)

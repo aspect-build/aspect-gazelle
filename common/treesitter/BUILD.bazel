@@ -24,5 +24,5 @@ go_test(
         "parser_test.go",
     ],
     embed = [":treesitter"],
-    deps = ["@aspect_treesitter_grammars//golang"],
+    deps = ["@aspect_go_treesitter_grammars//golang"],
 )
