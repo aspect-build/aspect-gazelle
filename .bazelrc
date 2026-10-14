@@ -2,6 +2,9 @@ import %workspace%/tools/preset.bazelrc
 
 common --config=ruleset
 
+# rules_go's go_sdk repo relies on implicit file exports for @go_sdk//:bin/gofmt (flipped in Bazel 10)
+common --noincompatible_no_implicit_file_export
+
 # Suppress Apple linker (Xcode 15+) duplicate library warnings from CGO
 # When multiple CGO libraries each link -lm, ld emits "ignoring duplicate libraries: '-lm'"
 build:macos --linkopt=-Wl,-no_warn_duplicate_libraries

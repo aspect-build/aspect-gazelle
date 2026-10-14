@@ -1,6 +1,6 @@
 matrix:
   platform: ["macos", "ubuntu2204"]
-  bazel: ["8.x", "9.x"]
+  bazel: ["8.x", "9.x", "last_rc"]
 tasks:
   verify_targets:
     name: "Verify build targets"
@@ -12,7 +12,7 @@ bcr_test_module:
   module_path: "e2e/bin"
   matrix:
     platform: ["macos", "ubuntu2204"]
-    bazel: ["8.x", "9.x"]
+    bazel: ["8.x", "9.x", "last_rc"]
   tasks:
     run_test_module:
       name: "Run test module"
