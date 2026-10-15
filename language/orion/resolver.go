@@ -168,7 +168,7 @@ func (re *GazelleHost) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo
 				value = append(value, l)
 			}
 			if len(value) > 0 {
-				r.SetAttr(attr, value)
+				r.SetAttr(attr, listAttr(value))
 			} else {
 				r.DelAttr(attr)
 			}

@@ -435,6 +435,20 @@ Args:
 * `src`: the source of the import (optional). Only used for debugging and error messages.
 * `ancestor`: when `True`, the resolver searches for `join(parent, id)` at the importing rule's package and each ancestor directory up to the workspace root, returning the first match (eg for `id = "tsconfig.json"` from `//a/b`: tries `a/b/tsconfig.json`, `a/tsconfig.json`, then `tsconfig.json`). Cannot be combined with `multiple`.
 
+**aspect.Glob(include, exclude=[])**:
+
+An attribute value rendered as a Bazel `glob()` call, eg `"srcs": aspect.Glob(["*.java"], exclude = ["*Test.java"])`.
+It must be the entire attribute value, not an element of a list or dict.
+
+For a mergeable attribute the generated value replaces the existing one: a glob replaces an existing list or a
+different glob (including `# keep` entries in a replaced list), and a generated list replaces an existing glob.
+An existing glob with the same patterns, in any order, is left in place with its comments and `allow_empty`.
+Removing the target also removes a glob attribute.
+
+Args:
+* `include`: a list of glob patterns, at least one
+* `exclude`: a list of glob patterns to subtract from `include` (optional)
+
 ## Query Types
 
 Source files can be queried using various methods to extract information for analysis. Some query types return data

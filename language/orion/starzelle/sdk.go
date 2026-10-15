@@ -562,6 +562,42 @@ func newLabel(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwar
 	}, nil
 }
 
+func newGlob(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
+	var include, exclude *starlark.List
+
+	err := starlark.UnpackArgs(
+		"Glob",
+		args,
+		kwargs,
+		"include", &include,
+		"exclude?", &exclude,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	includes, err := starUtils.ReadStringList(include)
+	if err != nil {
+		return nil, fmt.Errorf("include: %w", err)
+	}
+	if len(includes) == 0 {
+		return nil, fmt.Errorf("at least one include glob pattern is required")
+	}
+
+	var excludes []string
+	if exclude != nil {
+		excludes, err = starUtils.ReadStringList(exclude)
+		if err != nil {
+			return nil, fmt.Errorf("exclude: %w", err)
+		}
+	}
+
+	return plugin.Glob{
+		Include: includes,
+		Exclude: excludes,
+	}, nil
+}
+
 func newProperty(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var propType starlark.String
 	var propDefault starlark.Value = starlark.None
@@ -605,6 +641,7 @@ var aspectModule = starUtils.CreateModule(
 		"Import":                       newImport,
 		"Symbol":                       newSymbol,
 		"Label":                        newLabel,
+		"Glob":                         newGlob,
 		"Property":                     newProperty,
 		"SourceExtensions":             newSourceExtensions,
 		"SourceGlobs":                  newSourceGlobs,

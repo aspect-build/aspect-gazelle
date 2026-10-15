@@ -20,6 +20,7 @@ import (
 	gazelleLabel "github.com/bazelbuild/bazel-gazelle/label"
 	gazelleLanguage "github.com/bazelbuild/bazel-gazelle/language"
 	gazelleRule "github.com/bazelbuild/bazel-gazelle/rule"
+	bzl "github.com/bazelbuild/buildtools/build"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -224,7 +225,14 @@ func applyRemoveAction(args gazelleLanguage.GenerateArgs, result *gazelleLanguag
 			if rm.Kind == "" {
 				kind = r.Kind() // TODO: need to reverse map_kind?
 			}
-			result.Empty = append(result.Empty, gazelleRule.NewRule(kind, r.Name()))
+			empty := gazelleRule.NewRule(kind, r.Name())
+			// Gazelle's default merge cannot clear a glob(), which would keep the rule non-empty.
+			for _, attr := range r.AttrKeys() {
+				if _, isGlob := gazelleRule.ParseGlobExpr(r.Attr(attr)); isGlob {
+					empty.SetAttr(attr, listAttr(nil))
+				}
+			}
+			result.Empty = append(result.Empty, empty)
 			return r
 		}
 	}
@@ -280,6 +288,36 @@ type attributeValue struct {
 	imports   []plugin.TargetImport
 }
 
+// listAttr is a generated list attribute value.
+type listAttr []interface{}
+
+var _ gazelleRule.BzlExprValue = (*listAttr)(nil)
+var _ gazelleRule.Merger = (*listAttr)(nil)
+
+func (l listAttr) BzlExpr() bzl.Expr {
+	return gazelleRule.ExprFromValue([]interface{}(l))
+}
+
+// Merge replaces an existing glob(), which gazelle's default merge cannot merge
+// into, and otherwise defers to the default merge to keep "# keep" entries.
+// An empty list deletes an existing glob().
+func (l listAttr) Merge(other bzl.Expr) bzl.Expr {
+	if _, isGlob := gazelleRule.ParseGlobExpr(other); other == nil || isGlob {
+		if len(l) == 0 {
+			return nil
+		}
+		return l.BzlExpr()
+	}
+
+	const key = "v"
+	src := gazelleRule.NewRule("", "")
+	src.SetAttr(key, []interface{}(l))
+	dst := gazelleRule.NewRule("", "")
+	dst.SetAttr(key, other)
+	gazelleRule.MergeRules(src, dst, map[string]bool{key: true}, "")
+	return dst.Attr(key)
+}
+
 func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target plugin.TargetDeclaration) (*gazelleRule.Rule, map[string]*attributeValue) {
 	targetRule := gazelleRule.NewRule(target.Kind, target.Name)
 
@@ -303,7 +341,7 @@ func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target
 		if len(attrValue) > 0 {
 			if isArray {
 				// An array of values taken as-is
-				targetRule.SetAttr(attr, attrValue)
+				targetRule.SetAttr(attr, listAttr(attrValue))
 			} else if attrValue[0] == nil {
 				// A single nil value is the same as deleting
 				targetRule.DelAttr(attr)

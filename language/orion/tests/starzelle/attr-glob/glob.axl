@@ -1,0 +1,40 @@
+aspect.gazelle_rule_kind("java_library", {
+    "From": "@rules_java//java:defs.bzl",
+    "NonEmptyAttrs": ["srcs"],
+    "MergeableAttrs": ["srcs"],
+})
+
+GLOB = "java_glob"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".java"),
+    )
+
+def declare(ctx):
+    if not ctx.sources:
+        ctx.targets.remove("lib")
+        return
+
+    if ctx.properties[GLOB]:
+        # Unsorted on purpose: gazelle writes the patterns sorted.
+        srcs = aspect.Glob(["*.kt", "*.java"], exclude = ["*Test.java"])
+    else:
+        srcs = [s.path for s in ctx.sources]
+
+    ctx.targets.add(
+        name = "lib",
+        kind = "java_library",
+        attrs = {
+            "srcs": srcs,
+        },
+    )
+
+aspect.orion_extension(
+    id = "glob-test",
+    properties = {
+        GLOB: aspect.Property(type = "bool", default = True),
+    },
+    prepare = prepare,
+    declare = declare,
+)
