@@ -1,0 +1,3 @@
+# Without exports_files, the Bazel build fails: the parent package references
+# icon.svg, and a file is only visible to other packages when it is exported.
+exports_files(["icon.svg"])

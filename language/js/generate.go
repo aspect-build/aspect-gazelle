@@ -288,6 +288,19 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		processPotentialSourceFile(sourceFileGroups, file)
 	}
 
+	// Files in subdirectories without a BUILD file belong to this package.
+	// Non-source files may be imported as assets, so collect them as data files.
+	pkgFiles, err := common.GetSourceRegularFiles(args.Rel)
+	if err != nil {
+		BazelLog.Errorf("Failed to fetch package files of %q: %v", args.Rel, err)
+	}
+	for _, file := range pkgFiles {
+		ext := path.Ext(file)
+		if path.Dir(file) != "." && !isSourceFileExt(ext) && !isDataFileExt(ext) {
+			dataFiles = append(dataFiles, file)
+		}
+	}
+
 	// Collect generated files.
 	for _, file := range args.GenFiles {
 		processPotentialSourceFile(generatedFileGroups, file)
