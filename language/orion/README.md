@@ -438,24 +438,32 @@ Args:
 **aspect.Glob(include, exclude=[], allow_empty=False)**:
 
 An attribute value rendered as a Bazel `glob()` call with sorted patterns, eg `"srcs": aspect.Glob(["*.java"], exclude = ["*Test.java"])`.
-It must be the entire attribute value, not an element of a list or dict.
-
-A mergeable attribute whose existing value is a list, a `glob()`, or a `glob()` and a list joined with `+` (in
-either order) is merged in two parts:
-* The glob: a generated glob replaces an existing glob unless both have the same patterns, in any order, and the
-  same `allow_empty`, in which case the existing glob is left in place with its comments. A glob with non-literal
-  patterns such as `glob(SRCS)` is replaced. A generated list, or removing the target, deletes the existing glob.
-* The list: merged like any gazelle list, so only `# keep` entries of the existing list are kept alongside a
-  generated glob, eg `glob(["*.java"]) + [":generated_src",  # keep]`.
-
-Other existing values, such as a `select()`, are left unchanged and gazelle logs that it could not merge them.
-A `# keep` on the whole attribute keeps it unchanged. A non-mergeable attribute keeps its existing value, as
-for any gazelle attribute.
+It must be the entire attribute value: an `aspect.Glob` inside a list or dict is an error, so a generated value
+cannot be `glob() + [...]` or a `glob()` inside a `select()`. `exclude_directories` is not supported.
 
 Args:
 * `include`: a list of glob patterns, at least one
 * `exclude`: a list of glob patterns to subtract from `include` (optional)
 * `allow_empty`: whether the glob may match no files, rendered as `allow_empty = True` (optional)
+
+Merging into a mergeable attribute, including a resolved attribute such as `deps`, works on an existing value that
+is a list, a `glob()`, or a `glob()` and a list joined with `+` (in either order). A generated glob, a generated
+list, and removing the target merge it in two parts:
+* The glob: a generated glob replaces an existing glob unless both have the same patterns, in any order, and the
+  same `allow_empty`, in which case the existing glob is left in place with its comments. A generated list, or
+  removing the target, deletes the existing glob.
+* The list: merged like any gazelle list, so only `# keep` entries of the existing list are kept alongside a
+  generated glob, eg `glob(["*.java"]) + [":generated_src",  # keep]`.
+
+Corner cases:
+* A glob with non-literal patterns, such as `glob(SRCS)`, is replaced by a generated glob.
+* Arguments of an existing glob other than `include`, `exclude` and `allow_empty`, such as `exclude_directories`,
+  are kept while the glob is unchanged but dropped when it is replaced.
+* Other existing values, such as `glob() + select()`, `glob() + glob()` or a `glob()` inside a `select()`, are left
+  unchanged and gazelle logs `could not merge expression`. So is an existing glob attribute that the plugin no
+  longer generates.
+* A `# keep` on the whole attribute keeps it unchanged, and a non-mergeable attribute keeps its existing value, as
+  for any gazelle attribute.
 
 ## Query Types
 

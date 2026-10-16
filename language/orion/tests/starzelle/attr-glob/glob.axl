@@ -6,6 +6,7 @@ aspect.gazelle_rule_kind("java_library", {
 
 GLOB = "java_glob"
 ALLOW_EMPTY = "java_glob_allow_empty"
+SRCS = "java_srcs"
 
 def prepare(_):
     return aspect.PrepareResult(
@@ -31,7 +32,7 @@ def declare(ctx):
         kind = "java_library",
         attrs = {
             "srcs": srcs,
-        },
+        } if ctx.properties[SRCS] else {},
     )
 
 aspect.orion_extension(
@@ -39,6 +40,7 @@ aspect.orion_extension(
     properties = {
         GLOB: aspect.Property(type = "bool", default = True),
         ALLOW_EMPTY: aspect.Property(type = "bool", default = False),
+        SRCS: aspect.Property(type = "bool", default = True),
     },
     prepare = prepare,
     declare = declare,

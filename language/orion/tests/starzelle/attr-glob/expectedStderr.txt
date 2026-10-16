@@ -1,1 +1,3 @@
+gazelle: %WORKSPACEPATH%/glob-not-generated/BUILD.bazel:7.12-7.28: could not merge expression
+gazelle: %WORKSPACEPATH%/glob-plus-select/BUILD.bazel:5.12-7.7: could not merge expression
 gazelle: %WORKSPACEPATH%/select-unchanged/BUILD.bazel:5.12-7.7: could not merge expression
