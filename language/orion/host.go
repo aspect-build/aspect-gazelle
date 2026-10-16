@@ -27,6 +27,22 @@ import (
 
 const GazelleLanguageName = "orion"
 
+// ExitCodeSetupError is the process exit status for a failure in the user's
+// gazelle setup, such as an orion extension that does not parse.
+//
+// It is deliberately not 1. Gazelle already overloads 1: `--mode=diff` and
+// `--mode=print` exit 1 when BUILD files are out of date, and the runner
+// binaries exit 1 via log.Fatalf when a run itself fails. A CI job that reads
+// exit 1 as "BUILD files are out of date, run gazelle" would therefore report
+// a typo in an extension as stale BUILD files -- the same misdiagnosis that
+// writing diagnostics to stdout used to cause. 2 follows the bazel and POSIX
+// convention of 2 = tool or usage error.
+//
+// The gazelle runner aliases this constant (runner.ExitCodeSetupError) rather
+// than picking its own, so every setup-error exit stays on one value and CI
+// can keep telling the two apart. Do not collapse it back onto 1.
+const ExitCodeSetupError = 2
+
 // A gazelle
 type GazelleHost struct {
 	database *plugin.Database
@@ -50,48 +66,84 @@ var _ gazelleLanguage.Language = (*GazelleHost)(nil)
 var _ gazelleLanguage.ModuleAwareLanguage = (*GazelleHost)(nil)
 var _ plugin.PluginHost = (*GazelleHost)(nil)
 
+// NewLanguage builds the orion host, loading `plugins` plus whatever
+// ORION_EXTENSIONS/ORION_EXTENSIONS_DIR name.
+//
+// `gazelle_binary` generates a call to exactly this signature, so this entry
+// point has nowhere to return a load failure to and reports it on stderr and
+// exits ExitCodeSetupError. Hosts that can do better than killing the
+// process — the runner's --watch loop rebuilds the languages on every cycle,
+// so an exit there takes the whole watcher down and strands its IBP
+// subscription — must call NewLanguageOrError instead.
 func NewLanguage(plugins ...string) gazelleLanguage.Language {
-	l := &GazelleHost{
+	l, err := NewLanguageOrError(plugins...)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		os.Exit(ExitCodeSetupError)
+	}
+	return l
+}
+
+// NewLanguageOrError is NewLanguage for hosts that can handle a failure
+// themselves. A returned error means at least one extension did not load; it
+// has not been printed, so the caller decides whether to abort and is
+// responsible for reporting it on stderr -- never stdout, which carries the
+// generated patch under `gazelle -mode=diff`.
+func NewLanguageOrError(plugins ...string) (gazelleLanguage.Language, error) {
+	l := newGazelleHost()
+
+	if err := l.loadStarzellePlugins(plugins); err != nil {
+		return nil, err
+	}
+	if err := l.loadEnvStarzellePlugins(); err != nil {
+		return nil, err
+	}
+
+	return l, nil
+}
+
+// newGazelleHost builds an empty host seeded with the builtin kinds, which
+// plugins may then add to or overwrite.
+func newGazelleHost() *GazelleHost {
+	h := &GazelleHost{
 		plugins:         make(map[string]plugin.Plugin),
 		kinds:           make(map[string]plugin.RuleKind),
 		sourceRuleKinds: treeset.NewWith(strings.Compare),
 		database:        &plugin.Database{},
 	}
 
-	// Initialize with builtin kinds. Plugins can add/overwrite these.
 	for _, k := range builtinKinds {
-		l.kinds[k.Name] = k
+		h.kinds[k.Name] = k
 	}
 
-	l.loadStarzellePlugins(plugins)
-	l.loadEnvStarzellePlugins()
-
-	return l
+	return h
 }
 
-func (h *GazelleHost) loadStarzellePlugins(plugins []string) {
+func (h *GazelleHost) loadStarzellePlugins(plugins []string) error {
 	if len(plugins) == 0 {
-		return
+		return nil
 	}
 
 	wd, cwdErr := os.Getwd()
 	if cwdErr != nil {
-		BazelLog.Fatalf("Failed to find CWD: %v", cwdErr)
-		return
+		return fmt.Errorf("Failed to find CWD: %v", cwdErr)
 	}
 
 	// Load starzelle plugins configured in the aspect-cli config.yaml
 	wr, wrErr := workspace.DefaultFinder.Find(wd)
 	if wrErr != nil {
-		BazelLog.Fatalf("Failed to find bazel workspace: %v", wrErr)
-		return
+		return fmt.Errorf("Failed to find bazel workspace: %v", wrErr)
 	}
 
 	BazelLog.Infof("Loading %v orion plugins from %q: %v", len(plugins), wd, plugins)
 
 	for _, plugin := range plugins {
-		h.LoadPlugin(wr, plugin)
+		if err := h.LoadPlugin(wr, plugin); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
 
 // resolveEnvPluginPath resolves an ORION_EXTENSIONS entry. Plugins in an
@@ -111,7 +163,7 @@ func resolveEnvPluginPath(pluginDir, p string) string {
 	return p
 }
 
-func (h *GazelleHost) loadEnvStarzellePlugins() {
+func (h *GazelleHost) loadEnvStarzellePlugins() error {
 	builtinPlugins := []string{}
 
 	// Load relative to cwd by default
@@ -137,8 +189,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 		}
 		builtinDirPlugins, err := filepath.Glob(path.Join(builtinPluginSubdir, "*.axl"))
 		if err != nil {
-			BazelLog.Fatalf("Failed to find builtin plugins: %v", err)
-			return
+			return fmt.Errorf("Failed to find builtin plugins: %v", err)
 		}
 
 		if len(builtinDirPlugins) == 0 {
@@ -152,7 +203,7 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 	}
 
 	if len(builtinPlugins) == 0 {
-		return
+		return nil
 	}
 
 	// Split the plugin paths to dir + rel for better logging and load API.
@@ -170,28 +221,55 @@ func (h *GazelleHost) loadEnvStarzellePlugins() {
 	BazelLog.Infof("Loading %v orion env plugins from %q: %v", len(builtinPlugins), builtinPluginDir, builtinPlugins)
 
 	for _, p := range builtinPlugins {
-		h.LoadPlugin(builtinPluginDir, p)
+		if err := h.LoadPlugin(builtinPluginDir, p); err != nil {
+			return err
+		}
 	}
+
+	return nil
 }
-func (h *GazelleHost) LoadPlugin(pluginDir, pluginPath string) {
+
+// LoadPlugin evaluates one orion extension and registers what it declares
+// (plugins, rule kinds) on h.
+//
+// A load failure is returned rather than reported, because only the caller
+// knows what to do about it, but it must not be ignored: an extension that did
+// not load generates none of its targets, so continuing writes BUILD files
+// silently missing whatever it was responsible for. Whoever reports it must do
+// so on stderr, never stdout, which carries the generated patch under
+// `gazelle -mode=diff`.
+//
+// The message is also recorded through BazelLog at error level — not info,
+// which the default WarnLevel drops — so a run debugged from a log file does
+// not simply stop mid-sequence. That mirrors common.MisconfiguredErrorf's
+// both-streams behaviour; the helper itself is not reused because it needs a
+// *config.Config and languages are constructed before gazelle builds one.
+func (h *GazelleHost) LoadPlugin(pluginDir, pluginPath string) error {
 	// Can not add new plugins after configuration/data-collection has started
 	if h.gazelleKindInfo != nil || h.gazelleLoadInfo != nil {
-		BazelLog.Fatalf("Cannot add plugin %q after configuration has started", pluginPath)
-		return
+		return fmt.Errorf("Cannot add orion plugin %q after configuration has started", pluginPath)
 	}
 
 	err := starzelle.LoadProxy(h, pluginDir, pluginPath)
 	if err != nil {
-		BazelLog.Infof("Failed to load orion plugin %v\n", err)
-
-		// Try to remove the `parentDir` from the error message to align paths
-		// with the user's workspace relative paths, and to remove sandbox paths
-		// when run in tests.
+		// Strip `pluginDir` so paths read as the user's workspace-relative ones,
+		// and so sandbox paths do not leak into test output.
 		errStr := strings.ReplaceAll(err.Error(), pluginDir+"/", "")
 
-		fmt.Printf("Failed to load orion plugin %v\n", errStr)
-		return
+		// Name the plugin: with several extensions configured the error alone
+		// does not always say which file to go fix.
+		loadErr := fmt.Errorf("Failed to load orion plugin %q: %s", pluginPath, errStr)
+
+		// Skipped when the log is already stderr, where the caller's report
+		// lands, so the user is not told the same thing twice.
+		if BazelLog.GetOutput() != os.Stderr {
+			BazelLog.Errorf("%v", loadErr)
+		}
+
+		return loadErr
 	}
+
+	return nil
 }
 
 func (h *GazelleHost) AddPlugin(plugin plugin.Plugin) {
@@ -214,7 +292,7 @@ func (h *GazelleHost) AddKind(k plugin.RuleKind) {
 		if existingFrom == "" {
 			existingFrom = "<builtin>"
 		}
-		fmt.Printf("WARN: gazelle_rule_kind(%q) registered by %q overrides existing registration by %q\n", k.Name, from, existingFrom)
+		fmt.Fprintf(os.Stderr, "WARN: gazelle_rule_kind(%q) registered by %q overrides existing registration by %q\n", k.Name, from, existingFrom)
 	}
 
 	BazelLog.Infof("Kind added: %q", k.Name)
@@ -272,7 +350,7 @@ func (h *GazelleHost) ApparentLoads(moduleToApparentName func(string) string) []
 			from, err := label.Parse(r.From)
 			if err != nil {
 				BazelLog.Errorf("Failed to parse label %q: %v", r.From, err)
-				fmt.Printf("Invalid rule 'From' label %q: %v", r.From, err)
+				fmt.Fprintf(os.Stderr, "Invalid rule 'From' label %q: %v\n", r.From, err)
 				continue
 			}
 

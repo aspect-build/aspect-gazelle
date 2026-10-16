@@ -1,3 +1,0 @@
-Failed to invoke data-key-get:Prepare(): Error: ctx.data key must be a string, got int
-Traceback (most recent call last):
-  data-key-get/key.axl:3:17: in prepare

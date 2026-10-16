@@ -8,6 +8,7 @@ package starzelle
 
 import (
 	"fmt"
+	"os"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
@@ -30,7 +31,7 @@ func pluginState(t *starlark.Thread, api string) (*starzelleState, error) {
 }
 
 func deprecatedRegisterConfigureExtension(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	fmt.Printf("DEPRECATED: 'register_configure_extension' is deprecated, please use 'orion_extension' instead.\n")
+	fmt.Fprintf(os.Stderr, "DEPRECATED: 'register_configure_extension' is deprecated, please use 'orion_extension' instead.\n")
 	return registerOrionPlugin(t, b, args, kwargs)
 }
 
@@ -71,7 +72,7 @@ func registerOrionPlugin(t *starlark.Thread, b *starlark.Builtin, args starlark.
 }
 
 func deprecatedRegisterRuleKind(t *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	fmt.Printf("DEPRECATED: 'register_rule_kind' is deprecated, please use 'gazelle_rule_kind' instead.\n")
+	fmt.Fprintf(os.Stderr, "DEPRECATED: 'register_rule_kind' is deprecated, please use 'gazelle_rule_kind' instead.\n")
 
 	return registerGazelleRuleKind(t, b, args, kwargs)
 }
