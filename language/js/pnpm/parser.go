@@ -20,6 +20,21 @@ func init() {
 /* Parse a lockfile and return a map of workspace projects to a map of dependency name to version.
  */
 func ParsePnpmLockFileDependencies(lockfileContent []byte) (WorkspacePackageVersionMap, error) {
+	// A lockfile that starts with a document marker contains pnpm's environment
+	// lock followed by the project's dependency lock.
+	if bytes.HasPrefix(lockfileContent, []byte("---\r\n")) {
+		lockfileContent = bytes.ReplaceAll(lockfileContent, []byte("\r\n"), []byte("\n"))
+	}
+	const documentStart = "---\n"
+	const documentSeparator = "\n---\n"
+	if bytes.HasPrefix(lockfileContent, []byte(documentStart)) {
+		if separator := bytes.Index(lockfileContent[len(documentStart):], []byte(documentSeparator)); separator >= 0 {
+			lockfileContent = lockfileContent[len(documentStart)+separator+len(documentSeparator):]
+		} else {
+			lockfileContent = nil
+		}
+	}
+
 	return parsePnpmLockDependencies(bytes.NewReader(lockfileContent))
 }
 
