@@ -5,6 +5,7 @@ aspect.gazelle_rule_kind("java_library", {
 })
 
 GLOB = "java_glob"
+ALLOW_EMPTY = "java_glob_allow_empty"
 
 def prepare(_):
     return aspect.PrepareResult(
@@ -17,8 +18,11 @@ def declare(ctx):
         return
 
     if ctx.properties[GLOB]:
-        # Unsorted on purpose: gazelle writes the patterns sorted.
-        srcs = aspect.Glob(["*.kt", "*.java"], exclude = ["*Test.java"])
+        srcs = aspect.Glob(
+            ["*.kt", "*.java"],
+            exclude = ["*Test.java"],
+            allow_empty = ctx.properties[ALLOW_EMPTY],
+        )
     else:
         srcs = [s.path for s in ctx.sources]
 
@@ -34,6 +38,7 @@ aspect.orion_extension(
     id = "glob-test",
     properties = {
         GLOB: aspect.Property(type = "bool", default = True),
+        ALLOW_EMPTY: aspect.Property(type = "bool", default = False),
     },
     prepare = prepare,
     declare = declare,

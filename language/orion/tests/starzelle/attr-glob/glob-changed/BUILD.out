@@ -4,8 +4,8 @@ java_library(
     name = "lib",
     srcs = glob(
         [
-            "*.kt",
             "*.java",
+            "*.kt",
         ],
         exclude = ["*Test.java"],
     ),

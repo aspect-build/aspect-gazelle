@@ -435,19 +435,27 @@ Args:
 * `src`: the source of the import (optional). Only used for debugging and error messages.
 * `ancestor`: when `True`, the resolver searches for `join(parent, id)` at the importing rule's package and each ancestor directory up to the workspace root, returning the first match (eg for `id = "tsconfig.json"` from `//a/b`: tries `a/b/tsconfig.json`, `a/tsconfig.json`, then `tsconfig.json`). Cannot be combined with `multiple`.
 
-**aspect.Glob(include, exclude=[])**:
+**aspect.Glob(include, exclude=[], allow_empty=False)**:
 
-An attribute value rendered as a Bazel `glob()` call, eg `"srcs": aspect.Glob(["*.java"], exclude = ["*Test.java"])`.
+An attribute value rendered as a Bazel `glob()` call with sorted patterns, eg `"srcs": aspect.Glob(["*.java"], exclude = ["*Test.java"])`.
 It must be the entire attribute value, not an element of a list or dict.
 
-For a mergeable attribute the generated value replaces the existing one: a glob replaces an existing list or a
-different glob (including `# keep` entries in a replaced list), and a generated list replaces an existing glob.
-An existing glob with the same patterns, in any order, is left in place with its comments and `allow_empty`.
-Removing the target also removes a glob attribute.
+A mergeable attribute whose existing value is a list, a `glob()`, or a `glob()` and a list joined with `+` (in
+either order) is merged in two parts:
+* The glob: a generated glob replaces an existing glob unless both have the same patterns, in any order, and the
+  same `allow_empty`, in which case the existing glob is left in place with its comments. A glob with non-literal
+  patterns such as `glob(SRCS)` is replaced. A generated list, or removing the target, deletes the existing glob.
+* The list: merged like any gazelle list, so only `# keep` entries of the existing list are kept alongside a
+  generated glob, eg `glob(["*.java"]) + [":generated_src",  # keep]`.
+
+Other existing values, such as a `select()`, are left unchanged and gazelle logs that it could not merge them.
+A `# keep` on the whole attribute keeps it unchanged. A non-mergeable attribute keeps its existing value, as
+for any gazelle attribute.
 
 Args:
 * `include`: a list of glob patterns, at least one
 * `exclude`: a list of glob patterns to subtract from `include` (optional)
+* `allow_empty`: whether the glob may match no files, rendered as `allow_empty = True` (optional)
 
 ## Query Types
 

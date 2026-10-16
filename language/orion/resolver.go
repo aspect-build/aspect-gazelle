@@ -168,7 +168,7 @@ func (re *GazelleHost) Resolve(c *config.Config, ix *resolve.RuleIndex, rc *repo
 				value = append(value, l)
 			}
 			if len(value) > 0 {
-				r.SetAttr(attr, listAttr(value))
+				r.SetAttr(attr, withGlobMerge(value, attrValue.existing))
 			} else {
 				r.DelAttr(attr)
 			}

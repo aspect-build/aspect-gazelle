@@ -1,0 +1,26 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+    "MergeableAttrs": ["srcs"],
+    "ResolveAttrs": ["data", "deps"],
+})
+
+def declare(ctx):
+    ctx.targets.add(
+        name = "a",
+        kind = "x_lib",
+        attrs = {
+            "srcs": aspect.Glob(["*.java"]),
+            "deps": [aspect.Import(id = "b", provider = "x")],
+            "data": [aspect.Import(id = "b", provider = "x")],
+        },
+    )
+    ctx.targets.add(
+        name = "b",
+        kind = "x_lib",
+        symbols = [aspect.Symbol(id = "b", provider = "x")],
+    )
+
+aspect.orion_extension(
+    id = "glob-resolve-test",
+    declare = declare,
+)

@@ -1,5 +1,7 @@
 load("@rules_java//java:defs.bzl", "java_library")
 
+# gazelle:java_glob_allow_empty true
+
 java_library(
     name = "lib",
     srcs = glob(

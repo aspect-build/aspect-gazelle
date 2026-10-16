@@ -673,7 +673,7 @@ func (l Label) Hash() (uint32, error) {
 var _ starlark.Value = (*Glob)(nil)
 
 func (g Glob) String() string {
-	return fmt.Sprintf("Glob{include: %q, exclude: %q}", g.Include, g.Exclude)
+	return fmt.Sprintf("Glob{include: %q, exclude: %q, allow_empty: %t}", g.Include, g.Exclude, g.AllowEmpty)
 }
 func (g Glob) Type() string         { return "Glob" }
 func (g Glob) Freeze()              {}

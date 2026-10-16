@@ -275,6 +275,7 @@ type Label struct {
 // Glob is a target attribute value rendered as a Bazel glob() call.
 type Glob struct {
 	Include, Exclude []string
+	AllowEmpty       bool
 }
 
 type AnalyzeContext struct {

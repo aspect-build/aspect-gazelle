@@ -564,6 +564,7 @@ func newLabel(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwar
 
 func newGlob(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var include, exclude *starlark.List
+	var allowEmpty starlark.Bool
 
 	err := starlark.UnpackArgs(
 		"Glob",
@@ -571,6 +572,7 @@ func newGlob(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwarg
 		kwargs,
 		"include", &include,
 		"exclude?", &exclude,
+		"allow_empty?", &allowEmpty,
 	)
 	if err != nil {
 		return nil, err
@@ -593,8 +595,9 @@ func newGlob(_ *starlark.Thread, b *starlark.Builtin, args starlark.Tuple, kwarg
 	}
 
 	return plugin.Glob{
-		Include: includes,
-		Exclude: excludes,
+		Include:    includes,
+		Exclude:    excludes,
+		AllowEmpty: bool(allowEmpty),
 	}, nil
 }
 
