@@ -367,7 +367,7 @@ func addTarget(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 
 	var attrs map[string]any
 	if starAttrs != nil {
-		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttribute)
+		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttrTopLevel)
 		if err != nil {
 			return nil, err
 		}

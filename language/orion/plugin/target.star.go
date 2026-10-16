@@ -115,9 +115,9 @@ func readSymbol(v starlark.Value) (Symbol, error) {
 	return s, nil
 }
 
-// readTargetAttribute reads a whole attribute value. A Glob is only accepted
-// here because glob() already evaluates to a list.
-func readTargetAttribute(v starlark.Value) (any, error) {
+// readTargetAttrTopLevel reads a whole attribute value. A Glob stands in for the
+// whole list, so it is accepted here but not as an element.
+func readTargetAttrTopLevel(v starlark.Value) (any, error) {
 	if g, isGlob := v.(Glob); isGlob {
 		return g, nil
 	}
