@@ -367,7 +367,7 @@ func addTarget(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 
 	var attrs map[string]any
 	if starAttrs != nil {
-		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttributeValue)
+		attrs, err = starUtils.ReadMap2(starAttrs, readTargetAttrTopLevel)
 		if err != nil {
 			return nil, err
 		}
@@ -666,4 +666,18 @@ func (l Label) Freeze()              {}
 func (l Label) Truth() starlark.Bool { return starlark.True }
 func (l Label) Hash() (uint32, error) {
 	return 0, fmt.Errorf("unhashable: %s", l.Type())
+}
+
+// ---------------- Glob
+
+var _ starlark.Value = (*Glob)(nil)
+
+func (g Glob) String() string {
+	return fmt.Sprintf("Glob{include: %q, exclude: %q, allow_empty: %t}", g.Include, g.Exclude, g.AllowEmpty)
+}
+func (g Glob) Type() string         { return "Glob" }
+func (g Glob) Freeze()              {}
+func (g Glob) Truth() starlark.Bool { return starlark.True }
+func (g Glob) Hash() (uint32, error) {
+	return 0, fmt.Errorf("unhashable: %s", g.Type())
 }
