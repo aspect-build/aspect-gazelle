@@ -1,34 +1,30 @@
 package pnpm
 
 import (
-	"bufio"
+	"io"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 )
 
 func TestPnpmLockParseDependencies(t *testing.T) {
 	t.Run("lockfile version", func(t *testing.T) {
-		v, e := parsePnpmLockVersion(bufio.NewReader(strings.NewReader("lockfileVersion: 5.4")))
-		if e != nil {
-			t.Error(e)
-		} else if v != "5.4" {
-			t.Error("Failed to parse lockfile version 5.4")
-		}
-
-		v, e = parsePnpmLockVersion(bufio.NewReader(strings.NewReader("lockfileVersion: '6.0'")))
-		if e != nil {
-			t.Error(e)
-		} else if v != "6.0" {
-			t.Error("Failed to parse lockfile version 6.0")
-		}
-
-		// Multi-digit versions must parse so a future bump fails with
-		// "unsupported version" instead of a version-parse error.
-		v, e = parsePnpmLockVersion(bufio.NewReader(strings.NewReader("lockfileVersion: '10.0'")))
-		if e != nil {
-			t.Error(e)
-		} else if v != "10.0" {
-			t.Error("Failed to parse lockfile version 10.0")
+		for content, expected := range map[string]string{
+			"lockfileVersion: 5.4":   "5.4",
+			"lockfileVersion: '6.0'": "6.0",
+			// Multi-digit versions must parse so a future bump fails with
+			// "unsupported version" instead of a version-parse error.
+			"lockfileVersion: '10.0'": "10.0",
+			// A leading document separator is what pnpm 12 writes.
+			"---\nlockfileVersion: '9.0'": "9.0",
+		} {
+			v, e := parseVersionOfFirstDocument(t, content)
+			if e != nil {
+				t.Error(e)
+			} else if v != expected {
+				t.Errorf("Failed to parse lockfile version %s from %q, got %q", expected, content, v)
+			}
 		}
 	})
 
@@ -441,4 +437,113 @@ packages:
 			t.Error("expected 'infrastructure/cdn' importer to have '@aspect-test/c' dep, found: ", wksps["infrastructure/cdn"])
 		}
 	})
+
+	t.Run("pnpm 12 multi-document lockfile", func(t *testing.T) {
+		// What pnpm 12 writes: its own self-management pins as a leading document,
+		// the dependency graph as a second one. The first line is a separator, and
+		// BOTH documents carry an `importers:` key — the leading one listing only
+		// the root, so a parser that reads the first document sees one importer
+		// instead of every workspace.
+		deps, err := parsePnpmLockDependencies(strings.NewReader(`---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    packageManagerDependencies:
+      '@pnpm/exe.linux-x64': 12.0.0
+
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      '@aspect-test/a':
+        specifier: ^5.0.0
+        version: 5.0.2
+
+  projects/b:
+    devDependencies:
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+`))
+
+		if err != nil {
+			t.Fatal("Parse failure: ", err)
+		}
+		if len(deps) != 2 {
+			t.Fatalf("Expected 2 importers, got %d: %v", len(deps), deps)
+		}
+		if got := deps["."]["@aspect-test/a"]; got != "5.0.2" {
+			t.Errorf("Root importer came from the wrong document, got %q for @aspect-test/a: %v", got, deps["."])
+		}
+		if got := deps["projects/b"]["jquery"]; got != "3.6.1" {
+			t.Errorf("Expected jquery 3.6.1 for projects/b, got %q", got)
+		}
+	})
+
+	t.Run("multi-document order does not matter", func(t *testing.T) {
+		// The same two documents with the self-management one last. Nothing about
+		// the fix should depend on which document comes first.
+		deps, err := parsePnpmLockDependencies(strings.NewReader(`lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      '@aspect-test/a':
+        specifier: ^5.0.0
+        version: 5.0.2
+
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    packageManagerDependencies:
+      '@pnpm/exe.linux-x64': 12.0.0
+`))
+
+		if err != nil {
+			t.Fatal("Parse failure: ", err)
+		}
+		if got := deps["."]["@aspect-test/a"]; got != "5.0.2" {
+			t.Errorf("A document declaring no dependencies emptied one that did, got: %v", deps["."])
+		}
+	})
+
+	t.Run("no lockfile version in any document", func(t *testing.T) {
+		_, err := parsePnpmLockDependencies(strings.NewReader(`---
+settings:
+  autoInstallPeers: false
+`))
+		if err == nil {
+			t.Error("Expected an error when no document declares a lockfileVersion")
+		}
+	})
+
+	t.Run("document separator only", func(t *testing.T) {
+		// `---` alone is a valid but empty YAML document, and still not a lockfile.
+		// This errored before the multi-document change and continues to; only a
+		// genuinely empty file is treated as "no dependencies yet".
+		if _, err := parsePnpmLockDependencies(strings.NewReader("---\n")); err == nil {
+			t.Error("Expected an error for a lockfile that is only a document separator")
+		}
+	})
+}
+
+// Decode the first YAML document of content and read its lockfileVersion, which is
+// what parsePnpmLockDependencies does per document.
+func parseVersionOfFirstDocument(t *testing.T, content string) (string, error) {
+	t.Helper()
+
+	var document yaml.Node
+	if err := yaml.NewDecoder(strings.NewReader(content)).Decode(&document); err != nil && err != io.EOF {
+		t.Fatalf("failed to decode %q: %v", content, err)
+	}
+	return parsePnpmLockVersion(&document)
 }

@@ -1,8 +1,8 @@
 package pnpm
 
-import "io"
+import "gopkg.in/yaml.v3"
 
-func parsePnpmLockDependenciesV9(yamlReader io.Reader) (WorkspacePackageVersionMap, error) {
+func parsePnpmLockDependenciesV9(document *yaml.Node) (WorkspacePackageVersionMap, error) {
 	// The top-level lockfile object is the same as v6 for the WorkspacePackageVersionMap requirements
-	return parsePnpmLockDependenciesV6(yamlReader)
+	return parsePnpmLockDependenciesV6(document)
 }
