@@ -283,20 +283,31 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		dataFiles = append(dataFiles, file)
 	}
 
+	// Set of walkable package files for O(1) membership checks when filtering
+	// pinned/kept srcs down to entries that parseFiles can actually read.
+	walkableFiles := make(map[string]struct{}, len(args.RegularFiles))
+	for _, f := range args.RegularFiles {
+		walkableFiles[f] = struct{}{}
+	}
+
 	// Collect source files.
 	for _, file := range args.RegularFiles {
 		processPotentialSourceFile(sourceFileGroups, file)
 	}
 
 	// Files in subdirectories without a BUILD file belong to this package.
-	// Non-source files may be imported as assets, so collect them as data files.
+	// Gazelle only includes them in args.RegularFiles in update_only mode.
+	// Non-source files may be imported as assets, so collect the others as
+	// data files.
 	pkgFiles, err := common.GetSourceRegularFiles(args.Rel)
 	if err != nil {
 		BazelLog.Errorf("Failed to fetch package files of %q: %v", args.Rel, err)
 	}
 	for _, file := range pkgFiles {
-		ext := path.Ext(file)
-		if path.Dir(file) != "." && !isSourceFileExt(ext) && !isDataFileExt(ext) {
+		if _, collected := walkableFiles[file]; collected {
+			continue
+		}
+		if ext := path.Ext(file); !isSourceFileExt(ext) && !isDataFileExt(ext) {
 			dataFiles = append(dataFiles, file)
 		}
 	}
@@ -312,13 +323,6 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 	// The package/directory name variable value used to render the target names.
 	packageName := toDefaultTargetName(args, DefaultRootTargetName)
-
-	// Set of walkable package files for O(1) membership checks when filtering
-	// pinned/kept srcs down to entries that parseFiles can actually read.
-	walkableFiles := make(map[string]struct{}, len(args.RegularFiles))
-	for _, f := range args.RegularFiles {
-		walkableFiles[f] = struct{}{}
-	}
 
 	// Create rules for each target group.
 	sourceRules := make(map[string]*rule.Rule, len(sourceFileGroups))
