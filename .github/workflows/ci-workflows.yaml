@@ -15,6 +15,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+      - name: Check Bazel version pins
+        run: |
+          while IFS= read -r -d '' file; do
+            if [[ "$file" != */e2e/* && -L "$file" ]]; then
+              echo "$file must be a regular copy of the root .bazelversion" >&2
+              exit 1
+            fi
+            if ! cmp -s .bazelversion "$file"; then
+              echo "$file must match the root .bazelversion" >&2
+              exit 1
+            fi
+          done < <(git ls-files -z -- '**/.bazelversion')
       - uses: aspect-build/setup-aspect@c22a8f64fb38f82f59ce809cd7eb9f8ae096da44 # v2026.23.2
         with:
           aspect-api-token: ${{ secrets.ASPECT_API_TOKEN }}
