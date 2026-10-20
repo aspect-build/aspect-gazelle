@@ -1,0 +1,8 @@
+packages:
+  - 'app'
+  - 'lib'
+catalog:
+  jquery: 3.6.1
+catalogs:
+  tools:
+    '@aspect-test/a': ^5.0.0

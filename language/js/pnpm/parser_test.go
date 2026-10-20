@@ -22,6 +22,13 @@ func TestPnpmLockParseDependencies(t *testing.T) {
 			t.Error("Failed to parse lockfile version 6.0")
 		}
 
+		v, e = parsePnpmLockVersion(bufio.NewReader(strings.NewReader("---\nlockfileVersion: '9.0'")))
+		if e != nil {
+			t.Error(e)
+		} else if v != "9.0" {
+			t.Error("Failed to parse lockfile version after document start marker")
+		}
+
 		// Multi-digit versions must parse so a future bump fails with
 		// "unsupported version" instead of a version-parse error.
 		v, e = parsePnpmLockVersion(bufio.NewReader(strings.NewReader("lockfileVersion: '10.0'")))
@@ -277,6 +284,100 @@ importers:
 
 		if basic["."]["@aspect-test/a"] != "5.0.2" {
 			t.Errorf("Catalog deps parse error. Expected 5.0.2 version for @aspect-test/a, found %q", basic["."]["@aspect-test/a"])
+		}
+	})
+
+	t.Run("multi-document lockfile (pnpm 12)", func(t *testing.T) {
+		content := `---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    configDependencies: {}
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.14.0
+        version: 12.14.0
+
+packages:
+
+  pnpm@12.14.0:
+    resolution: {integrity: sha512-abc}
+    hasBin: true
+
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .: {}
+
+  app:
+    dependencies:
+      '@aspect-test/a':
+        specifier: catalog:tools
+        version: 5.0.2
+      jquery:
+        specifier: 'catalog:'
+        version: 3.6.1
+
+  lib: {}
+`
+
+		for _, lineEnding := range []string{"\n", "\r\n"} {
+			lock, err := parsePnpmLockDependencies(strings.NewReader(strings.ReplaceAll(content, "\n", lineEnding)))
+			if err != nil {
+				t.Fatal("Parse failure: ", err)
+			}
+
+			if len(lock) != 3 {
+				t.Error("Expected 3 workspace projects, found ", len(lock))
+			}
+
+			if len(lock["."]) != 0 {
+				t.Error("Expected no root deps, found ", lock["."])
+			}
+
+			if len(lock["app"]) != 2 || lock["app"]["jquery"] != "3.6.1" || lock["app"]["@aspect-test/a"] != "5.0.2" {
+				t.Error("Unexpected app deps: ", lock["app"])
+			}
+
+			if lock["lib"] == nil || len(lock["lib"]) != 0 {
+				t.Error("Expected empty lib deps, found ", lock["lib"])
+			}
+		}
+	})
+
+	t.Run("multi-document lockfile, project document first", func(t *testing.T) {
+		lock, err := parsePnpmLockDependencies(strings.NewReader(`---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    dependencies:
+      jquery:
+        specifier: 3.6.1
+        version: 3.6.1
+
+---
+lockfileVersion: '9.0'
+
+importers:
+
+  .:
+    packageManagerDependencies:
+      pnpm:
+        specifier: 12.14.0
+        version: 12.14.0
+`))
+		if err != nil {
+			t.Fatal("Parse failure: ", err)
+		}
+
+		if len(lock) != 1 || len(lock["."]) != 1 || lock["."]["jquery"] != "3.6.1" {
+			t.Error("Unexpected deps: ", lock)
 		}
 	})
 

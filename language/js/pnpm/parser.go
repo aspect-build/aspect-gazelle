@@ -25,26 +25,34 @@ func ParsePnpmLockFileDependencies(lockfileContent []byte) (WorkspacePackageVers
 
 var lockVersionRegex = regexp.MustCompile(`^\s*lockfileVersion: '?(?P<Version>\d+\.\d+)'?`)
 
+var yamlDocumentStart = []byte("---")
+
 func parsePnpmLockVersion(yamlFileReader *bufio.Reader) (string, error) {
-	versionBytes, isShort, err := yamlFileReader.ReadLine()
+	for {
+		versionBytes, isShort, err := yamlFileReader.ReadLine()
 
-	if isShort {
-		return "", fmt.Errorf("failed to read lockfile version, line too long: '%s...'", string(versionBytes))
-	}
-	if err == io.EOF {
-		return "", nil
-	}
-	if err != nil {
-		return "", fmt.Errorf("failed to read lockfile version: %v", err)
-	}
+		if isShort {
+			return "", fmt.Errorf("failed to read lockfile version, line too long: '%s...'", string(versionBytes))
+		}
+		if err == io.EOF {
+			return "", nil
+		}
+		if err != nil {
+			return "", fmt.Errorf("failed to read lockfile version: %v", err)
+		}
 
-	match := lockVersionRegex.FindSubmatch(versionBytes)
+		if bytes.Equal(bytes.TrimSpace(versionBytes), yamlDocumentStart) {
+			continue
+		}
 
-	if len(match) != 2 {
-		return "", fmt.Errorf("failed to find lockfile version in: %q", string(versionBytes))
+		match := lockVersionRegex.FindSubmatch(versionBytes)
+
+		if len(match) != 2 {
+			return "", fmt.Errorf("failed to find lockfile version in: %q", string(versionBytes))
+		}
+
+		return string(match[1]), nil
 	}
-
-	return string(match[1]), nil
 }
 
 func parsePnpmLockDependencies(yamlFileReader io.Reader) (WorkspacePackageVersionMap, error) {
