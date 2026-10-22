@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/common
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/aspect-build/aspect-gazelle/treesitter v0.0.0-20260617211333-3d8b9bffa90f

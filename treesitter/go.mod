@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/treesitter
 
-go 1.27.0
+go 1.27.3
 
 require github.com/smacker/go-tree-sitter v0.0.0-20240827094217-dd81d9e9be82
 
