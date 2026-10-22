@@ -4,7 +4,7 @@
 // SDK (@go_sdk), used by the gofmt formatter in //tools/format.
 module github.com/aspect-build/aspect-gazelle
 
-go 1.27.0
+go 1.27.3
 
 require (
 	golang.org/x/tools v0.50.0

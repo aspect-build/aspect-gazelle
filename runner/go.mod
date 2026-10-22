@@ -1,6 +1,6 @@
 module github.com/aspect-build/aspect-gazelle/runner
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/EngFlow/gazelle_cc v0.6.0 // NOTE: keep in sync with MODULE.bazel
