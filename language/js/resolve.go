@@ -383,15 +383,11 @@ func (ts *typeScriptLang) Resolve(
 		// For a ts_project, an asset file in another package belongs in assets.
 		// fileDeps collects the raw-file resolutions so they can be split out.
 		var fileDeps *common.LabelSet
-		var isFileDep func(*JsGazelleConfig, ImportStatement, *label.Label) bool
-		if isPackageInfo {
+		if isPackageInfo || r.Kind() == TsProjectKind {
 			fileDeps = common.NewLabelSet(from)
-		} else if r.Kind() == TsProjectKind {
-			fileDeps = common.NewLabelSet(from)
-			isFileDep = isAssetDep
 		}
 
-		err := ts.resolveImports(c, ix, deps, fileDeps, isFileDep, projectInfo.imports, from, projectInfo.groupName)
+		err := ts.resolveImports(c, ix, r.Kind(), deps, fileDeps, projectInfo.imports, from, projectInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -435,7 +431,7 @@ func (ts *typeScriptLang) Resolve(
 		srcs := packageInfo.sources.Values()
 
 		deps := common.NewLabelSet(from)
-		err := ts.resolveImports(c, ix, deps, nil, nil, packageInfo.imports, from, packageInfo.groupName)
+		err := ts.resolveImports(c, ix, r.Kind(), deps, nil, packageInfo.imports, from, packageInfo.groupName)
 		if err != nil {
 			common.ImportErrorf(c, "Resolution Error: %v", err)
 			return
@@ -470,16 +466,16 @@ func (ts *typeScriptLang) addTsLib(
 }
 
 // resolveImports resolves each import into deps, except raw-file resolutions
-// which, when fileDeps is non-nil, are routed there instead. A non-nil
-// isFileDep limits the routing to the raw files it accepts. Callers that do
+// which, when fileDeps is non-nil, are routed there instead. For a ts_project,
+// only asset files are routed there. Callers that do
 // not distinguish files from libraries (all deps in one attribute) pass a nil
 // fileDeps so every resolution lands in deps.
 func (ts *typeScriptLang) resolveImports(
 	c *config.Config,
 	ix *resolve.RuleIndex,
+	kind string,
 	deps *common.LabelSet,
 	fileDeps *common.LabelSet,
-	isFileDep func(*JsGazelleConfig, ImportStatement, *label.Label) bool,
 	imports *treeset.Set[ImportStatement],
 	from label.Label,
 	groupName string,
@@ -520,7 +516,7 @@ func (ts *typeScriptLang) resolveImports(
 				target = fileDeps
 			}
 			for _, dep := range resolved {
-				if target == fileDeps && isFileDep != nil && !isFileDep(cfg, imp, dep) {
+				if target == fileDeps && kind == TsProjectKind && !isAssetDep(cfg, imp, dep) {
 					deps.Add(dep)
 				} else {
 					target.Add(dep)
