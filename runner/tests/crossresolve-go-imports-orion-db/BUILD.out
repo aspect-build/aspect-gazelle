@@ -1,0 +1,17 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+
+filegroup(
+    name = "provider",
+)
+
+filegroup(
+    name = "wrong_provider",
+)
+
+go_library(
+    name = "consumer",
+    srcs = ["consumer.go"],
+    importpath = "example.com/consumer",
+    visibility = ["//visibility:public"],
+    deps = [":provider"],
+)
