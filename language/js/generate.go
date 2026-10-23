@@ -947,7 +947,7 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 					dataFiles = slices.Delete(dataFiles, dataIdx, dataIdx+1)
 				}
 			}
-		} else if cfg.CollectAssetsFrom(importStatement.Kind) {
+		} else if isAssetFile(cfg, importStatement.Kind, workspacePath) {
 			// An asset in a subdirectory without a BUILD file belongs to this package.
 			if assetFile, ok := subdirAssetFile(args.Rel, workspacePath); ok {
 				info.sources.Add(assetFile)
@@ -1415,9 +1415,18 @@ func tsconfigRootDirRelative(tsconfigDir, rootDir, pkgRel string) string {
 }
 
 // path.Join() for cases where the 2 parts are already normalized and simply need concatenation.
-// subdirAssetFile returns the path, relative to pkg, of an imported asset in a
-// subdirectory of pkg. Only the directories on the imported path are read, and
-// every one of them must have no BUILD file, so the asset belongs to pkg.
+func joinPkg(pkg, rel string) string {
+	if pkg == "" {
+		return rel
+	}
+	// rel is already workspace-relative and should not need path cleaning.
+	return pkg + "/" + rel
+}
+
+// subdirAssetFile returns the path, relative to pkg, of an imported file in a
+// subdirectory of pkg. Like common.WalkHasPath, only the directories on the
+// imported path are read, but each must have no BUILD file so that the file
+// belongs to pkg.
 func subdirAssetFile(pkg, imp string) (string, bool) {
 	assetFile := imp
 	if pkg != "" {
@@ -1427,39 +1436,23 @@ func subdirAssetFile(pkg, imp string) (string, bool) {
 		assetFile = imp[len(pkg)+1:]
 	}
 
-	ext := path.Ext(assetFile)
-	if path.Dir(assetFile) == "." || isSourceFileExt(ext) || isDataFileExt(ext) {
+	dir := path.Dir(assetFile)
+	if dir == "." {
 		return "", false
 	}
 
 	rel := pkg
-	d, err := walk.GetDirInfo(rel)
-	if err != nil {
-		return "", false
-	}
-	p := assetFile
-	for i := strings.IndexByte(p, '/'); i >= 0; i = strings.IndexByte(p, '/') {
-		subdir := p[:i]
-		if !slices.Contains(d.Subdirs, subdir) {
-			return "", false
-		}
+	var d walk.DirInfo
+	for _, subdir := range strings.Split(dir, "/") {
 		rel = joinPkg(rel, subdir)
+		var err error
 		d, err = walk.GetDirInfo(rel)
 		if err != nil || d.File != nil {
 			return "", false
 		}
-		p = p[i+1:]
 	}
 
-	return assetFile, slices.Contains(d.RegularFiles, p)
-}
-
-func joinPkg(pkg, rel string) string {
-	if pkg == "" {
-		return rel
-	}
-	// rel is already workspace-relative and should not need path cleaning.
-	return pkg + "/" + rel
+	return assetFile, slices.Contains(d.RegularFiles, path.Base(assetFile))
 }
 
 // toImportPaths returns an iterator over all paths that p can be imported as.

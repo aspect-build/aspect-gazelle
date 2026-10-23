@@ -383,12 +383,12 @@ func (ts *typeScriptLang) Resolve(
 		// For a ts_project, an asset file in another package belongs in assets.
 		// fileDeps collects the raw-file resolutions so they can be split out.
 		var fileDeps *common.LabelSet
-		var isFileDep func(ImportStatement, *label.Label) bool
+		var isFileDep func(*JsGazelleConfig, ImportStatement, *label.Label) bool
 		if isPackageInfo {
 			fileDeps = common.NewLabelSet(from)
 		} else if r.Kind() == TsProjectKind {
 			fileDeps = common.NewLabelSet(from)
-			isFileDep = isAssetDep(c.Exts[LanguageName].(*JsGazelleConfig))
+			isFileDep = isAssetDep
 		}
 
 		err := ts.resolveImports(c, ix, deps, fileDeps, isFileDep, projectInfo.imports, from, projectInfo.groupName)
@@ -479,7 +479,7 @@ func (ts *typeScriptLang) resolveImports(
 	ix *resolve.RuleIndex,
 	deps *common.LabelSet,
 	fileDeps *common.LabelSet,
-	isFileDep func(ImportStatement, *label.Label) bool,
+	isFileDep func(*JsGazelleConfig, ImportStatement, *label.Label) bool,
 	imports *treeset.Set[ImportStatement],
 	from label.Label,
 	groupName string,
@@ -515,11 +515,15 @@ func (ts *typeScriptLang) resolveImports(
 		}
 
 		if !imp.TypesOnly || len(types) == 0 {
+			target := deps
+			if resolutionType == Resolution_File && fileDeps != nil {
+				target = fileDeps
+			}
 			for _, dep := range resolved {
-				if resolutionType == Resolution_File && fileDeps != nil && (isFileDep == nil || isFileDep(imp, dep)) {
-					fileDeps.Add(dep)
-				} else {
+				if target == fileDeps && isFileDep != nil && !isFileDep(cfg, imp, dep) {
 					deps.Add(dep)
+				} else {
+					target.Add(dep)
 				}
 			}
 		}
@@ -781,12 +785,14 @@ func targetListFromResults(results []resolve.FindResult) string {
 	return strings.Join(list, ", ")
 }
 
-// isAssetDep returns whether a raw-file resolution is an asset of a ts_project:
+// isAssetDep returns whether a raw-file resolution is an asset of a ts_project.
+func isAssetDep(cfg *JsGazelleConfig, imp ImportStatement, dep *label.Label) bool {
+	return isAssetFile(cfg, imp.Kind, dep.Name)
+}
+
+// isAssetFile returns whether a file imported by the given kind is an asset:
 // a non-source, non-data file imported by a kind that collects assets.
-// The same rules decide which local files become assets during generation.
-func isAssetDep(cfg *JsGazelleConfig) func(ImportStatement, *label.Label) bool {
-	return func(imp ImportStatement, dep *label.Label) bool {
-		ext := path.Ext(dep.Name)
-		return cfg.CollectAssetsFrom(imp.Kind) && !isSourceFileExt(ext) && !isDataFileExt(ext)
-	}
+func isAssetFile(cfg *JsGazelleConfig, kind ImportKind, file string) bool {
+	ext := path.Ext(file)
+	return cfg.CollectAssetsFrom(kind) && !isSourceFileExt(ext) && !isDataFileExt(ext)
 }
