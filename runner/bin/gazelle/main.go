@@ -1,6 +1,8 @@
 package main
 
 import (
+	"errors"
+	"fmt"
 	"log"
 	"os"
 
@@ -50,10 +52,21 @@ func main() {
 
 		hasChanges, err := c.Generate(cmd, mode, args)
 		if err != nil {
+			var setupErr *runner.SetupError
+			if errors.As(err, &setupErr) {
+				// A broken gazelle setup is the user's to fix, not a gazelle
+				// crash, and must stay distinguishable from the exit 1 below.
+				fmt.Fprintln(os.Stderr, setupErr)
+				os.Exit(runner.ExitCodeSetupError)
+			}
 			log.Fatalf("Error running gazelle: %v", err)
 		}
 
-		// Exit with code 1 if changes exit and not auto-fixed
+		// Exit with code 1 if changes exit and not auto-fixed. Note 1 is also
+		// log.Fatalf's exit above, which is why a setup error — a `.axl` that
+		// does not parse, say — exits runner.ExitCodeSetupError instead:
+		// otherwise CI reading 1 as "run gazelle" misdiagnoses it as stale
+		// BUILD files. Do not collapse the two back together.
 		// See:
 		//	- https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/cmd/gazelle/main.go#L73-L74
 		//  - https://github.com/bazel-contrib/bazel-gazelle/blob/v0.47.0/cmd/gazelle/diff.go#L106

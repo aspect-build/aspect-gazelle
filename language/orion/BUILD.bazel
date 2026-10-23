@@ -57,5 +57,8 @@ go_test(
         "host_test.go",
     ],
     embed = [":orion"],
-    deps = ["//plugin"],
+    deps = [
+        "//plugin",
+        "@com_github_aspect_build_aspect_gazelle_common//logger",
+    ],
 )

@@ -1,3 +1,0 @@
-Failed to invoke bad-sourceglob-exclude-test:Prepare(): Error in aspect.SourceGlobs: exclude: invalid glob pattern: **/[
-Traceback (most recent call last):
-  bad-sourceglob-exclude/bad-sourceglob-exclude.axl:4:37: in lambda
