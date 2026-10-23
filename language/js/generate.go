@@ -40,6 +40,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bazelbuild/bazel-gazelle/walk"
 	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/v2/sets/treeset"
 )
@@ -283,33 +284,9 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 		dataFiles = append(dataFiles, file)
 	}
 
-	// Set of walkable package files for O(1) membership checks when filtering
-	// pinned/kept srcs down to entries that parseFiles can actually read.
-	walkableFiles := make(map[string]struct{}, len(args.RegularFiles))
-	for _, f := range args.RegularFiles {
-		walkableFiles[f] = struct{}{}
-	}
-
 	// Collect source files.
 	for _, file := range args.RegularFiles {
 		processPotentialSourceFile(sourceFileGroups, file)
-	}
-
-	// Files in subdirectories without a BUILD file belong to this package.
-	// Gazelle only includes them in args.RegularFiles in update_only mode.
-	// Non-source files may be imported as assets, so collect the others as
-	// data files.
-	pkgFiles, err := common.GetSourceRegularFiles(args.Rel)
-	if err != nil {
-		BazelLog.Errorf("Failed to fetch package files of %q: %v", args.Rel, err)
-	}
-	for _, file := range pkgFiles {
-		if _, collected := walkableFiles[file]; collected {
-			continue
-		}
-		if ext := path.Ext(file); !isSourceFileExt(ext) && !isDataFileExt(ext) {
-			dataFiles = append(dataFiles, file)
-		}
 	}
 
 	// Collect generated files.
@@ -323,6 +300,13 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 	// The package/directory name variable value used to render the target names.
 	packageName := toDefaultTargetName(args, DefaultRootTargetName)
+
+	// Set of walkable package files for O(1) membership checks when filtering
+	// pinned/kept srcs down to entries that parseFiles can actually read.
+	walkableFiles := make(map[string]struct{}, len(args.RegularFiles))
+	for _, f := range args.RegularFiles {
+		walkableFiles[f] = struct{}{}
+	}
 
 	// Create rules for each target group.
 	sourceRules := make(map[string]*rule.Rule, len(sourceFileGroups))
@@ -963,6 +947,11 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 					dataFiles = slices.Delete(dataFiles, dataIdx, dataIdx+1)
 				}
 			}
+		} else if cfg.CollectAssetsFrom(importStatement.Kind) {
+			// An asset in a subdirectory without a BUILD file belongs to this package.
+			if assetFile, ok := subdirAssetFile(args.Rel, workspacePath); ok {
+				info.sources.Add(assetFile)
+			}
 		}
 	}
 
@@ -1426,6 +1415,45 @@ func tsconfigRootDirRelative(tsconfigDir, rootDir, pkgRel string) string {
 }
 
 // path.Join() for cases where the 2 parts are already normalized and simply need concatenation.
+// subdirAssetFile returns the path, relative to pkg, of an imported asset in a
+// subdirectory of pkg. Only the directories on the imported path are read, and
+// every one of them must have no BUILD file, so the asset belongs to pkg.
+func subdirAssetFile(pkg, imp string) (string, bool) {
+	assetFile := imp
+	if pkg != "" {
+		if !strings.HasPrefix(imp, pkg+"/") {
+			return "", false
+		}
+		assetFile = imp[len(pkg)+1:]
+	}
+
+	ext := path.Ext(assetFile)
+	if path.Dir(assetFile) == "." || isSourceFileExt(ext) || isDataFileExt(ext) {
+		return "", false
+	}
+
+	rel := pkg
+	d, err := walk.GetDirInfo(rel)
+	if err != nil {
+		return "", false
+	}
+	p := assetFile
+	for i := strings.IndexByte(p, '/'); i >= 0; i = strings.IndexByte(p, '/') {
+		subdir := p[:i]
+		if !slices.Contains(d.Subdirs, subdir) {
+			return "", false
+		}
+		rel = joinPkg(rel, subdir)
+		d, err = walk.GetDirInfo(rel)
+		if err != nil || d.File != nil {
+			return "", false
+		}
+		p = p[i+1:]
+	}
+
+	return assetFile, slices.Contains(d.RegularFiles, p)
+}
+
 func joinPkg(pkg, rel string) string {
 	if pkg == "" {
 		return rel
