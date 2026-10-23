@@ -1,0 +1,2 @@
+# sub/ changes the wrapped kind, so it must declare the alias_kind explicitly.
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl

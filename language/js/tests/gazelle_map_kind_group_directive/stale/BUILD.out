@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+ts_project(
+    name = "stale",
+    srcs = ["s.ts"],
+)
+
+jest_ts_project(
+    name = "stale_tests",
+    testonly = True,
+    srcs = ["s.spec.ts"],
+    deps = [":stale"],
+)

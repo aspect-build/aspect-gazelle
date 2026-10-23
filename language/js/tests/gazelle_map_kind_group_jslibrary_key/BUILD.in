@@ -1,0 +1,2 @@
+# js_library:<group> is not the group key; using it is an error.
+# gazelle:map_kind js_library:{dirname}_tests jest_ts_project //tools:jest.bzl

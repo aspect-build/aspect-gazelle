@@ -1,0 +1,10 @@
+# A group without transpiled sources becomes js_library; the ts_project group key still applies.
+# gazelle:js_files e2e *.e2e.js
+# gazelle:map_kind ts_project:e2e e2e_project //tools:e2e.bzl
+
+load("//tools:e2e.bzl", "e2e_project")
+
+e2e_project(
+    name = "e2e",
+    srcs = ["old.e2e.js"],
+)

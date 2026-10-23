@@ -1,0 +1,16 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# Without an alias_kind the alias defaults to the wrapped kind (ts_project).
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
+
+ts_project(
+    name = "gazelle_map_kind_group_default_alias",
+    srcs = ["a.ts"],
+)
+
+jest_ts_project(
+    name = "gazelle_map_kind_group_default_alias_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+)
