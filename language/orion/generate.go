@@ -20,6 +20,7 @@ import (
 	gazelleLabel "github.com/bazelbuild/bazel-gazelle/label"
 	gazelleLanguage "github.com/bazelbuild/bazel-gazelle/language"
 	gazelleRule "github.com/bazelbuild/bazel-gazelle/rule"
+	bzl "github.com/bazelbuild/buildtools/build"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -213,22 +214,38 @@ func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.Ge
 	return host.convertPlugActionsToGenerateResult(pluginTargetActions, args)
 }
 
-func applyRemoveAction(args gazelleLanguage.GenerateArgs, result *gazelleLanguage.GenerateResult, rm plugin.RemoveTargetAction) *gazelleRule.Rule {
-	if args.File == nil {
+// findRule returns the rule named name in the existing BUILD file, if any.
+func findRule(f *gazelleRule.File, name string) *gazelleRule.Rule {
+	if f == nil {
 		return nil
 	}
-
-	for _, r := range args.File.Rules {
-		if r.Name() == rm.Name {
-			kind := rm.Kind
-			if rm.Kind == "" {
-				kind = r.Kind() // TODO: need to reverse map_kind?
-			}
-			result.Empty = append(result.Empty, gazelleRule.NewRule(kind, r.Name()))
+	for _, r := range f.Rules {
+		if r.Name() == name {
 			return r
 		}
 	}
 	return nil
+}
+
+func applyRemoveAction(args gazelleLanguage.GenerateArgs, result *gazelleLanguage.GenerateResult, rm plugin.RemoveTargetAction) *gazelleRule.Rule {
+	r := findRule(args.File, rm.Name)
+	if r == nil {
+		return nil
+	}
+
+	kind := rm.Kind
+	if rm.Kind == "" {
+		kind = r.Kind() // TODO: need to reverse map_kind?
+	}
+	empty := gazelleRule.NewRule(kind, r.Name())
+	// Gazelle's default merge cannot clear a glob(), which would keep the rule non-empty.
+	for _, attr := range r.AttrKeys() {
+		if existing, ok := parseGlobAttr(r.Attr(attr)); ok && existing.glob != nil {
+			empty.SetAttr(attr, globMerger{})
+		}
+	}
+	result.Empty = append(result.Empty, empty)
+	return r
 }
 
 func (host *GazelleHost) convertPlugActionsToGenerateResult(pluginActions map[string][]plugin.TargetAction, args gazelleLanguage.GenerateArgs) gazelleLanguage.GenerateResult {
@@ -262,7 +279,7 @@ func (host *GazelleHost) applyPluginAction(args gazelleLanguage.GenerateArgs, pl
 		}
 
 		// Generate the gazelle Rule to be added/merged into the BUILD file.
-		rule, attrs := convertPluginTargetDeclaration(args.Rel, pluginId, target)
+		rule, attrs := convertPluginTargetDeclaration(args.Rel, pluginId, target, findRule(args.File, target.Name))
 
 		result.Gen = append(result.Gen, rule)
 		result.Imports = append(result.Imports, attrs)
@@ -278,9 +295,126 @@ type attributeValue struct {
 	singleton bool
 	values    []interface{}
 	imports   []plugin.TargetImport
+	// existing is the attribute value in the BUILD file before merging, if any.
+	existing bzl.Expr
 }
 
-func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target plugin.TargetDeclaration) (*gazelleRule.Rule, map[string]*attributeValue) {
+// globAttr is an existing attribute value made of a glob() and/or a list:
+// `[...]`, `glob(...)`, `glob(...) + [...]` or `[...] + glob(...)`.
+type globAttr struct {
+	glob      *bzl.CallExpr
+	list      *bzl.ListExpr
+	listFirst bool
+}
+
+func parseGlobAttr(e bzl.Expr) (globAttr, bool) {
+	if list, isList := e.(*bzl.ListExpr); isList {
+		return globAttr{list: list}, true
+	}
+	if glob, isGlob := asGlobCall(e); isGlob {
+		return globAttr{glob: glob}, true
+	}
+	if sum, isSum := e.(*bzl.BinaryExpr); isSum && sum.Op == "+" {
+		if glob, isGlob := asGlobCall(sum.X); isGlob {
+			if list, isList := sum.Y.(*bzl.ListExpr); isList {
+				return globAttr{glob: glob, list: list}, true
+			}
+		}
+		if glob, isGlob := asGlobCall(sum.Y); isGlob {
+			if list, isList := sum.X.(*bzl.ListExpr); isList {
+				return globAttr{glob: glob, list: list, listFirst: true}, true
+			}
+		}
+	}
+	return globAttr{}, false
+}
+
+func asGlobCall(e bzl.Expr) (*bzl.CallExpr, bool) {
+	_, isGlob := gazelleRule.ParseGlobExpr(e)
+	call, _ := e.(*bzl.CallExpr)
+	return call, isGlob
+}
+
+// withGlobMerge wraps a generated attribute value in a globMerger when a glob()
+// is generated or exists, which gazelle's default merge cannot parse. Other
+// values, and existing values globAttr cannot parse such as a select(), are
+// left to gazelle, which keeps what it cannot merge and logs it.
+func withGlobMerge(value interface{}, existing bzl.Expr) interface{} {
+	attr, ok := parseGlobAttr(existing)
+	if !ok {
+		return value
+	}
+	switch v := value.(type) {
+	case plugin.Glob:
+		return globMerger{glob: &v}
+	case []interface{}:
+		if attr.glob != nil {
+			return globMerger{list: v}
+		}
+	}
+	return value
+}
+
+// globMerger is a generated glob() and/or list merged into a globAttr. The
+// glob() is replaced unless unchanged, and the list merges like any gazelle
+// list so "# keep" entries survive. The zero value deletes an existing glob().
+type globMerger struct {
+	glob *plugin.Glob
+	list []interface{}
+}
+
+var _ gazelleRule.BzlExprValue = (*globMerger)(nil)
+var _ gazelleRule.Merger = (*globMerger)(nil)
+
+func (m globMerger) BzlExpr() bzl.Expr {
+	if e := m.Merge(nil); e != nil {
+		return e
+	}
+	return &bzl.ListExpr{}
+}
+
+func (m globMerger) Merge(other bzl.Expr) bzl.Expr {
+	existing, _ := parseGlobAttr(other)
+
+	var glob bzl.Expr
+	if m.glob != nil {
+		glob = m.glob.BzlExpr()
+		if existing.glob != nil && sameGlob(existing.glob, *m.glob) {
+			glob = existing.glob
+		}
+	}
+
+	var genList bzl.Expr
+	if len(m.list) > 0 {
+		genList = gazelleRule.ExprFromValue(m.list)
+	}
+	list := gazelleRule.MergeList(genList, existing.list)
+
+	switch {
+	case list == nil:
+		return glob
+	case glob == nil:
+		return list
+	case existing.listFirst:
+		return &bzl.BinaryExpr{X: list, Op: "+", Y: glob}
+	default:
+		return &bzl.BinaryExpr{X: glob, Op: "+", Y: list}
+	}
+}
+
+// sameGlob compares patterns unordered so a hand-ordered glob() is unchanged.
+func sameGlob(call *bzl.CallExpr, g plugin.Glob) bool {
+	existing, _ := gazelleRule.ParseGlobExpr(call)
+	return existing.AllowEmpty == g.AllowEmpty &&
+		sameSet(existing.Patterns, g.Include) &&
+		sameSet(existing.Excludes, g.Exclude)
+}
+
+func sameSet(a, b []string) bool {
+	return slices.Equal(slices.Sorted(slices.Values(a)), slices.Sorted(slices.Values(b)))
+}
+
+func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target plugin.TargetDeclaration, existingRule *gazelleRule.Rule) (*gazelleRule.Rule, map[string]*attributeValue) {
 	targetRule := gazelleRule.NewRule(target.Kind, target.Name)
 
 	ruleAttrs := make(map[string]*attributeValue, len(target.Attrs))
@@ -292,24 +426,30 @@ func convertPluginTargetDeclaration(pkg string, pluginId plugin.PluginId, target
 	for attr, val := range target.Attrs {
 		attrValue, attrImports, isArray := convertPluginAttribute(pkg, val)
 
+		var existing bzl.Expr
+		if existingRule != nil {
+			existing = existingRule.Attr(attr)
+		}
+
 		// TODO: verify 'attr' is resolveable if len(attrImports) > 0
 		ruleAttrs[attr] = &attributeValue{
 			singleton: !isArray,
 			imports:   attrImports,
 			values:    attrValue,
+			existing:  existing,
 		}
 
 		// Update the attribute if any non-import was specified
 		if len(attrValue) > 0 {
 			if isArray {
 				// An array of values taken as-is
-				targetRule.SetAttr(attr, attrValue)
+				targetRule.SetAttr(attr, withGlobMerge(attrValue, existing))
 			} else if attrValue[0] == nil {
 				// A single nil value is the same as deleting
 				targetRule.DelAttr(attr)
 			} else {
 				// Otherwise use the single value
-				targetRule.SetAttr(attr, attrValue[0])
+				targetRule.SetAttr(attr, withGlobMerge(attrValue[0], existing))
 			}
 		}
 	}

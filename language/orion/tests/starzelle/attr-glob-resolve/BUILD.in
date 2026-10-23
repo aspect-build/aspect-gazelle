@@ -1,0 +1,8 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+x_lib(
+    name = "a",
+    srcs = ["A.java"],
+    data = glob(["*.txt"]),
+    deps = [":old"],
+)

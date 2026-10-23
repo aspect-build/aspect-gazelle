@@ -115,6 +115,15 @@ func readSymbol(v starlark.Value) (Symbol, error) {
 	return s, nil
 }
 
+// readTargetAttrTopLevel reads a whole attribute value. A Glob stands in for the
+// whole list, so it is accepted here but not as an element.
+func readTargetAttrTopLevel(v starlark.Value) (any, error) {
+	if g, isGlob := v.(Glob); isGlob {
+		return g, nil
+	}
+	return readTargetAttributeValue(v)
+}
+
 func readTargetAttributeValue(v starlark.Value) (any, error) {
 	// Types that are both starlark.Value and plugin.*
 	switch v := v.(type) {
@@ -124,6 +133,8 @@ func readTargetAttributeValue(v starlark.Value) (any, error) {
 		return v, nil
 	case TargetSource:
 		return v, nil
+	case Glob:
+		return nil, fmt.Errorf("aspect.Glob must be an entire attribute value, not nested in a list or dict")
 	}
 
 	return starUtils.ReadRecurse(v, readTargetAttributeValue)

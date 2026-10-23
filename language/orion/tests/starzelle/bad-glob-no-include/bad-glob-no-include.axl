@@ -1,0 +1,17 @@
+aspect.gazelle_rule_kind("x_lib", {
+    "From": "@deps-test//my:rules.bzl",
+})
+
+def declare(ctx):
+    ctx.targets.add(
+        name = "lib",
+        kind = "x_lib",
+        attrs = {
+            "srcs": aspect.Glob([]),
+        },
+    )
+
+aspect.orion_extension(
+    id = "bad-glob-no-include-test",
+    declare = declare,
+)

@@ -272,6 +272,12 @@ type Label struct {
 	Repo, Pkg, Name string
 }
 
+// Glob is a target attribute value rendered as a Bazel glob() call.
+type Glob struct {
+	Include, Exclude []string
+	AllowEmpty       bool
+}
+
 type AnalyzeContext struct {
 	PrepareContext
 	Source   *TargetSource
