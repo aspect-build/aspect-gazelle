@@ -1,0 +1,10 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "subdir_assets_nested",
+    srcs = ["main.ts"],
+    assets = [
+        "img/icons/small/dot.png",
+        "img/icons/star.png",
+    ],
+)
