@@ -326,7 +326,7 @@
     "@@aspect_tools_telemetry+//:extension.bzl%telemetry": {
       "general": {
         "bzlTransitiveDigest": "ihzLOoAnQP6Y5iSYOhEjvb6uxEbA6ZgH8Qikau2lGRU=",
-        "usagesDigest": "913zU5tpZOUar9GsJVo54kTVxG+64e4E1nbDkZklRoI=",
+        "usagesDigest": "Zd71ReoFNpL/4cFcltao7+ndMVxyzld2eRqBSEmHrZg=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {
@@ -341,7 +341,7 @@
                 "aspect_tools_telemetry": "0.5.2",
                 "aspect_gazelle_js": "0.0.0",
                 "aspect_gazelle_kotlin": "",
-                "aspect_gazelle_orion": "0.0.0",
+                "aspect_gazelle_orion": "",
                 "aspect_go_treesitter_grammars": "0.0.0"
               },
               "last_notice": 3

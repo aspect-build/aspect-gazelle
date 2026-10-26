@@ -110,8 +110,10 @@ if [[ -n "$SRC_MODULE_ROOT" ]]; then
 	git archive --format=tar --prefix="${PREFIX}/" "${TAG}" -- "$SRC_MODULE_ROOT" |
 		tar --strip-components=$((ROOT_SLASHES + 2)) -xf - -C "${UNPACK_DIR}/${PREFIX}"
 
-	# Patch the module version (0.0.0 -> real).
-	sed -i "s/^    version = \"0\.0\.0\"/    version = \"${MODULE_VERSION}\"/" \
+	# Set the module version, replacing any placeholder. Modules may leave it
+	# unset in the source tree so git_override consumers see an empty version,
+	# which gazelle's go_deps treats as newer than any go.mod version.
+	sed -i "/^module(/,/^)/{/^    version = /d;s/^    name = .*/&\n    version = \"${MODULE_VERSION}\",/}" \
 		"${UNPACK_DIR}/${PREFIX}/MODULE.bazel"
 
 	# Module name + dep pins, surfaced in the consumer setup notes below.
