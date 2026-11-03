@@ -1,0 +1,17 @@
+# Unlike `rule-kinds`, the kind with the unparseable `From` is actually used
+# below, so the generated BUILD file ends up calling a rule with no load() for
+# it. See the expected* goldens: gazelle reports the bad label and still exits 0.
+aspect.gazelle_rule_kind("bad_from", {
+    "From": "@--invalid --label",
+})
+
+def declare(ctx):
+    ctx.targets.add(
+        name = "uses_bad_from",
+        kind = "bad_from",
+    )
+
+aspect.orion_extension(
+    id = "gen",
+    declare = declare,
+)

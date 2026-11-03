@@ -1,6 +1,12 @@
 package runner
 
-import "testing"
+import (
+	"errors"
+	"testing"
+
+	"github.com/aspect-build/aspect-gazelle/runner/vendored/bzl"
+	"github.com/bazelbuild/bazel-gazelle/language"
+)
 
 func TestWalkCacheEntryInvalidated(t *testing.T) {
 	cases := []struct {
@@ -83,5 +89,56 @@ func TestWalkCacheEntryInvalidated(t *testing.T) {
 				t.Errorf("walkCacheEntryInvalidated(%q, %v) = %v, want %v", tc.rel, tc.dirs, got, tc.want)
 			}
 		})
+	}
+}
+
+// A language that fails to build must come back as an error, never take the
+// process with it. instantiateLanguages runs again on every --watch cycle, so
+// an exit there would kill the watcher -- skipping Watch's deferred
+// watch.Disconnect() and stranding the IBP subscription -- over an extension
+// the user is in the middle of fixing.
+func TestInstantiateLanguagesSurvivesABrokenLanguage(t *testing.T) {
+	broken := errors.New(`Failed to load orion plugin "broken.axl": broken.axl:1:1: syntax error`)
+
+	failing := true
+	c := New(t.TempDir(), false)
+	c.AddLanguageFactoryOrError("orion", func() (language.Language, error) {
+		if failing {
+			return nil, broken
+		}
+		return bzl.NewLanguage(), nil
+	})
+
+	langs, err := c.instantiateLanguages()
+	if err == nil {
+		t.Fatal("instantiateLanguages returned nil error for a broken language")
+	}
+	if langs != nil {
+		t.Errorf("instantiateLanguages returned %d languages alongside an error, want none", len(langs))
+	}
+	var setupErr *SetupError
+	if !errors.As(err, &setupErr) {
+		t.Errorf("instantiateLanguages error is %T, want *SetupError so callers can map it to ExitCodeSetupError", err)
+	}
+	if !errors.Is(err, broken) {
+		t.Errorf("instantiateLanguages error = %q, want it to wrap the language's own error", err)
+	}
+
+	// The next watch cycle must recover once the extension parses again.
+	failing = false
+	langs, err = c.instantiateLanguages()
+	if err != nil {
+		t.Fatalf("instantiateLanguages after the fix: %v", err)
+	}
+	if len(langs) != 1 {
+		t.Errorf("instantiateLanguages returned %d languages, want 1", len(langs))
+	}
+}
+
+// ExitCodeSetupError must stay off 1, which already means both "BUILD files
+// are out of date" (--mode=diff) and log.Fatalf in the runner binaries.
+func TestExitCodeSetupErrorIsDistinct(t *testing.T) {
+	if ExitCodeSetupError == 0 || ExitCodeSetupError == 1 {
+		t.Errorf("ExitCodeSetupError = %d, want a code gazelle does not already use", ExitCodeSetupError)
 	}
 }

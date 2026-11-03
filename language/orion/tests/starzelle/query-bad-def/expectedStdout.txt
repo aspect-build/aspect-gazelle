@@ -1,3 +1,0 @@
-Failed to invoke bad-test:Prepare(): Error in aspect.RawQuery: RawQuery: unexpected keyword argument "f"
-Traceback (most recent call last):
-  query-bad-def/bad.axl:9:33: in lambda

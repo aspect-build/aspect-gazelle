@@ -142,4 +142,8 @@ go_test(
     name = "runner_test",
     srcs = ["runner_test.go"],
     embed = [":runner"],
+    deps = [
+        "//vendored/bzl",
+        "@gazelle//language",
+    ],
 )

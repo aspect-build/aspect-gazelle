@@ -3,6 +3,7 @@ package stareval
 import (
 	"fmt"
 	"maps"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -118,9 +119,12 @@ func createRepoLoader(rootDir string, loader moduleLoader) moduleLoader {
 	}
 }
 
+// threadPrint backs Starlark's print() for extensions. It writes to stderr
+// because stdout carries the generated patch under `gazelle -mode=diff`; a
+// print() landing there corrupts it, and print-debugging an extension is the
+// first thing anyone does when one misbehaves.
 func threadPrint(t *starlark.Thread, msg string) {
-	// TODO: stdout? log?
-	fmt.Printf("%s: %s\n", t.Name, msg)
+	fmt.Fprintf(os.Stderr, "%s: %s\n", t.Name, msg)
 }
 
 func Eval(rootDir, starpath string, libs starlark.StringDict, locals map[string]any) (starlark.StringDict, error) {
