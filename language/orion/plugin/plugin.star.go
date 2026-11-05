@@ -626,6 +626,8 @@ func addSymbol(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 		db, prep = ctx.database, ctx.PrepareContext
 	case DeclareTargetsContext:
 		db, prep = ctx.database, ctx.PrepareContext
+	default:
+		return nil, fmt.Errorf("add_symbol: unsupported context %T", ctx)
 	}
 
 	symbol := Symbol{

@@ -332,7 +332,8 @@ Args:
 * `queries`: a `name:aspect.*Query` map of queries to run on matching files, see [Query Types](#query-types)
 
 Naming the source groups saves re-matching paths in `declare`: each group is available as `ctx.sources.<name>`,
-and iterating `ctx.sources` itself yields every matched source. A file matching several groups is in each of them.
+and iterating `ctx.sources` itself yields every matched source, in no particular order. (If one of the groups is
+named `"default"`, iterating `ctx.sources` yields only that group.) A file matching several groups is in each of them.
 
 ```python
 def prepare(ctx):

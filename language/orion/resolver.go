@@ -324,7 +324,7 @@ func (host *GazelleHost) resolveImportVisiting(
 			// across provider types: an empty same-provider set means "none here", not
 			// "every symbol of every provider".
 			for _, s := range matched {
-				labels, err := host.symbolLabels(c, ix, pluginId, s, from, visiting)
+				labels, err := host.symbolLabels(c, ix, pluginId, s, from, impt.Optional, visiting)
 				if err != nil {
 					return Resolution_Error, nil, err
 				}
@@ -342,7 +342,7 @@ func (host *GazelleHost) resolveImportVisiting(
 			if len(matched) == 0 {
 				matched = symbols
 			}
-			labels, err := host.symbolLabels(c, ix, pluginId, nearestSymbol(matched, from), from, visiting)
+			labels, err := host.symbolLabels(c, ix, pluginId, nearestSymbol(matched, from), from, impt.Optional, visiting)
 			if err != nil {
 				return Resolution_Error, nil, err
 			}
@@ -397,13 +397,15 @@ func isPkgAncestor(anc, pkg string) bool {
 
 // symbolLabels returns the labels providing symbol-db entry `s`: its own label, or for a
 // deferred symbol (registered with an Import label) whatever that Import resolves to,
-// resolved on behalf of the original importer `from`.
+// resolved on behalf of the original importer `from`. A deferred Import that is not found
+// is an error unless it, or the outer import (`optional`), is optional.
 func (host *GazelleHost) symbolLabels(
 	c *config.Config,
 	ix *resolve.RuleIndex,
 	pluginId plugin.PluginId,
 	s plugin.TargetSymbol,
 	from label.Label,
+	optional bool,
 	visiting map[plugin.Symbol]bool,
 ) ([]label.Label, error) {
 	if s.Import == nil {
@@ -424,7 +426,7 @@ func (host *GazelleHost) symbolLabels(
 	case Resolution_Label:
 		return labels, nil
 	case Resolution_NotFound:
-		if !s.Import.Optional {
+		if !s.Import.Optional && !optional {
 			return nil, fmt.Errorf("Import %q (provider %q) from %q is an unknown dependency",
 				s.Import.Id, s.Import.Provider, s.Import.From)
 		}

@@ -5,7 +5,7 @@ aspect.gazelle_rule_kind("sym_lib", {
 
 aspect.gazelle_rule_kind("sym_consumer", {
     "From": "@symbol-import-test//:rules.bzl",
-    "ResolveAttrs": ["all_deps", "one_dep"],
+    "ResolveAttrs": ["all_deps", "one_dep", "maybe_deps"],
 })
 
 # ctx.add_symbol() with an aspect.Import() label: the symbol is provided by
@@ -35,6 +35,11 @@ def declare(ctx):
 
     if ctx.rel == "":
         ctx.add_symbol(
+            id = "maybe",
+            provider_type = "agg",
+            label = aspect.Import(id = "does/not/exist", provider = "x"),
+        )
+        ctx.add_symbol(
             id = "self",
             provider_type = "agg",
             label = aspect.Import(id = "root/lib", provider = "x"),
@@ -48,6 +53,9 @@ def declare(ctx):
                 "all_deps": [aspect.Import(id = "all", provider = "agg", multiple = True)],
                 # A single import resolves through one deferred symbol.
                 "one_dep": aspect.Import(id = "one", provider = "single"),
+                # An optional import tolerates a deferred symbol whose Import is not found;
+                # it resolves to nothing and the attribute is dropped.
+                "maybe_deps": [aspect.Import(id = "maybe", provider = "agg", multiple = True, optional = True)],
             },
         )
 
