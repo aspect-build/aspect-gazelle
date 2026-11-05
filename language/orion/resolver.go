@@ -225,6 +225,20 @@ func (host *GazelleHost) resolveImport(
 	impt plugin.TargetImport,
 	from label.Label,
 ) (ResolutionType, []label.Label, error) {
+	return host.resolveImportVisiting(c, ix, pluginId, impt, from, map[plugin.Symbol]bool{})
+}
+
+// resolveImportVisiting resolves `impt`. `visiting` holds the deferred symbol-db
+// symbols (ctx.add_symbol with an Import label) currently being resolved, so a
+// chain of re-exports that leads back to itself errors instead of recursing forever.
+func (host *GazelleHost) resolveImportVisiting(
+	c *config.Config,
+	ix *resolve.RuleIndex,
+	pluginId plugin.PluginId,
+	impt plugin.TargetImport,
+	from label.Label,
+	visiting map[plugin.Symbol]bool,
+) (ResolutionType, []label.Label, error) {
 	// TODO: "native" imports
 	// if IsNativeImport(impt.Imp) {
 	// 	return Resolution_Native, nil, nil
@@ -310,7 +324,16 @@ func (host *GazelleHost) resolveImport(
 			// across provider types: an empty same-provider set means "none here", not
 			// "every symbol of every provider".
 			for _, s := range matched {
-				collected = append(collected, symbolLabel(s))
+				labels, err := host.symbolLabels(c, ix, pluginId, s, from, visiting)
+				if err != nil {
+					return Resolution_Error, nil, err
+				}
+				collected = append(collected, labels...)
+			}
+			// Symbols were found but deferred ones resolved to nothing (eg only the importer
+			// itself): resolved, not an unknown dependency.
+			if len(matched) > 0 && len(collected) == 0 {
+				matchedSelfOnly = true
 			}
 		} else {
 			// A single import takes one symbol, preferring the imported provider type but
@@ -319,7 +342,21 @@ func (host *GazelleHost) resolveImport(
 			if len(matched) == 0 {
 				matched = symbols
 			}
-			return Resolution_Label, []label.Label{symbolLabel(nearestSymbol(matched, from))}, nil
+			labels, err := host.symbolLabels(c, ix, pluginId, nearestSymbol(matched, from), from, visiting)
+			if err != nil {
+				return Resolution_Error, nil, err
+			}
+			switch len(labels) {
+			case 0:
+				// A deferred symbol that resolved to nothing (eg only the importer itself).
+				return Resolution_None, nil, nil
+			case 1:
+				return Resolution_Label, labels, nil
+			default:
+				return Resolution_Error, nil, fmt.Errorf(
+					"Import %q from %q (%s) resolved to multiple targets (%v) - this must be fixed using the \"aspect:resolve\" directive",
+					impt.Id, impt.From, pluginId, labels)
+			}
 		}
 	}
 
@@ -356,6 +393,43 @@ func nearestSymbol(matched []plugin.TargetSymbol, from label.Label) plugin.Targe
 // isPkgAncestor reports whether package `anc` encloses (or equals) package `pkg`.
 func isPkgAncestor(anc, pkg string) bool {
 	return anc == "" || anc == pkg || strings.HasPrefix(pkg, anc+"/")
+}
+
+// symbolLabels returns the labels providing symbol-db entry `s`: its own label, or for a
+// deferred symbol (registered with an Import label) whatever that Import resolves to,
+// resolved on behalf of the original importer `from`.
+func (host *GazelleHost) symbolLabels(
+	c *config.Config,
+	ix *resolve.RuleIndex,
+	pluginId plugin.PluginId,
+	s plugin.TargetSymbol,
+	from label.Label,
+	visiting map[plugin.Symbol]bool,
+) ([]label.Label, error) {
+	if s.Import == nil {
+		return []label.Label{symbolLabel(s)}, nil
+	}
+
+	if visiting[s.Symbol] {
+		return nil, fmt.Errorf("symbol %q (provider %q) re-exports itself through a cycle of add_symbol() Imports", s.Id, s.Provider)
+	}
+	visiting[s.Symbol] = true
+	defer delete(visiting, s.Symbol)
+
+	resolutionType, labels, err := host.resolveImportVisiting(c, ix, pluginId, *s.Import, from, visiting)
+	if err != nil {
+		return nil, err
+	}
+	switch resolutionType {
+	case Resolution_Label:
+		return labels, nil
+	case Resolution_NotFound:
+		if !s.Import.Optional {
+			return nil, fmt.Errorf("Import %q (provider %q) from %q is an unknown dependency",
+				s.Import.Id, s.Import.Provider, s.Import.From)
+		}
+	}
+	return nil, nil
 }
 
 // symbolLabel converts a symbol-db entry's label into an absolute label.

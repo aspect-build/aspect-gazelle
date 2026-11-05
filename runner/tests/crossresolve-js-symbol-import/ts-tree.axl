@@ -1,0 +1,53 @@
+# Collect every ts_project() "below" a tsconfig.json without knowing the names the
+# js language gives them: each package re-exports its sources through
+# ctx.add_symbol() with an aspect.Import() label, which resolves to whichever
+# ts_project owns each file.
+
+aspect.gazelle_rule_kind("ts_tree", {
+    "From": "//bazel:defs.bzl",
+    "ResolveAttrs": ["deps"],
+})
+
+def prepare(ctx):
+    if ctx.has_file("tsconfig.json"):
+        ctx.data["ts_root"] = ctx.rel
+
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".ts"),
+    )
+
+def declare(ctx):
+    root = ctx.data.get("ts_root")
+    if root == None:
+        return
+
+    for src in ctx.sources:
+        ctx.add_symbol(
+            id = path.join(root, "ts_tree"),
+            provider_type = "ts_tree",
+            label = aspect.Import(
+                id = path.join(ctx.rel, src.path.removesuffix(".ts")),
+                provider = "js",
+            ),
+        )
+
+    if ctx.rel == root:
+        ctx.targets.add(
+            name = "ts_tree",
+            kind = "ts_tree",
+            attrs = {
+                "deps": [
+                    aspect.Import(
+                        id = path.join(ctx.rel, "ts_tree"),
+                        provider = "ts_tree",
+                        multiple = True,
+                    ),
+                ],
+            },
+        )
+
+aspect.orion_extension(
+    id = "ts_tree",
+    prepare = prepare,
+    declare = declare,
+)

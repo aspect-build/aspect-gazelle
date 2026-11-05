@@ -1,0 +1,68 @@
+aspect.gazelle_rule_kind("sym_lib", {
+    "From": "@symbol-import-test//:rules.bzl",
+    "ResolveAttrs": ["self_deps"],
+})
+
+aspect.gazelle_rule_kind("sym_consumer", {
+    "From": "@symbol-import-test//:rules.bzl",
+    "ResolveAttrs": ["all_deps", "one_dep"],
+})
+
+# ctx.add_symbol() with an aspect.Import() label: the symbol is provided by
+# whatever target(s) the Import resolves to, without the plugin knowing the label.
+def declare(ctx):
+    if ctx.rel in ["a", "b"]:
+        # A target exporting a symbol under a name the aggregating plugin does not know.
+        ctx.targets.add(
+            name = "lib_" + ctx.rel,
+            kind = "sym_lib",
+            symbols = [aspect.Symbol(id = path.join(ctx.rel, "lib"), provider = "x")],
+        )
+
+        # Re-export "whatever provides <rel>/lib" as the aggregate "all" symbol.
+        ctx.add_symbol(
+            id = "all",
+            provider_type = "agg",
+            label = aspect.Import(id = path.join(ctx.rel, "lib"), provider = "x"),
+        )
+
+    if ctx.rel == "a":
+        ctx.add_symbol(
+            id = "one",
+            provider_type = "single",
+            label = aspect.Import(id = "a/lib", provider = "x"),
+        )
+
+    if ctx.rel == "":
+        ctx.add_symbol(
+            id = "self",
+            provider_type = "agg",
+            label = aspect.Import(id = "root/lib", provider = "x"),
+        )
+
+        ctx.targets.add(
+            name = "consumer",
+            kind = "sym_consumer",
+            attrs = {
+                # A multiple import collects every deferred symbol, each resolved to its target.
+                "all_deps": [aspect.Import(id = "all", provider = "agg", multiple = True)],
+                # A single import resolves through one deferred symbol.
+                "one_dep": aspect.Import(id = "one", provider = "single"),
+            },
+        )
+
+        # A deferred symbol resolving only to the importer itself resolves to nothing,
+        # not an unknown-dependency error.
+        ctx.targets.add(
+            name = "root_lib",
+            kind = "sym_lib",
+            attrs = {
+                "self_deps": [aspect.Import(id = "self", provider = "agg", multiple = True)],
+            },
+            symbols = [aspect.Symbol(id = "root/lib", provider = "x")],
+        )
+
+aspect.orion_extension(
+    id = "symbol-import",
+    declare = declare,
+)

@@ -608,29 +608,46 @@ var contextAddSymbol = starlark.NewBuiltin("add_symbol", addSymbol)
 
 func addSymbol(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var id, provider_type string
-	var label Label
+	var target starlark.Value
 	err := starlark.UnpackArgs(
 		"add_symbol", args, kwargs,
 		"id", &id,
 		"provider_type", &provider_type,
-		"label", &label,
+		"label", &target,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx := fn.Receiver()
+	var db *Database
+	var prep PrepareContext
+	switch ctx := fn.Receiver().(type) {
+	case AnalyzeContext:
+		db, prep = ctx.database, ctx.PrepareContext
+	case DeclareTargetsContext:
+		db, prep = ctx.database, ctx.PrepareContext
+	}
 
-	if actx, isACtx := ctx.(AnalyzeContext); isACtx {
-		actx.AddSymbol(label, Symbol{
-			Id:       id,
-			Provider: provider_type,
-		})
-	} else {
-		ctx.(DeclareTargetsContext).AddSymbol(label, Symbol{
-			Id:       id,
-			Provider: provider_type,
-		})
+	symbol := Symbol{
+		Id:       id,
+		Provider: provider_type,
+	}
+
+	// The label is either a concrete Label, or an Import resolved at resolve time
+	// to whatever target(s) provide it (eg a file owned by another language).
+	switch t := target.(type) {
+	case Label:
+		db.AddSymbol(t, symbol)
+	case TargetImport:
+		if t.Ancestor {
+			return nil, fmt.Errorf("add_symbol: an Import label cannot be ancestor = True")
+		}
+		if t.From == "" {
+			t.From = fmt.Sprintf("add_symbol(%q, %q) in %q", id, provider_type, prep.Rel)
+		}
+		db.AddSymbolImport(Label{Repo: prep.RepoName, Pkg: prep.Rel}, symbol, t)
+	default:
+		return nil, fmt.Errorf("add_symbol: label must be a Label or Import, got %s", target.Type())
 	}
 
 	return starlark.None, nil

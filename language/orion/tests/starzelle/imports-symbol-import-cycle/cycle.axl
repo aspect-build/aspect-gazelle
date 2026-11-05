@@ -1,0 +1,23 @@
+aspect.gazelle_rule_kind("cycle_consumer", {
+    "From": "@symbol-import-cycle-test//:rules.bzl",
+    "ResolveAttrs": ["deps"],
+})
+
+# A symbol re-exported through add_symbol() Imports that lead back to itself is
+# a resolution error, not infinite recursion.
+def declare(ctx):
+    ctx.add_symbol(id = "ping", provider_type = "p", label = aspect.Import(id = "pong", provider = "p"))
+    ctx.add_symbol(id = "pong", provider_type = "p", label = aspect.Import(id = "ping", provider = "p"))
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "cycle_consumer",
+        attrs = {
+            "deps": [aspect.Import(id = "ping", provider = "p")],
+        },
+    )
+
+aspect.orion_extension(
+    id = "symbol-import-cycle",
+    declare = declare,
+)

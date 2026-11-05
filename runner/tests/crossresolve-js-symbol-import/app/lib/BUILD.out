@@ -1,0 +1,18 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "lib",
+    srcs = [
+        "helpers.ts",
+        "lib.ts",
+    ],
+    tsconfig = "//app:tsconfig",
+)
+
+ts_project(
+    name = "lib_tests",
+    testonly = True,
+    srcs = ["lib.spec.ts"],
+    tsconfig = "//app:tsconfig",
+    deps = [":lib"],
+)

@@ -1,0 +1,3 @@
+load("@symbol-import-test//:rules.bzl", "sym_lib")
+
+sym_lib(name = "lib_b")
