@@ -2,6 +2,8 @@ package gazelle
 
 import (
 	"testing"
+
+	"github.com/bazelbuild/bazel-gazelle/resolve"
 )
 
 func TestToOutDirPath(t *testing.T) {
@@ -48,4 +50,49 @@ func TestToOutDirPath(t *testing.T) {
 		eq(toOutDirPath(".", ".", "a/b.ts"), "a/b.ts", "both dot, nested — unchanged")
 	})
 
+}
+
+func TestToEmittedExtensionImport(t *testing.T) {
+	for _, tc := range []struct {
+		importPath, imp string
+		expected        string
+		mapped          bool
+	}{
+		{"./lib.ts", "pkg/lib.ts", "pkg/lib.js", true},
+		{"../lib.ts", "lib.ts", "lib.js", true},
+		{"./lib.tsx", "pkg/lib.tsx", "pkg/lib.js", true},
+		{"./lib.jsx", "pkg/lib.jsx", "pkg/lib.js", true},
+		{"./lib.mts", "pkg/lib.mts", "pkg/lib.mjs", true},
+		{"./lib.cts", "pkg/lib.cts", "pkg/lib.cjs", true},
+		{"./a.b.ts", "pkg/a.b.ts", "pkg/a.b.js", true},
+		// Not mapped
+		{"./lib", "pkg/lib", "", false},
+		{"./lib.js", "pkg/lib.js", "", false},
+		{"./lib.d.ts", "pkg/lib.d.ts", "", false},
+		{"./lib.d.mts", "pkg/lib.d.mts", "", false},
+		{"./lib.json", "pkg/lib.json", "", false},
+		{"./lib.TS", "pkg/lib.TS", "", false},
+		// Only relative specifiers are mapped
+		{"lib.ts", "lib.ts", "", false},
+		{"@scope/pkg/lib.ts", "@scope/pkg/lib.ts", "", false},
+		{"/lib.ts", "lib.ts", "", false},
+	} {
+		t.Run(tc.importPath, func(t *testing.T) {
+			in := ImportStatement{
+				ImportSpec: resolve.ImportSpec{Lang: LanguageName, Imp: tc.imp},
+				ImportPath: tc.importPath,
+			}
+
+			out, mapped := toEmittedExtensionImport(in)
+			if mapped != tc.mapped {
+				t.Fatalf("toEmittedExtensionImport(%q): mapped = %v, want %v", tc.importPath, mapped, tc.mapped)
+			}
+			if mapped && out.Imp != tc.expected {
+				t.Errorf("toEmittedExtensionImport(%q): Imp = %q, want %q", tc.importPath, out.Imp, tc.expected)
+			}
+			if out.ImportPath != tc.importPath {
+				t.Errorf("toEmittedExtensionImport(%q): ImportPath changed to %q", tc.importPath, out.ImportPath)
+			}
+		})
+	}
 }

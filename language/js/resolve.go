@@ -589,7 +589,32 @@ func (ts *typeScriptLang) resolveImport(
 		return Resolution_NativeNode, nil, nil
 	}
 
+	// A relative import written with the source extension (./x.ts) resolves
+	// as the emitted file (./x.js), as rewriteRelativeImportExtensions does.
+	if emitted, ok := toEmittedExtensionImport(impStm); ok {
+		return ts.resolveImport(c, ix, from, emitted, groupName)
+	}
+
 	return Resolution_NotFound, nil, nil
+}
+
+// toEmittedExtensionImport maps a relative import of a transpiled source file
+// by its real extension, such as './x.ts', to the same import of the file it
+// emits, such as './x.js'. Imports of other extensions and bare specifiers
+// are not mapped.
+func toEmittedExtensionImport(impStm ImportStatement) (ImportStatement, bool) {
+	if !strings.HasPrefix(impStm.ImportPath, "./") && !strings.HasPrefix(impStm.ImportPath, "../") {
+		return impStm, false
+	}
+
+	ext := path.Ext(impStm.Imp)
+	if !isTranspiledSourceFileExt(ext) || isDeclarationFileType(impStm.Imp) {
+		return impStm, false
+	}
+
+	emitted := impStm
+	emitted.Imp = impStm.Imp[:len(impStm.Imp)-len(ext)] + toJsExt(ext)
+	return emitted, true
 }
 
 func (ts *typeScriptLang) resolveExplicitImportFromIndex(

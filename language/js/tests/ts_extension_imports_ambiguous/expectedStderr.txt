@@ -1,0 +1,1 @@
+Resolution Error: Import "./lib.ts" from "main.ts" resolved to multiple targets (@ts_extension_imports_ambiguous, @ts_extension_imports_ambiguous//:tsc) - this must be fixed using the "aspect:resolve" directive

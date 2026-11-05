@@ -1,0 +1,23 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# A file listed by two rules is ambiguous for './lib.ts' as it is for './lib.js',
+# and validation 'off' does not suppress that error.
+# gazelle:generation_mode update_only
+# gazelle:js_files main main.ts
+# gazelle:js_validate_import_statements off
+
+ts_project(
+    name = "ts_extension_imports_ambiguous",
+    srcs = ["lib.ts"],
+)
+
+ts_project(
+    name = "tsc",
+    srcs = ["lib.ts"],
+    no_emit = True,
+)
+
+ts_project(
+    name = "main",
+    srcs = ["main.ts"],
+)
