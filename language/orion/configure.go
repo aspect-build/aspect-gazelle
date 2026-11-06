@@ -10,7 +10,6 @@ import (
 	"github.com/aspect-build/aspect-gazelle/language/orion/plugin"
 	"github.com/bazelbuild/bazel-gazelle/config"
 	"github.com/bazelbuild/bazel-gazelle/rule"
-	"golang.org/x/sync/errgroup"
 )
 
 var _ config.Configurer = (*GazelleHost)(nil)
@@ -54,8 +53,7 @@ func (configurer *GazelleHost) Configure(c *config.Config, rel string, f *rule.F
 		}
 	}
 
-	eg := errgroup.Group{}
-	eg.SetLimit(10)
+	var eg common.WorkerGroup
 
 	var prepResultMutex sync.Mutex
 
