@@ -64,6 +64,7 @@ def declare(ctx):
             provider_type = "agg",
             label = aspect.Import(id = "does/not/exist", provider = "x"),
         )
+
         # The nearest "fallback" symbol resolves to nothing, so //b's is used.
         ctx.add_symbol(
             id = "fallback",
