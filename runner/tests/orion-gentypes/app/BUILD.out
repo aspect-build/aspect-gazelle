@@ -8,11 +8,11 @@ ts_project(
         "gentypes/settings/styles.module.css.d.ts",
         "index.ts",
     ],
-    tsconfig = ":tsconfig",
-    deps = [
+    assets = [
         "//app/routes:styles.module.css",
         "//app/settings:styles.module.css",
     ],
+    tsconfig = ":tsconfig",
 )
 
 ts_config(

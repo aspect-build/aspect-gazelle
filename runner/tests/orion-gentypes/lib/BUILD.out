@@ -9,9 +9,11 @@ ts_project(
         "gentypes/ui/styles.module.css.d.ts",
         "index.ts",
     ],
-    assets = ["styles.module.css"],
+    assets = [
+        "styles.module.css",
+        "//lib/ui:styles.module.css",
+    ],
     tsconfig = ":tsconfig",
-    deps = ["//lib/ui:styles.module.css"],
 )
 
 ts_config(

@@ -1,0 +1,10 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Import-based assets are not collected, so asset files stay out of assets.
+# gazelle:js_assets jsx
+
+ts_project(
+    name = "subdir_assets_opt_out",
+    srcs = ["main.ts"],
+    deps = ["//img:logo.svg"],
+)

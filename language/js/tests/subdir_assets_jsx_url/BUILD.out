@@ -1,0 +1,10 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+ts_project(
+    name = "subdir_assets_jsx_url",
+    srcs = ["main.tsx"],
+    assets = [
+        "img/data.bin",
+        "img/photo.png",
+    ],
+)

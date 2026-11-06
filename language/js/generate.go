@@ -40,6 +40,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bazelbuild/bazel-gazelle/walk"
 	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/v2/sets/treeset"
 )
@@ -946,6 +947,11 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 					dataFiles = slices.Delete(dataFiles, dataIdx, dataIdx+1)
 				}
 			}
+		} else if isAssetFile(cfg, importStatement.Kind, workspacePath) {
+			// An asset in a subdirectory without a BUILD file belongs to this package.
+			if assetFile, ok := subdirAssetFile(args.Rel, workspacePath); ok {
+				info.sources.Add(assetFile)
+			}
 		}
 	}
 
@@ -1415,6 +1421,38 @@ func joinPkg(pkg, rel string) string {
 	}
 	// rel is already workspace-relative and should not need path cleaning.
 	return pkg + "/" + rel
+}
+
+// subdirAssetFile returns the path, relative to pkg, of an imported file in a
+// subdirectory of pkg. Like common.WalkHasPath, only the directories on the
+// imported path are read, but each must have no BUILD file so that the file
+// belongs to pkg.
+func subdirAssetFile(pkg, imp string) (string, bool) {
+	assetFile := imp
+	if pkg != "" {
+		if !strings.HasPrefix(imp, pkg+"/") {
+			return "", false
+		}
+		assetFile = imp[len(pkg)+1:]
+	}
+
+	dir := path.Dir(assetFile)
+	if dir == "." {
+		return "", false
+	}
+
+	rel := pkg
+	var d walk.DirInfo
+	for _, subdir := range strings.Split(dir, "/") {
+		rel = joinPkg(rel, subdir)
+		var err error
+		d, err = walk.GetDirInfo(rel)
+		if err != nil || d.File != nil {
+			return "", false
+		}
+	}
+
+	return assetFile, slices.Contains(d.RegularFiles, path.Base(assetFile))
 }
 
 // toImportPaths returns an iterator over all paths that p can be imported as.
