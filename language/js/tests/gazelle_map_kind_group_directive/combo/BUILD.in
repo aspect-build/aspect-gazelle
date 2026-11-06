@@ -1,0 +1,3 @@
+# The tests macro wraps the plain-mapped kind; its alias defaults to my_ts_project.
+# gazelle:map_kind ts_project my_ts_project //tools:kinds.bzl
+# gazelle:map_kind ts_project:{dirname}_tests combo_jest_project //tools:jest.bzl

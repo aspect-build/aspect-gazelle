@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# An explicit alias_kind matching the defaulted one is allowed.
+# gazelle:alias_kind jest_ts_project ts_project
+
+ts_project(
+    name = "declared",
+    srcs = ["d.ts"],
+)
+
+jest_ts_project(
+    name = "declared_tests",
+    testonly = True,
+    srcs = ["d.spec.ts"],
+    deps = [":declared"],
+)

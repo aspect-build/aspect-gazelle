@@ -1,0 +1,16 @@
+# A new import in the test sources adds deps to the existing mapped rule.
+
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+ts_project(
+    name = "deps_added",
+    srcs = ["lib.ts"],
+)
+
+jest_ts_project(
+    name = "deps_added_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+    deps = [":deps_added"],
+)

@@ -1,0 +1,5 @@
+# The group "speshul" does not exist: warned and ignored. Another extension's
+# colon-qualified key (other_kind:group) is not a JS group key and is not warned.
+# gazelle:js_files special *.special.ts
+# gazelle:map_kind ts_project:speshul special_project //tools:special.bzl
+# gazelle:map_kind other_kind:group other_macro //tools:other.bzl

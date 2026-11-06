@@ -40,10 +40,14 @@ type typeScriptLang struct {
 
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
+
+	// Group-scoped map_kind bookkeeping
+	mapKinds *scopedMapKindState
 }
 
 var _ language.Language = (*typeScriptLang)(nil)
 var _ language.ModuleAwareLanguage = (*typeScriptLang)(nil)
+var _ language.FinishableLanguage = (*typeScriptLang)(nil)
 
 // NewLanguage initializes a new TypeScript that satisfies the language.Language
 // interface. This is the entrypoint for the extension initialization.
@@ -57,6 +61,7 @@ func NewLanguage() language.Language {
 		pnpmProjects:    pnpmProjects,
 		packageJsonDirs: packageJsonDirs,
 		packageJsons:    make(map[string]*node.PackageJson),
+		mapKinds:        newScopedMapKindState(),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found

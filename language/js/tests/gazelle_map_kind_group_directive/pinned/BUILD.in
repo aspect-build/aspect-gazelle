@@ -1,0 +1,15 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# Pinned srcs on a scoped macro rule are preserved, parsed, and resolved.
+
+ts_project(
+    name = "pinned",
+    srcs = ["lib.ts"],
+)
+
+jest_ts_project(
+    name = "pinned_tests",
+    testonly = True,
+    srcs = glob(["*.spec.ts"]),  # keep
+)

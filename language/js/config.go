@@ -240,6 +240,10 @@ type JsGazelleConfig struct {
 	targetNamingOverrides      map[string]string
 	npmPackageNamingConvention string
 	tsProtoLibraryName         string
+
+	// Scoped map_kind keys declared in this directory. These are resolved once
+	// all naming directives have been read.
+	scopedMapKindKeys []string
 }
 
 // New creates a new JsGazelleConfig.
@@ -315,6 +319,7 @@ func (c *JsGazelleConfig) NewChild(childPath string) *JsGazelleConfig {
 	cCopy.parent = c
 	cCopy.ignoreDependencies = []common.GlobExpr{}
 	cCopy.resolves = []jsResolve{}
+	cCopy.scopedMapKindKeys = nil
 
 	// Copy the targets, any modifications will be local.
 	cCopy.targets = make([]*TargetGroup, 0, len(c.targets))

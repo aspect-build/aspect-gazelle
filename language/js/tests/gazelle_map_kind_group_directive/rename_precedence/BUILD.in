@@ -1,0 +1,3 @@
+# back/ renames the group back; the nearer vitest override still wins over root jest.
+# gazelle:js_tests_naming_convention {dirname}_unit
+# gazelle:map_kind ts_project:{dirname}_unit vitest_ts_project //tools:vitest.bzl

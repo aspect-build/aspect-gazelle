@@ -1,0 +1,18 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+load("//tools:jest.bzl", "jest_ts_project")
+
+# The scoped map_kind addresses the renamed group by its configured name.
+# gazelle:js_tests_naming_convention {dirname}_unit
+# gazelle:map_kind ts_project:{dirname}_unit jest_ts_project //tools:jest.bzl
+
+ts_project(
+    name = "renamed_group",
+    srcs = ["mod.ts"],
+)
+
+jest_ts_project(
+    name = "renamed_group_unit",
+    testonly = True,
+    srcs = ["mod.spec.ts"],
+    deps = [":renamed_group"],
+)

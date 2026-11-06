@@ -1,0 +1,1 @@
+# app_tests imports //lib and must get deps = ["//lib"].

@@ -1,0 +1,2 @@
+# The inherited scoped map_kind still applies to the renamed group.
+# gazelle:js_tests_naming_convention {dirname}_unit

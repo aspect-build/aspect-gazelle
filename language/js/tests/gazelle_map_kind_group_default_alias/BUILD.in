@@ -1,0 +1,2 @@
+# Without an alias_kind the alias defaults to the wrapped kind (ts_project).
+# gazelle:map_kind ts_project:{dirname}_tests jest_ts_project //tools:jest.bzl
