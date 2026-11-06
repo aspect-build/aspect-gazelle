@@ -15,8 +15,8 @@ func (d *Database) AddSymbol(label Label, symbol Symbol) {
 }
 
 // AddSymbolImport registers a symbol provided by whatever target(s) `imp`
-// resolves to; the import is resolved lazily at resolve time. `pkg` is the
-// declaring package (Repo/Pkg only), used to rank same-id symbols by nearness.
+// resolves to at resolve time, in the scope of the declaring package `pkg`
+// (Repo/Pkg only), which also ranks same-id symbols by nearness.
 func (d *Database) AddSymbolImport(pkg Label, symbol Symbol, imp TargetImport) {
 	d.add(TargetSymbol{Symbol: symbol, Label: pkg, Import: &imp})
 }

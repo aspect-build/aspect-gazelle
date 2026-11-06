@@ -33,7 +33,8 @@ type TargetSymbol struct {
 	Label Label
 
 	// Import, when set, defers the symbol's label to resolve time: the symbol is
-	// provided by whatever target(s) this import resolves to.
+	// provided by whatever target(s) this import resolves to. The pointer identifies
+	// the symbol-db entry, eg for caching its resolution.
 	Import *TargetImport
 }
 

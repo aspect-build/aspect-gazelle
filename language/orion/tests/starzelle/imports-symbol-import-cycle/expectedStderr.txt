@@ -1,1 +1,1 @@
-Resolution Error: symbol "ping" (provider "p") re-exports itself through a cycle of add_symbol() Imports
+Resolution Error: add_symbol() Imports form a cycle: "ping" (provider "p") in // -> "pong" (provider "p") in // -> "ping" (provider "p") in // (imported by @symbol-import-cycle-test//:consumer)

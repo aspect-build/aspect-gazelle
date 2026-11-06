@@ -1,0 +1,1 @@
+# gazelle:resolve x c/override //c:custom

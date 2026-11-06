@@ -606,6 +606,9 @@ func (a AnalyzeContext) Type() string         { return "AnalyzeContext" }
 
 var contextAddSymbol = starlark.NewBuiltin("add_symbol", addSymbol)
 
+// addSymbol implements ctx.add_symbol() on the Analyze and DeclareTargets contexts. The label is
+// either a concrete Label or an Import, which defers the symbol's label to resolve time: it is
+// provided by whatever target(s) the Import resolves to (eg a file owned by another language).
 func addSymbol(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
 	var id, provider_type string
 	var target starlark.Value
@@ -635,8 +638,6 @@ func addSymbol(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 		Provider: provider_type,
 	}
 
-	// The label is either a concrete Label, or an Import resolved at resolve time
-	// to whatever target(s) provide it (eg a file owned by another language).
 	switch t := target.(type) {
 	case Label:
 		db.AddSymbol(t, symbol)
@@ -645,7 +646,7 @@ func addSymbol(thread *starlark.Thread, fn *starlark.Builtin, args starlark.Tupl
 			return nil, fmt.Errorf("add_symbol: an Import label cannot be ancestor = True")
 		}
 		if t.From == "" {
-			t.From = fmt.Sprintf("add_symbol(%q, %q) in %q", id, provider_type, prep.Rel)
+			t.From = fmt.Sprintf("add_symbol(%s, %s) in //%s", id, provider_type, prep.Rel)
 		}
 		db.AddSymbolImport(Label{Repo: prep.RepoName, Pkg: prep.Rel}, symbol, t)
 	default:

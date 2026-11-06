@@ -5,7 +5,7 @@ aspect.gazelle_rule_kind("sym_lib", {
 
 aspect.gazelle_rule_kind("sym_consumer", {
     "From": "@symbol-import-test//:rules.bzl",
-    "ResolveAttrs": ["all_deps", "one_dep", "maybe_deps"],
+    "ResolveAttrs": ["all_deps", "one_dep", "maybe_deps", "fallback_dep", "dup_deps", "unique_dep", "scoped_dep"],
 })
 
 # ctx.add_symbol() with an aspect.Import() label: the symbol is provided by
@@ -33,11 +33,42 @@ def declare(ctx):
             label = aspect.Import(id = "a/lib", provider = "x"),
         )
 
+        # Two entries with the same id/provider, the second re-exporting the first: a chain,
+        # not a cycle.
+        ctx.add_symbol(id = "dup", provider_type = "d", label = aspect.Import(id = "b/lib", provider = "x"))
+        ctx.add_symbol(id = "dup", provider_type = "d", label = aspect.Import(id = "dup", provider = "d"))
+
+        # "a/lib" is provided by //a:lib_a through both the rule index and the symbol db, so the
+        # multiple Import below finds it twice.
+        ctx.add_symbol(id = "a/lib", provider_type = "x", label = aspect.Label(pkg = "a", name = "lib_a"))
+        ctx.add_symbol(
+            id = "unique",
+            provider_type = "single",
+            label = aspect.Import(id = "a/lib", provider = "x", multiple = True),
+        )
+
+    if ctx.rel == "b":
+        ctx.add_symbol(id = "fallback", provider_type = "single", label = aspect.Label(pkg = "b", name = "lib_b"))
+
+    if ctx.rel == "c":
+        # Resolved with //c's config, so its `# gazelle:resolve` applies for every importer.
+        ctx.add_symbol(
+            id = "scoped",
+            provider_type = "single",
+            label = aspect.Import(id = "c/override", provider = "x"),
+        )
+
     if ctx.rel == "":
         ctx.add_symbol(
             id = "maybe",
             provider_type = "agg",
             label = aspect.Import(id = "does/not/exist", provider = "x"),
+        )
+        # The nearest "fallback" symbol resolves to nothing, so //b's is used.
+        ctx.add_symbol(
+            id = "fallback",
+            provider_type = "single",
+            label = aspect.Import(id = "does/not/exist", provider = "x", optional = True),
         )
         ctx.add_symbol(
             id = "self",
@@ -56,6 +87,11 @@ def declare(ctx):
                 # An optional import tolerates a deferred symbol whose Import is not found;
                 # it resolves to nothing and the attribute is dropped.
                 "maybe_deps": [aspect.Import(id = "maybe", provider = "agg", multiple = True, optional = True)],
+                "fallback_dep": aspect.Import(id = "fallback", provider = "single"),
+                "dup_deps": [aspect.Import(id = "dup", provider = "d", multiple = True)],
+                # The same target found twice is still a single target.
+                "unique_dep": aspect.Import(id = "unique", provider = "single"),
+                "scoped_dep": aspect.Import(id = "scoped", provider = "single"),
             },
         )
 
