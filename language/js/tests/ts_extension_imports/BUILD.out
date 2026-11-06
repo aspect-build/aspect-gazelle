@@ -1,0 +1,22 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:generation_mode update_only
+# gazelle:js_files **/*.{ts,tsx,mts,cts,jsx}
+# gazelle:js_files main main.ts
+
+ts_project(
+    name = "ts_extension_imports",
+    srcs = [
+        "cjs.cts",
+        "comp.jsx",
+        "esm.mts",
+        "lib.ts",
+        "view.tsx",
+    ],
+)
+
+ts_project(
+    name = "main",
+    srcs = ["main.ts"],
+    deps = [":ts_extension_imports"],
+)
