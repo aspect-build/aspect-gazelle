@@ -1,0 +1,14 @@
+load("@rules_java//java:defs.bzl", "java_library")
+
+SRCS = ["*.java"]
+
+java_library(
+    name = "lib",
+    srcs = glob(
+        [
+            "*.java",
+            "*.kt",
+        ],
+        exclude = ["*Test.java"],
+    ),
+)

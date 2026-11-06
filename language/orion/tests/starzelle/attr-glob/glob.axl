@@ -1,0 +1,47 @@
+aspect.gazelle_rule_kind("java_library", {
+    "From": "@rules_java//java:defs.bzl",
+    "NonEmptyAttrs": ["srcs"],
+    "MergeableAttrs": ["srcs"],
+})
+
+GLOB = "java_glob"
+ALLOW_EMPTY = "java_glob_allow_empty"
+SRCS = "java_srcs"
+
+def prepare(_):
+    return aspect.PrepareResult(
+        sources = aspect.SourceExtensions(".java"),
+    )
+
+def declare(ctx):
+    if not ctx.sources:
+        ctx.targets.remove("lib")
+        return
+
+    if ctx.properties[GLOB]:
+        srcs = aspect.Glob(
+            ["*.kt", "*.java"],
+            exclude = ["*Test.java"],
+            allow_empty = ctx.properties[ALLOW_EMPTY],
+        )
+    else:
+        srcs = [s.path for s in ctx.sources]
+
+    ctx.targets.add(
+        name = "lib",
+        kind = "java_library",
+        attrs = {
+            "srcs": srcs,
+        } if ctx.properties[SRCS] else {},
+    )
+
+aspect.orion_extension(
+    id = "glob-test",
+    properties = {
+        GLOB: aspect.Property(type = "bool", default = True),
+        ALLOW_EMPTY: aspect.Property(type = "bool", default = False),
+        SRCS: aspect.Property(type = "bool", default = True),
+    },
+    prepare = prepare,
+    declare = declare,
+)

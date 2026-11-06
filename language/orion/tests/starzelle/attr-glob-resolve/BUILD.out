@@ -1,0 +1,10 @@
+load("@deps-test//my:rules.bzl", "x_lib")
+
+x_lib(
+    name = "a",
+    srcs = glob(["*.java"]),
+    data = [":b"],
+    deps = [":b"],
+)
+
+x_lib(name = "b")

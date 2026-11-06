@@ -1,0 +1,11 @@
+load("@rules_java//java:defs.bzl", "java_library")
+
+# gazelle:java_glob false
+
+java_library(
+    name = "lib",
+    srcs = [
+        "A.java",
+        ":generated_src",  # keep
+    ],
+)

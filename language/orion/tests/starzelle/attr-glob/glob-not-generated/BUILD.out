@@ -1,0 +1,8 @@
+load("@rules_java//java:defs.bzl", "java_library")
+
+# gazelle:java_srcs false
+
+java_library(
+    name = "lib",
+    srcs = glob(["*.java"]),
+)
