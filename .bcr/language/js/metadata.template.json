@@ -5,6 +5,16 @@
             "email": "jason@aspect.build",
             "github": "jbedard",
             "name": "Jason Bedard"
+        },
+        {
+            "email": "greg@aspect.build",
+            "github": "gregmagolan",
+            "name": "Greg Magolan"
+        },
+        {
+            "email": "adamc@aspect.build",
+            "github": "acozzette",
+            "name": "Adam Cozzette"
         }
     ],
     "repository": [
