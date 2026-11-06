@@ -188,20 +188,21 @@ func (re *GazelleHost) resolveImports(
 	var errs []error
 
 	for _, imp := range imports {
-		resolutionType, resolved, err := re.resolveImport(c, ix, pluginId, imp, from)
+		st := &resolveState{}
+		resolutionType, resolved, err := re.resolveImport(c, ix, pluginId, imp, from, st)
 		if err != nil {
+			var cycle *symbolCycleError
+			if errors.As(err, &cycle) {
+				return nil, fmt.Errorf("%w (imported by %s)", err, from)
+			}
 			return nil, err
 		}
 
-		if resolutionType == Resolution_NotFound {
-			BazelLog.Debugf("import %q for target %v not found", imp.Id, from)
-
-			if !imp.Optional {
-				notFound := fmt.Errorf("Import %q (provider %q) from %q is an unknown dependency",
-					imp.Id, imp.Provider, imp.From,
-				)
-
-				errs = append(errs, notFound)
+		if !imp.Optional {
+			errs = append(errs, st.unresolved...)
+			if resolutionType == Resolution_NotFound {
+				BazelLog.Debugf("import %q for target %v not found", imp.Id, from)
+				errs = append(errs, unknownDependencyError(imp))
 				continue
 			}
 		}
@@ -218,30 +219,34 @@ func (re *GazelleHost) resolveImports(
 	return deps, errors.Join(errs...)
 }
 
+func unknownDependencyError(imp plugin.TargetImport) error {
+	return fmt.Errorf("Import %q (provider %q) from %q is an unknown dependency", imp.Id, imp.Provider, imp.From)
+}
+
+// resolveImport resolves `impt` imported by `from`: gazelle overrides first, then the rule
+// index, then the symbol db (see symbols.go). A `multiple` import unions the rule-index and
+// symbol-db matches; other imports return the first match. `multiple` is mutually exclusive
+// with `ancestor`, so a `multiple` import always has exactly one spec.
+//
+// Imports that resolve only to `from` itself resolve to nothing (Resolution_None) rather than
+// erroring as an unknown dependency.
 func (host *GazelleHost) resolveImport(
 	c *config.Config,
 	ix *resolve.RuleIndex,
 	pluginId plugin.PluginId,
 	impt plugin.TargetImport,
 	from label.Label,
+	st *resolveState,
 ) (ResolutionType, []label.Label, error) {
 	// TODO: "native" imports
 	// if IsNativeImport(impt.Imp) {
 	// 	return Resolution_Native, nil, nil
 	// }
 
-	// One spec for ordinary imports, or one spec per pkg in the importer's chain (importing pkg through root)
-	// for Ancestor imports. Each spec is tried against gazelle overrides and the rule index in turn.
-	//
-	// A `multiple` import unions matches from every source (the rule index and the symbol db) rather than
-	// returning the first; `collected` accumulates them. `multiple` is mutually exclusive with `ancestor`,
-	// so a `multiple` import always has exactly one spec.
 	var collected []label.Label
 
-	// matchedSelfOnly records that a `multiple` import found the Symbol but every match was a self-import.
-	// Like a non-multiple self import, that resolves to nothing (Resolution_None) rather than erroring as
-	// an unknown dependency.
-	matchedSelfOnly := false
+	// A `multiple` import found the Symbol, but nothing to add (eg only self-imports).
+	foundEmpty := false
 
 	for importSpec := range importSpecsToTry(impt, from.Pkg) {
 		// A gazelle override replaces the entire resolution, including a multiple
@@ -270,20 +275,17 @@ func (host *GazelleHost) resolveImport(
 		}
 
 		if impt.Multiple {
-			// Collect the rule-index matches, then fall through to also union symbol-db matches.
 			collected = append(collected, filtered...)
-			if len(filtered) == 0 {
-				// Matches existed but were all self-imports.
-				matchedSelfOnly = true
-			}
+			foundEmpty = len(filtered) == 0
 			break
 		}
 
 		if len(filtered) > 1 {
-			// Too many results and no way to choose - the plugin must disambiguate.
-			return Resolution_Error, nil, fmt.Errorf(
-				"Import %q from %q (%s) resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
-				impt.Id, impt.From, pluginId, targetListFromResults(matches))
+			all := make([]label.Label, len(matches))
+			for i, m := range matches {
+				all[i] = m.Label
+			}
+			return Resolution_Error, nil, ambiguousImportError(impt, pluginId, all)
 		}
 		if len(filtered) == 1 {
 			return Resolution_Label, filtered, nil
@@ -295,9 +297,7 @@ func (host *GazelleHost) resolveImport(
 		}
 	}
 
-	// Look up symbols registered across plugins in the symbol db.
 	if symbols := host.database.LookupSymbols(impt.Id); len(symbols) > 0 {
-		// Symbols of the imported provider type.
 		matched := make([]plugin.TargetSymbol, 0, len(symbols))
 		for _, s := range symbols {
 			if s.Provider == impt.Provider {
@@ -305,67 +305,47 @@ func (host *GazelleHost) resolveImport(
 			}
 		}
 
-		if impt.Multiple {
-			// A multiple import collects every same-provider symbol. It does NOT fall back
-			// across provider types: an empty same-provider set means "none here", not
-			// "every symbol of every provider".
-			for _, s := range matched {
-				collected = append(collected, symbolLabel(s))
-			}
-		} else {
-			// A single import takes one symbol, preferring the imported provider type but
-			// falling back to any provider type for cross-plugin imports (eg a "kt" import
-			// satisfied by "java_info" symbols from the maven plugin).
+		if !impt.Multiple {
+			// Prefer the imported provider type, but fall back to any provider type for
+			// cross-plugin imports (eg a "kt" import satisfied by "java_info" symbols).
 			if len(matched) == 0 {
 				matched = symbols
 			}
-			return Resolution_Label, []label.Label{symbolLabel(nearestSymbol(matched, from))}, nil
+			return host.resolveSingleSymbol(c, ix, pluginId, impt, matched, from, st)
+		}
+
+		// A multiple import does NOT fall back across provider types: an empty
+		// same-provider set means "none here".
+		for _, s := range matched {
+			res, err := host.symbolLabels(c, ix, pluginId, s, from, st.chain)
+			if err != nil {
+				return Resolution_Error, nil, err
+			}
+			collected = append(collected, res.labels...)
+			st.unresolved = append(st.unresolved, res.unresolved...)
+		}
+		if len(matched) > 0 && len(collected) == 0 {
+			foundEmpty = true
 		}
 	}
 
 	if len(collected) > 0 {
 		return Resolution_Label, collected, nil
 	}
-
-	// The Symbol was provided only by the importer itself: resolved, but nothing to add.
-	if matchedSelfOnly {
+	if foundEmpty {
 		return Resolution_None, nil, nil
 	}
-
 	return Resolution_NotFound, nil, nil
 }
 
-// nearestSymbol picks the same-id symbol whose package is the deepest ancestor
-// of the importer `from` (same repo), falling back to the first when none is an
-// ancestor (so single-match and cross-repo cases are unaffected).
-func nearestSymbol(matched []plugin.TargetSymbol, from label.Label) plugin.TargetSymbol {
-	best := matched[0]
-	bestDepth := -1
-	for _, s := range matched {
-		if s.Label.Repo != from.Repo || !isPkgAncestor(s.Label.Pkg, from.Pkg) {
-			continue
-		}
-		if depth := len(s.Label.Pkg); depth > bestDepth {
-			bestDepth = depth
-			best = s
-		}
+func ambiguousImportError(impt plugin.TargetImport, pluginId plugin.PluginId, labels []label.Label) error {
+	targets := make([]string, len(labels))
+	for i, l := range labels {
+		targets[i] = l.String()
 	}
-	return best
-}
-
-// isPkgAncestor reports whether package `anc` encloses (or equals) package `pkg`.
-func isPkgAncestor(anc, pkg string) bool {
-	return anc == "" || anc == pkg || strings.HasPrefix(pkg, anc+"/")
-}
-
-// symbolLabel converts a symbol-db entry's label into an absolute label.
-func symbolLabel(s plugin.TargetSymbol) label.Label {
-	return label.Label{
-		Repo:     s.Label.Repo,
-		Pkg:      s.Label.Pkg,
-		Name:     s.Label.Name,
-		Relative: false,
-	}
+	return fmt.Errorf(
+		"Import %q from %q (%s) resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",
+		impt.Id, impt.From, pluginId, strings.Join(targets, ", "))
 }
 
 // importSpecsToTry yields one spec for ordinary imports, or `impt.Id` prefixed with `fromPkg`
@@ -401,15 +381,4 @@ func (ts *GazelleHost) CrossResolve(c *config.Config, ix *resolve.RuleIndex, imp
 	// Search for results within this gazelle language, without further invoking CrossResolve
 	// via FindRulesByImportWithConfig.
 	return ix.FindRulesByImport(imp, GazelleLanguageName)
-}
-
-// targetListFromResults returns a string with the human-readable list of
-// targets contained in the given results.
-// TODO: move to gazelle/common
-func targetListFromResults(results []resolve.FindResult) string {
-	list := make([]string, len(results))
-	for i, result := range results {
-		list[i] = result.Label.String()
-	}
-	return strings.Join(list, ", ")
 }

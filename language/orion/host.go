@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	"github.com/aspect-build/aspect-gazelle/common/bazel/workspace"
 	BazelLog "github.com/aspect-build/aspect-gazelle/common/logger"
@@ -30,6 +31,13 @@ const GazelleLanguageName = "orion"
 // A gazelle
 type GazelleHost struct {
 	database *plugin.Database
+
+	// Resolutions of deferred symbol-db entries, see symbols.go.
+	deferred deferredSymbols
+
+	// The *config.Config of each generated package, by rel, to resolve deferred symbols in
+	// the scope of the package that declared them.
+	packageConfigs sync.Map
 
 	// Hosted plugins
 	// TODO: support enabling/disabling/adding in subdirs

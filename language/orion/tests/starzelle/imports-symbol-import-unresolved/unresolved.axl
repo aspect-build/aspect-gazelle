@@ -1,0 +1,22 @@
+aspect.gazelle_rule_kind("unresolved_consumer", {
+    "From": "@symbol-import-unresolved-test//:rules.bzl",
+    "ResolveAttrs": ["deps"],
+})
+
+# Every deferred symbol whose Import is not found is reported, not only the first.
+def declare(ctx):
+    ctx.add_symbol(id = "u", provider_type = "p", label = aspect.Import(id = "missing/one", provider = "x"))
+    ctx.add_symbol(id = "u", provider_type = "p", label = aspect.Import(id = "missing/two", provider = "x"))
+
+    ctx.targets.add(
+        name = "consumer",
+        kind = "unresolved_consumer",
+        attrs = {
+            "deps": [aspect.Import(id = "u", provider = "p", multiple = True)],
+        },
+    )
+
+aspect.orion_extension(
+    id = "symbol-import-unresolved",
+    declare = declare,
+)

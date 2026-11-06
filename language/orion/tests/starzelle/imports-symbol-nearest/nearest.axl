@@ -1,4 +1,4 @@
-# Demonstrates the symbol-db "nearest package" tiebreak in resolveImport.
+# Demonstrates the symbol-db "nearest package" ranking (rankSymbols).
 #
 # The SAME symbol id ("loc") is registered by providers in two packages at
 # different depths (root "" and "sub"). When a consumer imports "loc", it must

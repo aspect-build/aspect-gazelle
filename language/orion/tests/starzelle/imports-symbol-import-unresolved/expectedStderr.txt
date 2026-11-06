@@ -1,0 +1,2 @@
+Resolution Error: Import "missing/one" (provider "x") from "add_symbol(u, p) in //" is an unknown dependency
+Import "missing/two" (provider "x") from "add_symbol(u, p) in //" is an unknown dependency

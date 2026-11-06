@@ -278,10 +278,6 @@ type AnalyzeContext struct {
 	database *Database
 }
 
-func (a AnalyzeContext) AddSymbol(label Label, symbol Symbol) {
-	a.database.AddSymbol(label, symbol)
-}
-
 func NewAnalyzeContext(prep PrepareContext, source *TargetSource, database *Database) AnalyzeContext {
 	return AnalyzeContext{
 		PrepareContext: prep,
@@ -302,10 +298,6 @@ type DeclareTargetsContext struct {
 	Sources  TargetSources
 	Targets  DeclareTargetActions
 	database *Database
-}
-
-func (d DeclareTargetsContext) AddSymbol(label Label, symbol Symbol) {
-	d.database.AddSymbol(label, symbol)
 }
 
 func NewDeclareTargetsContext(prep PrepareContext, sources TargetSources, targets DeclareTargetActions, database *Database) DeclareTargetsContext {

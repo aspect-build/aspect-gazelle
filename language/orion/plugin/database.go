@@ -11,16 +11,24 @@ type Database struct {
 }
 
 func (d *Database) AddSymbol(label Label, symbol Symbol) {
+	d.add(TargetSymbol{Symbol: symbol, Label: label})
+}
+
+// AddSymbolImport registers a symbol provided by whatever target(s) `imp`
+// resolves to at resolve time, in the scope of the declaring package `pkg`
+// (Repo/Pkg only), which also ranks same-id symbols by nearness.
+func (d *Database) AddSymbolImport(pkg Label, symbol Symbol, imp TargetImport) {
+	d.add(TargetSymbol{Symbol: symbol, Label: pkg, Import: &imp})
+}
+
+func (d *Database) add(s TargetSymbol) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
 	if d.symbols == nil {
 		d.symbols = make(map[string][]TargetSymbol)
 	}
-	d.symbols[symbol.Id] = append(d.symbols[symbol.Id], TargetSymbol{
-		Symbol: symbol,
-		Label:  label,
-	})
+	d.symbols[s.Id] = append(d.symbols[s.Id], s)
 }
 
 // LookupSymbols returns all symbols registered with the given id.

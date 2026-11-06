@@ -49,6 +49,8 @@ func (host *GazelleHost) GenerateRules(args gazelleLanguage.GenerateArgs) gazell
 }
 
 func (host *GazelleHost) generateRules(cfg *BUILDConfig, args gazelleLanguage.GenerateArgs) gazelleLanguage.GenerateResult {
+	host.packageConfigs.Store(args.Rel, args.Config)
+
 	queryCache := cache.Get(args.Config)
 
 	// Stage 1:

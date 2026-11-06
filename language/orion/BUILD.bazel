@@ -26,6 +26,7 @@ go_library(
         "generate.go",
         "host.go",
         "resolver.go",
+        "symbols.go",
     ],
     importpath = "github.com/aspect-build/aspect-gazelle/language/orion",
     visibility = ["//visibility:public"],
@@ -55,7 +56,11 @@ go_test(
     srcs = [
         "generate_test.go",
         "host_test.go",
+        "symbols_test.go",
     ],
     embed = [":orion"],
-    deps = ["//plugin"],
+    deps = [
+        "//plugin",
+        "@gazelle//label",
+    ],
 )

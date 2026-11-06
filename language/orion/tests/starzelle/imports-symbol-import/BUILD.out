@@ -1,0 +1,16 @@
+load("@symbol-import-test//:rules.bzl", "sym_consumer", "sym_lib")
+
+sym_consumer(
+    name = "consumer",
+    all_deps = [
+        "//a:lib_a",
+        "//b:lib_b",
+    ],
+    dup_deps = ["//b:lib_b"],
+    fallback_dep = "//b:lib_b",
+    one_dep = "//a:lib_a",
+    scoped_dep = "//c:custom",
+    unique_dep = "//a:lib_a",
+)
+
+sym_lib(name = "root_lib")

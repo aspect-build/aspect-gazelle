@@ -28,8 +28,14 @@ type TargetImport struct {
 type TargetSymbol struct {
 	Symbol
 
-	// The label producing the symbol
+	// The label producing the symbol. For a deferred symbol (Import != nil) only
+	// Repo/Pkg are set, recording the package that declared it.
 	Label Label
+
+	// Import, when set, defers the symbol's label to resolve time: the symbol is
+	// provided by whatever target(s) this import resolves to. The pointer identifies
+	// the symbol-db entry, eg for caching its resolution.
+	Import *TargetImport
 }
 
 /**
