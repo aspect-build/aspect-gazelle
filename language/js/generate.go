@@ -631,29 +631,58 @@ func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateA
 	return deps, hasLocal, hasBaseLocal
 }
 
-// packageScopeTsConfig returns the ts_config rule in scopeRel that carries
-// scopeRel's package.json for groupName. A ts_config may only copy source files
-// of its own Bazel package into the output tree, so descendants depend on this
-// rule instead of on the package.json file.
-func (ts *typeScriptLang) packageScopeTsConfig(cfg *JsGazelleConfig, args language.GenerateArgs, scopeRel, groupName string) (label.Label, bool) {
-	scopeCfg := cfg
-	for scopeCfg != nil && scopeCfg.rel != scopeRel {
-		scopeCfg = scopeCfg.parent
+// packageScopeTsConfig returns the ts_config rule that carries scopeRel's
+// package.json for groupName, and the Bazel package that contains scopeRel.
+// A ts_config may only copy source files of its own Bazel package into the
+// output tree, so descendants depend on this rule instead of on the file.
+func (ts *typeScriptLang) packageScopeTsConfig(cfg *JsGazelleConfig, args language.GenerateArgs, scopeRel, groupName string) (label.Label, string, bool) {
+	// Gazelle configures only Bazel packages: under generation_mode update_only
+	// a directory without a BUILD file belongs to the nearest configured
+	// ancestor, whose ts_config then carries the swept-in package.json.
+	pkgCfg := cfg
+	for pkgCfg != nil && !isRelAtOrAbove(pkgCfg.rel, scopeRel) {
+		pkgCfg = pkgCfg.parent
 	}
-	if scopeCfg == nil || !scopeCfg.GenerationEnabled() || !scopeCfg.GetTsConfigPackageDepsEnabled() || !scopeCfg.GetTsConfigGenerationEnabled(groupName) {
-		return label.NoLabel, false
+	if pkgCfg == nil {
+		return label.NoLabel, scopeRel, false
+	}
+	pkgRel := pkgCfg.rel
+	if !pkgCfg.GenerationEnabled() || !pkgCfg.GetTsConfigPackageDepsEnabled() || !pkgCfg.GetTsConfigGenerationEnabled(groupName) {
+		return label.NoLabel, pkgRel, false
 	}
 
-	// Mirrors addTsConfigRules in scopeRel: a local tsconfig file, otherwise a
+	// Mirrors addTsConfigRules in pkgRel: a local tsconfig file, otherwise a
 	// forwarding rule for the closest ancestor tsconfig.
-	tsconfig := ts.tsconfig.GetTsConfigFile(scopeRel, groupName)
+	tsconfig := ts.tsconfig.GetTsConfigFile(pkgRel, groupName)
 	if tsconfig == nil {
-		_, _, tsconfig = ts.tsconfig.FindConfig(scopeRel, groupName)
+		_, _, tsconfig = ts.tsconfig.FindConfig(pkgRel, groupName)
 		if tsconfig == nil {
-			return label.NoLabel, false
+			return label.NoLabel, pkgRel, false
 		}
 	}
-	return label.New(args.Config.RepoName, scopeRel, scopeCfg.RenderTsConfigName(tsconfig.ConfigName)), true
+	return label.New(args.Config.RepoName, pkgRel, pkgCfg.RenderTsConfigName(tsconfig.ConfigName)), pkgRel, true
+}
+
+// tsPackageJsonDir returns the directory of the nearest package.json strictly
+// above rel, the one tsc consults for rel's files. Unlike packageScopeDir it
+// sees package.json files in directories swept into an ancestor Bazel package.
+func tsPackageJsonDir(rel string) (string, bool) {
+	for rel != "" {
+		rel = path.Dir(rel)
+		if rel == "." {
+			rel = ""
+		}
+		if common.WalkHasPath(rel, NpmPackageFilename) {
+			return rel, true
+		}
+	}
+	return "", false
+}
+
+// isRelAtOrAbove reports whether the repo-relative directory dir is rel or one
+// of its ancestors.
+func isRelAtOrAbove(dir, rel string) bool {
+	return dir == "" || dir == rel || strings.HasPrefix(rel, dir+"/")
 }
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
@@ -669,7 +698,7 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		var hasBaseLocal bool
 		packageJsonDeps, hasLocalPackageJson, hasBaseLocal = ts.collectTsConfigPackageJsonDeps(args)
 		if !hasBaseLocal {
-			scopeRel, hasAncestorScope = ts.packageScopeDir(args.Rel)
+			scopeRel, hasAncestorScope = tsPackageJsonDir(args.Rel)
 		}
 	}
 
@@ -707,11 +736,11 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		info.staticDeps = append(info.staticDeps, packageJsonDeps...)
 
 		if hasAncestorScope {
-			if scopeTsConfig, ok := ts.packageScopeTsConfig(cfg, args, scopeRel, groupName); ok {
+			if scopeTsConfig, pkgRel, ok := ts.packageScopeTsConfig(cfg, args, scopeRel, groupName); ok {
 				info.staticDeps = append(info.staticDeps, &scopeTsConfig)
 			} else {
-				BazelLog.Warnf("//%s:%s cannot include //%s:%s: no ts_config in //%s carries it; enable '# gazelle:%s' there",
-					args.Rel, tsconfigName, scopeRel, NpmPackageFilename, scopeRel, Directive_TsConfigPackageDeps)
+				BazelLog.Warnf("//%s:%s cannot include %s: no ts_config in //%s carries it; enable '# gazelle:%s' there",
+					args.Rel, tsconfigName, path.Join(scopeRel, NpmPackageFilename), pkgRel, Directive_TsConfigPackageDeps)
 			}
 		}
 

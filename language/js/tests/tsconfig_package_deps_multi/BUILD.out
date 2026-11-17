@@ -14,6 +14,9 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 # The 'fwd' package has neither a local tsconfig.json nor a package.json of its
 # own, only a swept-in fwd/sub/package.json: a forwarding ts_config rule must
 # still be emitted to carry that package.json (and the ancestor) into scope.
+#
+# 'app/sub/deep' is its own Bazel package below the swept-in app/sub/package.json.
+# It cannot copy that file, so it depends on //app:tsconfig, which carries it.
 
 # gazelle:generation_mode update_only
 # gazelle:js_tsconfig_package_deps enabled
