@@ -8,7 +8,7 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 #
 # The 'app' package additionally covers a base directory with a local
 # tsconfig.json but no package.json of its own: its own files resolve to the
-# closest ancestor package.json (//:package.json), so that must be in deps
+# closest ancestor package.json, which //:tsconfig carries, so that must be in deps
 # alongside the swept-in app/sub/package.json.
 #
 # The 'fwd' package has neither a local tsconfig.json nor a package.json of its

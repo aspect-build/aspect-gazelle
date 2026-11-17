@@ -615,12 +615,11 @@ func (ts *typeScriptLang) packageScopeDir(rel string) (string, bool) {
 	}
 }
 
-// collectTsConfigPackageJsonDeps returns label deps for the package.json files
-// tsc consults: every package.json in this Bazel package, plus the closest
-// ancestor's if args.Rel itself has none (tsc stops at the first package.json
-// walking up). hasLocal reports whether any package.json is in this package.
-func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal bool) {
-	hasBaseLocal := false
+// collectTsConfigPackageJsonDeps returns label deps for every package.json file
+// in this Bazel package. hasLocal reports whether there is any; hasBaseLocal
+// whether one sits at args.Rel itself, which is the one tsc finds for args.Rel's
+// own files (tsc stops at the first package.json walking up).
+func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal, hasBaseLocal bool) {
 	for _, f := range args.RegularFiles {
 		if path.Base(f) == NpmPackageFilename {
 			l := label.New(args.Config.RepoName, args.Rel, f)
@@ -629,23 +628,49 @@ func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateA
 			hasBaseLocal = hasBaseLocal || f == NpmPackageFilename
 		}
 	}
-	// args.Rel's own files resolve to the nearest package.json at or above it;
-	// when args.Rel has none locally that is an ancestor outside this package,
-	// which the loop above does not see.
-	if !hasBaseLocal {
-		if ancestor, ok := ts.packageScopeDir(args.Rel); ok {
-			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
-			deps = append(deps, &l)
+	return deps, hasLocal, hasBaseLocal
+}
+
+// packageScopeTsConfig returns the ts_config rule in scopeRel that carries
+// scopeRel's package.json for groupName. A ts_config may only copy source files
+// of its own Bazel package into the output tree, so descendants depend on this
+// rule instead of on the package.json file.
+func (ts *typeScriptLang) packageScopeTsConfig(cfg *JsGazelleConfig, args language.GenerateArgs, scopeRel, groupName string) (label.Label, bool) {
+	scopeCfg := cfg
+	for scopeCfg != nil && scopeCfg.rel != scopeRel {
+		scopeCfg = scopeCfg.parent
+	}
+	if scopeCfg == nil || !scopeCfg.GenerationEnabled() || !scopeCfg.GetTsConfigPackageDepsEnabled() || !scopeCfg.GetTsConfigGenerationEnabled(groupName) {
+		return label.NoLabel, false
+	}
+
+	// Mirrors addTsConfigRules in scopeRel: a local tsconfig file, otherwise a
+	// forwarding rule for the closest ancestor tsconfig.
+	tsconfig := ts.tsconfig.GetTsConfigFile(scopeRel, groupName)
+	if tsconfig == nil {
+		_, _, tsconfig = ts.tsconfig.FindConfig(scopeRel, groupName)
+		if tsconfig == nil {
+			return label.NoLabel, false
 		}
 	}
-	return deps, hasLocal
+	return label.New(args.Config.RepoName, scopeRel, scopeCfg.RenderTsConfigName(tsconfig.ConfigName)), true
 }
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
 	var packageJsonDeps []*label.Label
 	var hasLocalPackageJson bool
+
+	// args.Rel's own files resolve to the nearest package.json at or above it;
+	// when args.Rel has none locally that is in an ancestor Bazel package.
+	var scopeRel string
+	var hasAncestorScope bool
+
 	if cfg.GetTsConfigPackageDepsEnabled() {
-		packageJsonDeps, hasLocalPackageJson = ts.collectTsConfigPackageJsonDeps(args)
+		var hasBaseLocal bool
+		packageJsonDeps, hasLocalPackageJson, hasBaseLocal = ts.collectTsConfigPackageJsonDeps(args)
+		if !hasBaseLocal {
+			scopeRel, hasAncestorScope = ts.packageScopeDir(args.Rel)
+		}
 	}
 
 	emittedNames := make(map[string]struct{})
@@ -680,6 +705,15 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 
 		info := newTsProjectInfo(groupName)
 		info.staticDeps = append(info.staticDeps, packageJsonDeps...)
+
+		if hasAncestorScope {
+			if scopeTsConfig, ok := ts.packageScopeTsConfig(cfg, args, scopeRel, groupName); ok {
+				info.staticDeps = append(info.staticDeps, &scopeTsConfig)
+			} else {
+				BazelLog.Warnf("//%s:%s cannot include //%s:%s: no ts_config in //%s carries it; enable '# gazelle:%s' there",
+					args.Rel, tsconfigName, scopeRel, NpmPackageFilename, scopeRel, Directive_TsConfigPackageDeps)
+			}
+		}
 
 		if hasLocalTsconfigFile {
 			for _, impt := range ts.collectTsConfigImports(cfg, args, tsconfig) {
