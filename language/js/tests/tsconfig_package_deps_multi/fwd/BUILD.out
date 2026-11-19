@@ -12,6 +12,6 @@ ts_config(
     visibility = [":__subpackages__"],
     deps = [
         ":sub/package.json",
-        "//:package.json",
+        "//:package_json",
     ],
 )

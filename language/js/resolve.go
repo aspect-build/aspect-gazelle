@@ -56,6 +56,9 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 	case TsProjectKind:
 		fallthrough
 	case JsLibraryKind:
+		if isPackageJsonLibrary(r) {
+			return nil
+		}
 		return ts.sourceFileImports(c, r, f)
 	}
 	return nil
@@ -358,6 +361,10 @@ func (ts *typeScriptLang) Resolve(
 	BazelLog.Debugf("Resolve(%s): //%s:%s", LanguageName, from.Pkg, r.Name())
 
 	// TsProject imports are resolved as deps
+	if isPackageJsonLibrary(r) {
+		return
+	}
+
 	switch r.Kind() {
 	case TsProjectKind, JsLibraryKind, TsConfigKind, TsProtoLibraryKind:
 		deps := common.NewLabelSet(from)

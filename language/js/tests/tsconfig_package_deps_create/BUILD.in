@@ -1,0 +1,5 @@
+# 'child' has no BUILD file yet, so gazelle creates it in this run. Gazelle
+# generates child before root, so root learns that child depends on its
+# package.json and generates the 'package_json' js_library for it.
+
+# gazelle:js_tsconfig_package_deps enabled

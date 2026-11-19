@@ -1,7 +1,12 @@
-# Validates inheritance of `js_tsconfig_package_deps` across Bazel packages:
+# Validates inheritance of `js_tsconfig_package_deps` across Bazel packages.
+# A ts_config can only copy its own package's files, so a child without a
+# package.json reaches its ancestor's through a js_library in the ancestor:
 #
-#   dir-a/         — has `package.json`, but the directive is set to `disabled`,
-#                    so dir-a's own ts_config rule MUST NOT pick up package.json.
-#   dir-a/child/   — has the directive set to `enabled`, has no local
-#                    package.json, and so MUST pick up dir-a's package.json
-#                    (the closest ancestor) into its ts_config rule's deps.
+#   dir-a/         — has `package.json`, but the directive is `disabled`, so
+#                    dir-a's ts_config MUST NOT carry package.json.
+#   dir-a/child/   — has the directive `enabled` and no local package.json;
+#                    dir-a emits no js_library for it, so it gets no deps.
+#   dir-b/         — has `package.json` and the directive `enabled`, so it
+#                    emits a js_library of it for dir-b/child.
+#   dir-b/child/   — inherits the directive, has no local package.json, and
+#                    MUST depend on //dir-b:package_json to reach it.

@@ -38,12 +38,21 @@ type typeScriptLang struct {
 	// cache is the noop (default) cache.
 	packageJsons map[string]*node.PackageJson
 
+	// Directories whose package.json a descendant Bazel package's ts_config
+	// depends on, recorded during this run. Gazelle generates children before
+	// their parents, so the owning package sees these before emitting.
+	usedPackageJsonDirs map[string]*packageJsonRequest
+
+	// Directories whose package.json js_library was generated during this run.
+	providedPackageJsonDirs map[string]struct{}
+
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
 }
 
 var _ language.Language = (*typeScriptLang)(nil)
 var _ language.ModuleAwareLanguage = (*typeScriptLang)(nil)
+var _ language.FinishableLanguage = (*typeScriptLang)(nil)
 
 // NewLanguage initializes a new TypeScript that satisfies the language.Language
 // interface. This is the entrypoint for the extension initialization.
@@ -57,6 +66,9 @@ func NewLanguage() language.Language {
 		pnpmProjects:    pnpmProjects,
 		packageJsonDirs: packageJsonDirs,
 		packageJsons:    make(map[string]*node.PackageJson),
+
+		usedPackageJsonDirs:     make(map[string]*packageJsonRequest),
+		providedPackageJsonDirs: make(map[string]struct{}),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found
