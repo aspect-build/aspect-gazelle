@@ -717,13 +717,22 @@ func isPackageJsonLibraryOfKind(r *rule.Rule, kind string) bool {
 // run does not regenerate already lists l in a deps attribute, as when gazelle
 // runs on an ancestor only. Descendants this run regenerates record their need
 // in usedPackageJsonDirs instead. Directories with their own package.json are
-// skipped: tsc resolves everything below them to that file.
+// skipped: tsc resolves everything below them to that file. So is
+// node_modules, which holds no BUILD files of the workspace's own but may be
+// large and is not always excluded from gazelle's walk.
+//
+// The walk cannot stop at regenerated directories: a non-recursive run may
+// regenerate a directory but not its subdirectories. Directories the run
+// visited are cached, so the walk only costs I/O for the ones it did not.
 func (ts *typeScriptLang) unregeneratedDescendantUses(rel string, l label.Label) bool {
 	d, err := walk.GetDirInfo(rel)
 	if err != nil {
 		return false
 	}
 	for _, sub := range d.Subdirs {
+		if sub == "node_modules" {
+			continue
+		}
 		subRel := path.Join(rel, sub)
 		sd, err := walk.GetDirInfo(subRel)
 		if err != nil || slices.Contains(sd.RegularFiles, NpmPackageFilename) {
