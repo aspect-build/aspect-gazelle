@@ -1,0 +1,2 @@
+# Import-based assets are not collected, so asset files stay out of assets.
+# gazelle:js_assets jsx
