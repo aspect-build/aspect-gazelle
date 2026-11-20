@@ -787,6 +787,7 @@ func (ts *typeScriptLang) packageScopeLabel(cfg *JsGazelleConfig, args language.
 	}
 	pkgRel := pkgCfg.rel
 	dir := strings.TrimPrefix(strings.TrimPrefix(scopeRel, pkgRel), "/")
+	src := path.Join(dir, NpmPackageFilename)
 	var reason string
 	switch {
 	case !pkgCfg.GenerationEnabled():
@@ -797,7 +798,6 @@ func (ts *typeScriptLang) packageScopeLabel(cfg *JsGazelleConfig, args language.
 	if reason != "" {
 		// Gazelle manages no library there, but a hand-written one serves
 		// just as well.
-		src := path.Join(dir, NpmPackageFilename)
 		if r := findRule(pkgRel, func(r *rule.Rule) bool {
 			s, ok := packageJsonLibrarySrc(args.Config, r)
 			return ok && s == src
@@ -810,8 +810,12 @@ func (ts *typeScriptLang) packageScopeLabel(cfg *JsGazelleConfig, args language.
 	req := ts.usedPackageJsonDirs[scopeRel]
 	if req == nil {
 		// The walk cache is gone by DoneGeneratingRules, so check now whether
-		// the owning BUILD file already has the target.
-		exists := findRule(pkgRel, func(r *rule.Rule) bool { return r.Name() == l.Name }) != nil
+		// the owning BUILD file already has the target. A rule that merely
+		// shares its name, with another kind or srcs, does not count.
+		exists := findRule(pkgRel, func(r *rule.Rule) bool {
+			s, ok := packageJsonLibrarySrc(args.Config, r)
+			return ok && s == src && r.Name() == l.Name
+		}) != nil
 		req = &packageJsonRequest{label: l, satisfied: exists}
 		ts.usedPackageJsonDirs[scopeRel] = req
 	}
@@ -864,7 +868,9 @@ func (ts *typeScriptLang) DoneGeneratingRules() {
 func tsPackageJsonDir(rel string) (string, bool) {
 	for rel != "" {
 		rel = relDir(rel)
-		if common.WalkHasPath(rel, NpmPackageFilename) {
+		// Unlike common.WalkHasPath, treat a directory gazelle cannot load
+		// (e.g. a broken BUILD file) as having none rather than exiting.
+		if d, err := walk.GetDirInfo(rel); err == nil && slices.Contains(d.RegularFiles, NpmPackageFilename) {
 			return rel, true
 		}
 	}
