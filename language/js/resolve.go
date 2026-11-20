@@ -56,7 +56,11 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 	case TsProjectKind:
 		fallthrough
 	case JsLibraryKind:
-		if isPackageJsonLibrary(r) {
+		// The package.json js_library generated for descendant ts_config
+		// rules only provides a file the package's sources already provide.
+		// Only skip it where the directive is enabled: elsewhere a target of
+		// the same shape was written by hand and stays importable.
+		if isPackageJsonLibrary(r) && c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() {
 			return nil
 		}
 		return ts.sourceFileImports(c, r, f)
