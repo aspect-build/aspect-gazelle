@@ -1,0 +1,1 @@
+directive "js_import": import "l10n.yml" cannot be both ancestor and multiple

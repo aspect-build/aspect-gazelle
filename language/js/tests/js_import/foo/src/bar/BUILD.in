@@ -1,0 +1,2 @@
+# Only the main library target declares the import; bar_tests reaches it
+# transitively. Use `js_import {dirname}_tests ...` to give tests their own.

@@ -1,0 +1,21 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Two ts_projects both `# keep`'ing util.ts, so both provide the "util" import
+# spec. Without `multiple` an importer of it is an ambiguity error.
+# gazelle:js_files extras b.ts
+
+ts_project(
+    name = "bad_multi_directive_import",
+    srcs = [
+        "a.ts",
+        "util.ts",  # keep
+    ],
+)
+
+ts_project(
+    name = "extras",
+    srcs = [
+        "b.ts",
+        "util.ts",  # keep
+    ],
+)

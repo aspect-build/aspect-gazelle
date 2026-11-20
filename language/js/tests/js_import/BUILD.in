@@ -1,0 +1,5 @@
+# `ancestor` resolves to the nearest provider at or above the importing
+# package, like aspect.Import(ancestor = True). The providers here are
+# hand-written so this fixture covers js_import alone; `js_files` can also
+# generate them (see js_files_non_source).
+# gazelle:js_import l10n.yml ancestor

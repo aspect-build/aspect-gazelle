@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Without `ancestor` the symbol is an exact workspace-relative path, so it
+# resolves regardless of where the importing package sits.
+# gazelle:js_import plain/theme.yml
+
+ts_project(
+    name = "consumer",
+    srcs = ["c.ts"],
+    deps = ["//plain:theme_yaml"],
+)

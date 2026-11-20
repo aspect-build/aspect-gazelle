@@ -1,0 +1,2 @@
+# The same symbol without `multiple` must still be an ambiguity error.
+# gazelle:js_import util

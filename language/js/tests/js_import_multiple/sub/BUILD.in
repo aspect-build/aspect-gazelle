@@ -1,0 +1,3 @@
+# `multiple` opts into every provider of the symbol instead of requiring
+# exactly one, so both targets above become deps.
+# gazelle:js_import util multiple

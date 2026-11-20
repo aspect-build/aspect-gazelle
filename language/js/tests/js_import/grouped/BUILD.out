@@ -1,0 +1,25 @@
+# An import declared on a named group applies to that target. The e2e target
+# gets its own l10n.yml import here; the main library target also has one,
+# inherited from the root directive.
+# gazelle:js_files e2e *.e2e.ts
+# gazelle:js_import e2e l10n.yml ancestor
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+js_library(
+    name = "l10n_yaml",
+    srcs = ["l10n.yml"],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "grouped",
+    srcs = ["g.ts"],
+    deps = [":l10n_yaml"],
+)
+
+ts_project(
+    name = "e2e",
+    srcs = ["g.e2e.ts"],
+    deps = [":l10n_yaml"],
+)
