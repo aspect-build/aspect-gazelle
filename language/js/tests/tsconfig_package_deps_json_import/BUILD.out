@@ -4,6 +4,10 @@
 #   library is not importable. enabled/child's '../package.json' import MUST
 #   resolve to the ts_project that already has package.json in srcs, not be
 #   ambiguous.
+# - enabled_only/: the directive is enabled, but the ts_project does not list
+#   package.json (no resolveJsonModule there), so the generated 'package_json'
+#   library is the only provider. enabled_only/child's import MUST resolve to
+#   it.
 # - handwritten/: the directive is disabled, so the hand-written
 #   'package_json' library stays importable. It is the only provider, so
 #   handwritten/child's import MUST resolve to it.

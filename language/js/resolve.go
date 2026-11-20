@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
@@ -57,10 +58,12 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 		fallthrough
 	case JsLibraryKind:
 		// The package.json js_library generated for descendant ts_config
-		// rules only provides a file the package's sources already provide.
-		// Only skip it where the directive is enabled: elsewhere a target of
-		// the same shape was written by hand and stays importable.
-		if isPackageJsonLibrary(r) && c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() {
+		// rules duplicates a file another target in the package may already
+		// provide, which would make imports of it ambiguous. Skip it only
+		// then: otherwise it is the only target that can satisfy e.g. a
+		// require('../package.json').
+		if isPackageJsonLibrary(r) && c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() &&
+			ts.otherRuleProvides(c, r, f, r.AttrStrings("srcs")[0]) {
 			return nil
 		}
 		return ts.sourceFileImports(c, r, f)
@@ -68,33 +71,67 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 	return nil
 }
 
-// TypeScript-importable ImportSpecs from a set of source files.
-func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
-	var srcs []string
+// otherRuleProvides reports whether a ts_project or js_library in f other
+// than r lists src among its sources. Rules in f carry their map_kind kinds,
+// while r (a copy gazelle hands to Imports) carries the original kind, so
+// rules are told apart by name.
+func (ts *typeScriptLang) otherRuleProvides(c *config.Config, r *rule.Rule, f *rule.File, src string) bool {
+	kinds := map[string]struct{}{TsProjectKind: {}, JsLibraryKind: {}}
+	for _, k := range []string{TsProjectKind, JsLibraryKind} {
+		if mapped := c.KindMap[k].KindName; mapped != "" {
+			kinds[mapped] = struct{}{}
+		}
+	}
+	for _, other := range f.Rules {
+		if other.Name() == r.Name() {
+			continue
+		}
+		if _, ok := kinds[other.Kind()]; !ok {
+			continue
+		}
+		if srcs, err := ruleSourceFiles(other, f); err == nil && slices.Contains(srcs, src) {
+			return true
+		}
+	}
+	return false
+}
 
+// ruleSourceFiles returns the source files of a ts_project or js_library
+// rule, relative to its package.
+func ruleSourceFiles(r *rule.Rule, f *rule.File) ([]string, error) {
 	info, _ := r.PrivateAttr("ts_project_info").(*TsProjectInfo)
 	if info != nil && info.sources != nil {
-		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
-
-		srcs = make([]string, 0, info.sources.Size())
+		srcs := make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
 			srcs = append(srcs, it.Value())
 		}
+		return srcs, nil
+	}
+
+	sourceFiles, err := common.GetSourceRegularFiles(f.Pkg)
+	if err != nil {
+		BazelLog.Errorf("Failed to fetch source files %s:%s - %v", f.Pkg, r.Name(), err)
+	}
+
+	srcs, err := ruleUtils.ExpandSrcs(sourceFiles, r.Attr("srcs"))
+	if err != nil {
+		BazelLog.Debugf("Failed to expand srcs of %s:%s - %v", f.Pkg, r.Name(), err)
+		return nil, err
+	}
+	return srcs, nil
+}
+
+// TypeScript-importable ImportSpecs from a set of source files.
+func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
+	if info, _ := r.PrivateAttr("ts_project_info").(*TsProjectInfo); info != nil && info.sources != nil {
+		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
 	} else {
 		BazelLog.Debugf("Imports(%s): //%s:%s (non-generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
+	}
 
-		sourceFiles, err := common.GetSourceRegularFiles(f.Pkg)
-		if err != nil {
-			BazelLog.Errorf("Failed to fetch source files %s:%s - %v", f.Pkg, r.Name(), err)
-		}
-
-		expandedSrcs, err := ruleUtils.ExpandSrcs(sourceFiles, r.Attr("srcs"))
-		if err != nil {
-			BazelLog.Debugf("Failed to expand srcs of %s:%s - %v", f.Pkg, r.Name(), err)
-			return []resolve.ImportSpec{}
-		}
-
-		srcs = expandedSrcs
+	srcs, err := ruleSourceFiles(r, f)
+	if err != nil {
+		return []resolve.ImportSpec{}
 	}
 
 	// Potential ts_project attributes affecting the provided rule outputs.
