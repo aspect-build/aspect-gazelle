@@ -1,0 +1,27 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
+
+# gazelle:js_tsconfig_package_deps enabled
+
+ts_project(
+    name = "enabled",
+    srcs = [
+        "main.ts",
+        "package.json",
+    ],
+    resolve_json_module = True,
+    tsconfig = ":tsconfig",
+)
+
+js_library(
+    name = "package_json",
+    srcs = ["package.json"],
+    visibility = [":__subpackages__"],
+)
+
+ts_config(
+    name = "tsconfig",
+    src = "tsconfig.json",
+    visibility = [":__subpackages__"],
+    deps = [":package.json"],
+)

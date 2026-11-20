@@ -1,3 +1,4 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
 ts_project(
@@ -6,12 +7,18 @@ ts_project(
     tsconfig = ":tsconfig",
 )
 
+js_library(
+    name = "sub_package_json",
+    srcs = ["sub/package.json"],
+    visibility = [":__subpackages__"],
+)
+
 ts_config(
     name = "tsconfig",
     src = "tsconfig.json",
     visibility = [":__subpackages__"],
     deps = [
         ":sub/package.json",
-        "//:package.json",
+        "//:package_json",
     ],
 )

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"slices"
 	"strings"
 
 	common "github.com/aspect-build/aspect-gazelle/common"
@@ -56,9 +57,49 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 	case TsProjectKind:
 		fallthrough
 	case JsLibraryKind:
+		// The package.json js_library generated for descendant ts_config
+		// rules duplicates a file another target in the package may already
+		// provide, which would make imports of it ambiguous. Skip it only
+		// then: otherwise it is the only target that can satisfy e.g. a
+		// require('../package.json').
+		if c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() && isPackageJsonLibrary(c, r) &&
+			otherRuleProvides(c, r, f, r.AttrStrings("srcs")[0]) {
+			return nil
+		}
 		return ts.sourceFileImports(c, r, f)
 	}
 	return nil
+}
+
+// otherRuleProvides reports whether a ts_project or js_library in f other
+// than r lists src among its sources. r is a copy gazelle hands to Imports, so
+// rules are told apart by name.
+func otherRuleProvides(c *config.Config, r *rule.Rule, f *rule.File, src string) bool {
+	var sourceFiles []string // listed lazily, only for glob srcs
+	for _, other := range f.Rules {
+		if other.Name() == r.Name() || !(isKind(c, other, TsProjectKind) || isKind(c, other, JsLibraryKind)) {
+			continue
+		}
+		if info, _ := other.PrivateAttr("ts_project_info").(*TsProjectInfo); info != nil && info.sources != nil {
+			if info.sources.Contains(src) {
+				return true
+			}
+			continue
+		}
+		if slices.Contains(other.AttrStrings("srcs"), src) {
+			return true
+		}
+		if other.AttrStrings("srcs") != nil || other.Attr("srcs") == nil {
+			continue // a plain list, or no srcs
+		}
+		if sourceFiles == nil {
+			sourceFiles, _ = common.GetSourceRegularFiles(f.Pkg)
+		}
+		if srcs, err := ruleUtils.ExpandSrcs(sourceFiles, other.Attr("srcs")); err == nil && slices.Contains(srcs, src) {
+			return true
+		}
+	}
+	return false
 }
 
 // TypeScript-importable ImportSpecs from a set of source files.

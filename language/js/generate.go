@@ -21,6 +21,7 @@ import (
 	"encoding/gob"
 	"fmt"
 	"iter"
+	"maps"
 	"os"
 	"path"
 	"slices"
@@ -40,6 +41,7 @@ import (
 	"github.com/bazelbuild/bazel-gazelle/language"
 	"github.com/bazelbuild/bazel-gazelle/resolve"
 	"github.com/bazelbuild/bazel-gazelle/rule"
+	"github.com/bazelbuild/bazel-gazelle/walk"
 	bzl "github.com/bazelbuild/buildtools/build"
 	"github.com/emirpasic/gods/v2/sets/treeset"
 )
@@ -615,39 +617,284 @@ func (ts *typeScriptLang) packageScopeDir(rel string) (string, bool) {
 	}
 }
 
-// collectTsConfigPackageJsonDeps returns label deps for the package.json files
-// tsc consults: every package.json in this Bazel package, plus the closest
-// ancestor's if args.Rel itself has none (tsc stops at the first package.json
-// walking up). hasLocal reports whether any package.json is in this package.
-func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasLocal bool) {
-	hasBaseLocal := false
+// collectTsConfigPackageJsonDeps returns label deps for every package.json file
+// in this Bazel package, and whether one sits at args.Rel itself, which is the
+// one tsc finds for args.Rel's own files (tsc stops at the first package.json
+// walking up).
+func (ts *typeScriptLang) collectTsConfigPackageJsonDeps(args language.GenerateArgs) (deps []*label.Label, hasBaseLocal bool) {
 	for _, f := range args.RegularFiles {
 		if path.Base(f) == NpmPackageFilename {
 			l := label.New(args.Config.RepoName, args.Rel, f)
 			deps = append(deps, &l)
-			hasLocal = true
 			hasBaseLocal = hasBaseLocal || f == NpmPackageFilename
 		}
 	}
-	// args.Rel's own files resolve to the nearest package.json at or above it;
-	// when args.Rel has none locally that is an ancestor outside this package,
-	// which the loop above does not see.
-	if !hasBaseLocal {
-		if ancestor, ok := ts.packageScopeDir(args.Rel); ok {
-			l := label.New(args.Config.RepoName, ancestor, NpmPackageFilename)
-			deps = append(deps, &l)
+	return deps, hasBaseLocal
+}
+
+// relDir is path.Dir with "" rather than "." for a file at the top.
+func relDir(p string) string {
+	if d := path.Dir(p); d != "." {
+		return d
+	}
+	return ""
+}
+
+// packageJsonTargetName names the js_library for the package.json in
+// dir, relative to its Bazel package ("" for the package's own directory).
+func packageJsonTargetName(dir string) string {
+	if dir == "" {
+		return "package_json"
+	}
+	return strings.ReplaceAll(dir, "/", "_") + "_package_json"
+}
+
+// addPackageJsonLibraries emits a js_library for each package.json in this
+// Bazel package that a descendant Bazel package needs, and removes ones that
+// are no longer needed. A ts_config may only copy source files of its own
+// package into the output tree; a descendant depends on this library, whose
+// file is already there, instead.
+func (ts *typeScriptLang) addPackageJsonLibraries(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
+	// Without the directive a rule of this shape is hand-written, not stale,
+	// and must survive.
+	if !cfg.GetTsConfigPackageDepsEnabled() {
+		return
+	}
+
+	emitted := make(map[string]struct{})
+	for _, f := range args.RegularFiles {
+		if path.Base(f) != NpmPackageFilename {
+			continue
+		}
+		dir := relDir(f)
+		scopeRel := path.Join(args.Rel, dir)
+		name := packageJsonTargetName(dir)
+		l := label.New(args.Config.RepoName, args.Rel, name)
+		if req := ts.usedPackageJsonDirs[scopeRel]; req != nil {
+			req.satisfied = true
+		} else if !ts.unregeneratedDescendantUses(scopeRel, l) {
+			continue
+		}
+		r := rule.NewRule(JsLibraryKind, name)
+		r.SetAttr("srcs", []string{f})
+		r.SetAttr("visibility", []string{":__subpackages__"})
+		result.Gen = append(result.Gen, r)
+		result.Imports = append(result.Imports, nil)
+		emitted[name] = struct{}{}
+	}
+
+	if args.File != nil {
+		for _, r := range args.File.Rules {
+			if _, ok := emitted[r.Name()]; !ok && isPackageJsonLibrary(args.Config, r) {
+				result.Empty = append(result.Empty, rule.NewRule(JsLibraryKind, r.Name()))
+			}
 		}
 	}
-	return deps, hasLocal
+}
+
+// isKind reports whether r is of kind, or of the kind map_kind renames it to.
+// Gazelle hands Imports and Resolve a copy of a rule with its original kind,
+// but other rules of a BUILD file carry their mapped kinds.
+func isKind(c *config.Config, r *rule.Rule, kind string) bool {
+	return r.Kind() == kind || (c.KindMap[kind].KindName != "" && r.Kind() == c.KindMap[kind].KindName)
+}
+
+// packageJsonLibrarySrc returns the package.json r carries if r is a
+// js_library whose only src is a package.json.
+func packageJsonLibrarySrc(c *config.Config, r *rule.Rule) (string, bool) {
+	if !isKind(c, r, JsLibraryKind) {
+		return "", false
+	}
+	srcs := r.AttrStrings("srcs")
+	if len(srcs) != 1 || path.Base(srcs[0]) != NpmPackageFilename {
+		return "", false
+	}
+	return srcs[0], true
+}
+
+// isPackageJsonLibrary reports whether r has the shape of a js_library
+// generated by addPackageJsonLibraries.
+func isPackageJsonLibrary(c *config.Config, r *rule.Rule) bool {
+	src, ok := packageJsonLibrarySrc(c, r)
+	return ok && r.Name() == packageJsonTargetName(relDir(src))
+}
+
+// unregeneratedDescendantUses reports whether a BUILD file below rel that this
+// run does not regenerate already lists l in a deps attribute, as when gazelle
+// runs on an ancestor only. Descendants this run regenerates record their need
+// in usedPackageJsonDirs instead. Directories with their own package.json are
+// skipped: tsc resolves everything below them to that file. So is
+// node_modules, which holds no BUILD files of the workspace's own but may be
+// large and is not always excluded from gazelle's walk.
+//
+// The walk cannot stop at regenerated directories: a non-recursive run may
+// regenerate a directory but not its subdirectories. Directories the run
+// visited are cached, so the walk only costs I/O for the ones it did not.
+func (ts *typeScriptLang) unregeneratedDescendantUses(rel string, l label.Label) bool {
+	d, err := walk.GetDirInfo(rel)
+	if err != nil {
+		return false
+	}
+	for _, sub := range d.Subdirs {
+		if sub == "node_modules" {
+			continue
+		}
+		subRel := path.Join(rel, sub)
+		sd, err := walk.GetDirInfo(subRel)
+		if err != nil || slices.Contains(sd.RegularFiles, NpmPackageFilename) {
+			continue
+		}
+		if _, regenerated := ts.tsConfigRegeneratedRels[subRel]; !regenerated && sd.File != nil && fileDependsOn(sd.File, l) {
+			return true
+		}
+		if ts.unregeneratedDescendantUses(subRel, l) {
+			return true
+		}
+	}
+	return false
+}
+
+// fileDependsOn reports whether any rule in f lists l in its deps.
+func fileDependsOn(f *rule.File, l label.Label) bool {
+	for _, r := range f.Rules {
+		for _, dep := range r.AttrStrings("deps") {
+			if !strings.HasSuffix(dep, l.Name) {
+				continue
+			}
+			d, err := label.Parse(dep)
+			if err != nil {
+				continue
+			}
+			d = d.Abs("", f.Pkg)
+			if d.Pkg == l.Pkg && d.Name == l.Name && (d.Repo == "" || d.Repo == l.Repo) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// packageScopeLabel returns the js_library that carries scopeRel's
+// package.json in the Bazel package that contains scopeRel, or an error
+// saying why that package has no such rule.
+func (ts *typeScriptLang) packageScopeLabel(cfg *JsGazelleConfig, args language.GenerateArgs, scopeRel string) (label.Label, error) {
+	// Gazelle configures only Bazel packages: under generation_mode update_only
+	// a directory without a BUILD file belongs to the nearest configured
+	// ancestor. The root config has rel "", so this always finds one.
+	pkgCfg := cfg
+	for !isRelAtOrAbove(pkgCfg.rel, scopeRel) {
+		pkgCfg = pkgCfg.parent
+	}
+	pkgRel := pkgCfg.rel
+	dir := strings.TrimPrefix(strings.TrimPrefix(scopeRel, pkgRel), "/")
+	src := path.Join(dir, NpmPackageFilename)
+	var reason string
+	switch {
+	case !pkgCfg.GenerationEnabled():
+		reason = "js generation is disabled there"
+	case !pkgCfg.GetTsConfigPackageDepsEnabled():
+		reason = fmt.Sprintf("enable '# gazelle:%s' there", Directive_TsConfigPackageDeps)
+	}
+	if reason != "" {
+		// Gazelle manages no library there, but a hand-written one serves
+		// just as well.
+		if r := findRule(pkgRel, func(r *rule.Rule) bool {
+			s, ok := packageJsonLibrarySrc(args.Config, r)
+			return ok && s == src
+		}); r != nil {
+			return label.New(args.Config.RepoName, pkgRel, r.Name()), nil
+		}
+		return label.NoLabel, fmt.Errorf("//%s does not provide it; %s", pkgRel, reason)
+	}
+	l := label.New(args.Config.RepoName, pkgRel, packageJsonTargetName(dir))
+	req := ts.usedPackageJsonDirs[scopeRel]
+	if req == nil {
+		// The walk cache is gone by DoneGeneratingRules, so check now whether
+		// the owning BUILD file already has the target. A rule that merely
+		// shares its name, with another kind or srcs, does not count.
+		exists := findRule(pkgRel, func(r *rule.Rule) bool {
+			s, ok := packageJsonLibrarySrc(args.Config, r)
+			return ok && s == src && r.Name() == l.Name
+		}) != nil
+		req = &packageJsonRequest{label: l, satisfied: exists}
+		ts.usedPackageJsonDirs[scopeRel] = req
+	}
+	req.requesters = append(req.requesters, args.Rel)
+	return l, nil
+}
+
+// packageJsonRequest records which Bazel packages depend on the js_library
+// carrying a package.json in an ancestor Bazel package.
+type packageJsonRequest struct {
+	label      label.Label
+	satisfied  bool // the owning BUILD file had the target, or this run generated it
+	requesters []string
+}
+
+// findRule returns the first rule in rel's BUILD file that matches pred.
+func findRule(rel string, pred func(*rule.Rule) bool) *rule.Rule {
+	d, err := walk.GetDirInfo(rel)
+	if err != nil || d.File == nil {
+		return nil
+	}
+	if i := slices.IndexFunc(d.File.Rules, pred); i >= 0 {
+		return d.File.Rules[i]
+	}
+	return nil
+}
+
+// DoneGeneratingRules warns about package.json js_library targets that
+// descendants depend on but that neither this run generated nor the owning
+// BUILD file already has. That happens when gazelle runs on a descendant but
+// not on its ancestor, such as 'gazelle app/sub/deep'.
+func (ts *typeScriptLang) DoneGeneratingRules() {
+	for _, scopeRel := range slices.Sorted(maps.Keys(ts.usedPackageJsonDirs)) {
+		req := ts.usedPackageJsonDirs[scopeRel]
+		if req.satisfied {
+			continue
+		}
+		requesters := make([]string, len(req.requesters))
+		for i, rel := range req.requesters {
+			requesters[i] = "//" + rel
+		}
+		BazelLog.Warnf("%s is missing (needed by %s); run gazelle on //%s to create it",
+			req.label.String(), strings.Join(requesters, ", "), req.label.Pkg)
+	}
+}
+
+// tsPackageJsonDir returns the directory of the nearest package.json strictly
+// above rel, the one tsc consults for rel's files. Unlike packageScopeDir it
+// sees package.json files in directories swept into an ancestor Bazel package.
+func tsPackageJsonDir(rel string) (string, bool) {
+	for rel != "" {
+		rel = relDir(rel)
+		// Unlike common.WalkHasPath, treat a directory gazelle cannot load
+		// (e.g. a broken BUILD file) as having none rather than exiting.
+		if d, err := walk.GetDirInfo(rel); err == nil && slices.Contains(d.RegularFiles, NpmPackageFilename) {
+			return rel, true
+		}
+	}
+	return "", false
+}
+
+// isRelAtOrAbove reports whether the repo-relative directory dir is rel or one
+// of its ancestors.
+func isRelAtOrAbove(dir, rel string) bool {
+	return dir == "" || dir == rel || strings.HasPrefix(rel, dir+"/")
 }
 
 func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.GenerateArgs, result *language.GenerateResult) {
-	var packageJsonDeps []*label.Label
-	var hasLocalPackageJson bool
-	if cfg.GetTsConfigPackageDepsEnabled() {
-		packageJsonDeps, hasLocalPackageJson = ts.collectTsConfigPackageJsonDeps(args)
-	}
+	ts.tsConfigRegeneratedRels[args.Rel] = struct{}{}
+	ts.addPackageJsonLibraries(cfg, args, result)
 
+	var packageJsonDeps []*label.Label
+	var hasBaseLocal bool
+	if cfg.GetTsConfigPackageDepsEnabled() {
+		packageJsonDeps, hasBaseLocal = ts.collectTsConfigPackageJsonDeps(args)
+	}
+	hasLocalPackageJson := len(packageJsonDeps) > 0
+
+	var emittedInfos []*TsProjectInfo
 	emittedNames := make(map[string]struct{})
 	for _, groupName := range cfg.TsConfigGroupNames() {
 		if !cfg.GetTsConfigGenerationEnabled(groupName) {
@@ -701,6 +948,25 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		result.Gen = append(result.Gen, tsconfigRule)
 		result.Imports = append(result.Imports, info)
 		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info)...)
+		emittedInfos = append(emittedInfos, info)
+	}
+
+	// args.Rel's own files resolve to the nearest package.json at or above
+	// it; when args.Rel has none locally that is in an ancestor Bazel
+	// package, reached through the js_library it generates for it. Only
+	// request it once a ts_config was actually emitted here, so the ancestor
+	// does not keep a library nothing uses.
+	if cfg.GetTsConfigPackageDepsEnabled() && !hasBaseLocal && len(emittedInfos) > 0 {
+		if scopeRel, found := tsPackageJsonDir(args.Rel); found {
+			if l, err := ts.packageScopeLabel(cfg, args, scopeRel); err == nil {
+				for _, info := range emittedInfos {
+					info.staticDeps = append(info.staticDeps, &l)
+				}
+			} else {
+				BazelLog.Warnf("//%s cannot include %s in its ts_config: %v",
+					args.Rel, path.Join(scopeRel, NpmPackageFilename), err)
+			}
+		}
 	}
 }
 

@@ -1,0 +1,6 @@
+# No tsconfig.json exists anywhere, so no ts_config is emitted. app/ sweeps in
+# app/sub/package.json (app/sub has no BUILD file) but has none of its own; it
+# MUST NOT request the root package.json library, which MUST NOT be generated.
+
+# gazelle:generation_mode update_only
+# gazelle:js_tsconfig_package_deps enabled

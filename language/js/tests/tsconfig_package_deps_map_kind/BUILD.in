@@ -1,0 +1,8 @@
+# Validates the package_json js_library under map_kind:
+# - Root: child needs the root package.json, so the library is generated as
+#   the mapped kind.
+# - unused/: nothing below needs its package.json, so its existing library,
+#   already written as the mapped kind, MUST be removed.
+
+# gazelle:map_kind js_library my_js_library //tools:kinds.bzl
+# gazelle:js_tsconfig_package_deps enabled

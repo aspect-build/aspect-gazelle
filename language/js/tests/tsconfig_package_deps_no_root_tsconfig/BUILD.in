@@ -1,0 +1,5 @@
+# A root package.json with no root tsconfig.json: 'app' has its own tsconfig
+# but no package.json, so its files resolve to the root package.json. There is
+# no root ts_config to carry it, so app depends on the root's package_json js_library.
+
+# gazelle:js_tsconfig_package_deps enabled

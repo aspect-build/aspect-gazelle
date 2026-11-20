@@ -1,3 +1,4 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
 load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 
 # Validate that every package.json file inside the same Bazel package is added
@@ -8,12 +9,16 @@ load("@aspect_rules_ts//ts:defs.bzl", "ts_config", "ts_project")
 #
 # The 'app' package additionally covers a base directory with a local
 # tsconfig.json but no package.json of its own: its own files resolve to the
-# closest ancestor package.json (//:package.json), so that must be in deps
-# alongside the swept-in app/sub/package.json.
+# closest ancestor package.json, which the //:package_json js_library carries,
+# so that must be in deps alongside the swept-in app/sub/package.json.
 #
 # The 'fwd' package has neither a local tsconfig.json nor a package.json of its
 # own, only a swept-in fwd/sub/package.json: a forwarding ts_config rule must
 # still be emitted to carry that package.json (and the ancestor) into scope.
+#
+# 'app/sub/deep' is its own Bazel package below the swept-in app/sub/package.json.
+# It cannot copy that file, so it depends on //app:sub_package_json, a
+# js_library of it.
 
 # gazelle:generation_mode update_only
 # gazelle:js_tsconfig_package_deps enabled
@@ -22,6 +27,12 @@ ts_project(
     name = "tsconfig_package_deps_multi",
     srcs = ["main.ts"],
     tsconfig = ":tsconfig",
+)
+
+js_library(
+    name = "package_json",
+    srcs = ["package.json"],
+    visibility = [":__subpackages__"],
 )
 
 ts_config(

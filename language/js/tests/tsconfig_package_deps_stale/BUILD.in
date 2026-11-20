@@ -1,0 +1,18 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+# Validates removal of package.json js_library targets that are no longer needed:
+# - Root: the directive is disabled, so gazelle leaves 'package_json' and
+#   'keep' alone: without the directive, a rule of that shape is hand-written.
+# - unused/: the directive is enabled, but no Bazel package below needs its
+#   package.json, so its 'package_json' library is removed.
+
+js_library(
+    name = "package_json",
+    srcs = ["package.json"],
+    visibility = [":__subpackages__"],
+)
+
+js_library(
+    name = "keep",
+    srcs = ["package.json"],
+)
