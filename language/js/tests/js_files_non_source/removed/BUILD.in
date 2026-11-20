@@ -1,0 +1,9 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+# The group's only file no longer exists, so the target must be removed.
+# gazelle:js_files gone_group gone.yml
+
+js_library(
+    name = "gone_group",
+    srcs = ["gone.yml"],
+)

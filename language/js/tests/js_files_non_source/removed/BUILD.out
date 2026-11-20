@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# The group's only file no longer exists, so the target must be removed.
+# gazelle:js_files gone_group gone.yml
+
+ts_project(
+    name = "removed",
+    srcs = ["r.ts"],
+)
