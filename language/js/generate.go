@@ -462,12 +462,21 @@ func (ts *typeScriptLang) addPackageRule(cfg *JsGazelleConfig, args language.Gen
 
 	ts.addPackageJsonFiles(cfg, args, packageJsonPath, packageJsonFiles, dataFiles, npmPackageInfo)
 
-	// Add the package.json if not in the src
-	// BUG: if it was removed from 'dataFiles' and put in a target that the package does not depend on (such as a test ts_project())
-	// TODO: why not always add it?
-	// TODO: declare import on it instead if it's in another rule?
-	if packageIdx := slices.Index(dataFiles, NpmPackageFilename); packageIdx != -1 {
+	// An npm package is not publishable without its package.json, so the package target must always
+	// carry it. Add it as a source when this rule owns the file, otherwise declare an import so the
+	// resolver depends on whichever rule does own it, such as one declared by a 'js_files' directive.
+	if slices.Contains(dataFiles, NpmPackageFilename) {
 		npmPackageInfo.sources.Add(NpmPackageFilename)
+	} else {
+		npmPackageInfo.imports.Add(ImportStatement{
+			ImportSpec: resolve.ImportSpec{
+				Lang: LanguageName,
+				Imp:  packageJsonPath,
+			},
+			ImportPath: NpmPackageFilename,
+			SourcePath: packageJsonPath,
+			Optional:   true,
+		})
 	}
 
 	packageTargetName := cfg.RenderNpmPackageTargetName(packageName)
