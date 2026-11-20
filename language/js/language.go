@@ -43,9 +43,6 @@ type typeScriptLang struct {
 	// their parents, so the owning package sees these before emitting.
 	usedPackageJsonDirs map[string]*packageJsonRequest
 
-	// Directories whose package.json js_library was generated during this run.
-	providedPackageJsonDirs map[string]struct{}
-
 	// Bazel packages whose ts_config rules were regenerated during this run.
 	tsConfigRegeneratedRels map[string]struct{}
 
@@ -71,7 +68,6 @@ func NewLanguage() language.Language {
 		packageJsons:    make(map[string]*node.PackageJson),
 
 		usedPackageJsonDirs:     make(map[string]*packageJsonRequest),
-		providedPackageJsonDirs: make(map[string]struct{}),
 		tsConfigRegeneratedRels: make(map[string]struct{}),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]

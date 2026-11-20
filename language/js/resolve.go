@@ -62,8 +62,8 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 		// provide, which would make imports of it ambiguous. Skip it only
 		// then: otherwise it is the only target that can satisfy e.g. a
 		// require('../package.json').
-		if isPackageJsonLibrary(r) && c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() &&
-			ts.otherRuleProvides(c, r, f, r.AttrStrings("srcs")[0]) {
+		if c.Exts[LanguageName].(*JsGazelleConfig).GetTsConfigPackageDepsEnabled() && isPackageJsonLibrary(c, r) &&
+			otherRuleProvides(c, r, f, r.AttrStrings("srcs")[0]) {
 			return nil
 		}
 		return ts.sourceFileImports(c, r, f)
@@ -72,66 +72,63 @@ func (ts *typeScriptLang) Imports(c *config.Config, r *rule.Rule, f *rule.File) 
 }
 
 // otherRuleProvides reports whether a ts_project or js_library in f other
-// than r lists src among its sources. Rules in f carry their map_kind kinds,
-// while r (a copy gazelle hands to Imports) carries the original kind, so
+// than r lists src among its sources. r is a copy gazelle hands to Imports, so
 // rules are told apart by name.
-func (ts *typeScriptLang) otherRuleProvides(c *config.Config, r *rule.Rule, f *rule.File, src string) bool {
-	kinds := map[string]struct{}{TsProjectKind: {}, JsLibraryKind: {}}
-	for _, k := range []string{TsProjectKind, JsLibraryKind} {
-		if mapped := c.KindMap[k].KindName; mapped != "" {
-			kinds[mapped] = struct{}{}
-		}
-	}
+func otherRuleProvides(c *config.Config, r *rule.Rule, f *rule.File, src string) bool {
+	var sourceFiles []string // listed lazily, only for glob srcs
 	for _, other := range f.Rules {
-		if other.Name() == r.Name() {
+		if other.Name() == r.Name() || !(isKind(c, other, TsProjectKind) || isKind(c, other, JsLibraryKind)) {
 			continue
 		}
-		if _, ok := kinds[other.Kind()]; !ok {
+		if info, _ := other.PrivateAttr("ts_project_info").(*TsProjectInfo); info != nil && info.sources != nil {
+			if info.sources.Contains(src) {
+				return true
+			}
 			continue
 		}
-		if srcs, err := ruleSourceFiles(other, f); err == nil && slices.Contains(srcs, src) {
+		if slices.Contains(other.AttrStrings("srcs"), src) {
+			return true
+		}
+		if other.AttrStrings("srcs") != nil || other.Attr("srcs") == nil {
+			continue // a plain list, or no srcs
+		}
+		if sourceFiles == nil {
+			sourceFiles, _ = common.GetSourceRegularFiles(f.Pkg)
+		}
+		if srcs, err := ruleUtils.ExpandSrcs(sourceFiles, other.Attr("srcs")); err == nil && slices.Contains(srcs, src) {
 			return true
 		}
 	}
 	return false
 }
 
-// ruleSourceFiles returns the source files of a ts_project or js_library
-// rule, relative to its package.
-func ruleSourceFiles(r *rule.Rule, f *rule.File) ([]string, error) {
+// TypeScript-importable ImportSpecs from a set of source files.
+func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
+	var srcs []string
+
 	info, _ := r.PrivateAttr("ts_project_info").(*TsProjectInfo)
 	if info != nil && info.sources != nil {
-		srcs := make([]string, 0, info.sources.Size())
+		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
+
+		srcs = make([]string, 0, info.sources.Size())
 		for it := info.sources.Iterator(); it.Next(); {
 			srcs = append(srcs, it.Value())
 		}
-		return srcs, nil
-	}
-
-	sourceFiles, err := common.GetSourceRegularFiles(f.Pkg)
-	if err != nil {
-		BazelLog.Errorf("Failed to fetch source files %s:%s - %v", f.Pkg, r.Name(), err)
-	}
-
-	srcs, err := ruleUtils.ExpandSrcs(sourceFiles, r.Attr("srcs"))
-	if err != nil {
-		BazelLog.Debugf("Failed to expand srcs of %s:%s - %v", f.Pkg, r.Name(), err)
-		return nil, err
-	}
-	return srcs, nil
-}
-
-// TypeScript-importable ImportSpecs from a set of source files.
-func (ts *typeScriptLang) sourceFileImports(c *config.Config, r *rule.Rule, f *rule.File) []resolve.ImportSpec {
-	if info, _ := r.PrivateAttr("ts_project_info").(*TsProjectInfo); info != nil && info.sources != nil {
-		BazelLog.Debugf("Imports(%s): //%s:%s (generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
 	} else {
 		BazelLog.Debugf("Imports(%s): //%s:%s (non-generated %s)", LanguageName, f.Pkg, r.Name(), r.Kind())
-	}
 
-	srcs, err := ruleSourceFiles(r, f)
-	if err != nil {
-		return []resolve.ImportSpec{}
+		sourceFiles, err := common.GetSourceRegularFiles(f.Pkg)
+		if err != nil {
+			BazelLog.Errorf("Failed to fetch source files %s:%s - %v", f.Pkg, r.Name(), err)
+		}
+
+		expandedSrcs, err := ruleUtils.ExpandSrcs(sourceFiles, r.Attr("srcs"))
+		if err != nil {
+			BazelLog.Debugf("Failed to expand srcs of %s:%s - %v", f.Pkg, r.Name(), err)
+			return []resolve.ImportSpec{}
+		}
+
+		srcs = expandedSrcs
 	}
 
 	// Potential ts_project attributes affecting the provided rule outputs.
@@ -402,10 +399,6 @@ func (ts *typeScriptLang) Resolve(
 	BazelLog.Debugf("Resolve(%s): //%s:%s", LanguageName, from.Pkg, r.Name())
 
 	// TsProject imports are resolved as deps
-	if isPackageJsonLibrary(r) {
-		return
-	}
-
 	switch r.Kind() {
 	case TsProjectKind, JsLibraryKind, TsConfigKind, TsProtoLibraryKind:
 		deps := common.NewLabelSet(from)
