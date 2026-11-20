@@ -8,6 +8,3 @@
 #   package.json (no resolveJsonModule there), so the generated 'package_json'
 #   library is the only provider. enabled_only/child's import MUST resolve to
 #   it.
-# - handwritten/: the directive is disabled, so the hand-written
-#   'package_json' library stays importable. It is the only provider, so
-#   handwritten/child's import MUST resolve to it.

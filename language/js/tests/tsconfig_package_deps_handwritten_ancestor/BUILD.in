@@ -1,6 +1,5 @@
 # Validates a nested ts_config whose nearest package.json is in a Bazel package
-# with js_tsconfig_package_deps disabled:
-# - app/ has a hand-written js_library carrying its package.json, under a name
-#   gazelle would not pick. app/child's ts_config MUST depend on it.
-# - other/ has none, so other/child's ts_config MUST NOT reference
-#   other/package.json (gazelle warns instead).
+# with js_tsconfig_package_deps disabled: app/ has a hand-written js_library
+# carrying its package.json, under a name gazelle would not pick, so
+# app/child's ts_config MUST depend on it. (Without such a library the child
+# gets no dep; see tsconfig_package_deps_inherited.)

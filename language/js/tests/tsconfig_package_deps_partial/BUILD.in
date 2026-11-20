@@ -1,5 +1,6 @@
 # Gazelle runs only on 'child' (see arguments.txt). child depends on
-# //:package_json, but root is not regenerated and does not have it yet, so
-# gazelle warns to run it on the root package.
+# //:package_json even though root is not regenerated and does not have it
+# yet; root MUST be left untouched. (Gazelle also warns to run it on the root
+# package, but warnings go to the log, which this test cannot check.)
 
 # gazelle:js_tsconfig_package_deps enabled
