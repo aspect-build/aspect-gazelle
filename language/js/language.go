@@ -46,6 +46,9 @@ type typeScriptLang struct {
 	// Directories whose package.json js_library was generated during this run.
 	providedPackageJsonDirs map[string]struct{}
 
+	// Bazel packages whose ts_config rules were regenerated during this run.
+	tsConfigRegeneratedRels map[string]struct{}
+
 	// TypeScript configuration across the workspace
 	tsconfig *typescript.TsWorkspace
 }
@@ -69,6 +72,7 @@ func NewLanguage() language.Language {
 
 		usedPackageJsonDirs:     make(map[string]*packageJsonRequest),
 		providedPackageJsonDirs: make(map[string]struct{}),
+		tsConfigRegeneratedRels: make(map[string]struct{}),
 		tsconfig: typescript.NewTsWorkspace(pnpmProjects, func(rel string) bool {
 			_, found := packageJsonDirs[rel]
 			return found

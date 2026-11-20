@@ -1,0 +1,5 @@
+# Gazelle runs only on the root (see arguments.txt). child/ is not regenerated,
+# but its BUILD file already depends on //:package_json, so the root generates it.
+# other/ is a Bazel package that does not reference it and does not count.
+
+# gazelle:js_tsconfig_package_deps enabled
