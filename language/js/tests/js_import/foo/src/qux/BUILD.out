@@ -1,0 +1,11 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# A local declaration replaces the inherited one, matching js_asset_files, so
+# this target depends on plain/theme.yml and not on //foo:l10n_yaml.
+# gazelle:js_import plain/theme.yml
+
+ts_project(
+    name = "qux",
+    srcs = ["q.ts"],
+    deps = ["//plain:theme_yaml"],
+)

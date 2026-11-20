@@ -1,0 +1,14 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+js_library(
+    name = "l10n_yaml",
+    srcs = ["l10n.yml"],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "foo",
+    srcs = ["foo.ts"],
+    deps = [":l10n_yaml"],
+)

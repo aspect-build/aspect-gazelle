@@ -605,16 +605,13 @@ func (ts *typeScriptLang) getPackageJson(c *config.Config, rel string) (*node.Pa
 // Unlike a pnpm project this honors any package.json, including nested and
 // non-workspace ones, matching the node module resolution algorithm.
 func (ts *typeScriptLang) packageScopeDir(rel string) (string, bool) {
-	for {
-		if _, found := ts.packageJsonDirs[rel]; found {
-			return rel, true
+	for dir := range ancestorRels(rel) {
+		if _, found := ts.packageJsonDirs[dir]; found {
+			return dir, true
 		}
-		if rel == "" {
-			return "", false
-		}
-		base, _ := path.Split(rel)
-		rel = strings.TrimSuffix(base, "/")
 	}
+
+	return "", false
 }
 
 // collectTsConfigPackageJsonDeps returns label deps for every package.json file
@@ -1135,6 +1132,27 @@ func (ts *typeScriptLang) addProjectRule(cfg *JsGazelleConfig, tsconfigRel strin
 
 	// Project data combined from all files.
 	info := newTsProjectInfo(group.name)
+
+	// Imports declared on this target group that no source file imports explicitly
+	// (see [Directive_Import]). Resolved by the same machinery as parsed imports,
+	// so they honour gazelle/js_resolve overrides and @types lookups.
+	for _, declared := range group.declaredImports() {
+		info.AddImport(ImportStatement{
+			ImportSpec: resolve.ImportSpec{
+				Lang: LanguageName,
+				Imp:  declared.id,
+			},
+			ImportPath: declared.id,
+			// Not a file: name the directive so an unresolved import points at what declared it
+			SourcePath: "# gazelle:" + Directive_Import,
+			// Always optional. A directive cascades to every sub-package, so "no provider here"
+			// is the common case rather than an error.
+			Optional: true,
+			Multiple: declared.multiple,
+			Ancestor: declared.ancestor,
+		})
+	}
+
 	for _, f := range sourceFiles {
 		info.sources.Add(f)
 	}
@@ -1681,6 +1699,19 @@ func joinPkg(pkg, rel string) string {
 	}
 	// rel is already workspace-relative and should not need path cleaning.
 	return pkg + "/" + rel
+}
+
+// ancestorRels yields rel followed by each of its ancestor packages, ending with the workspace root ("").
+func ancestorRels(rel string) iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for {
+			if !yield(rel) || rel == "" {
+				return
+			}
+			base, _ := path.Split(rel)
+			rel = strings.TrimSuffix(base, "/")
+		}
+	}
 }
 
 // toImportPaths returns an iterator over all paths that p can be imported as.

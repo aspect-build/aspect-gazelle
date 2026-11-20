@@ -1,0 +1,1 @@
+Resolution Error: Import "util" from "# gazelle:js_import" resolved to multiple targets (@bad_multi_directive_import, @bad_multi_directive_import//:extras) - this must be fixed using the "aspect:resolve" directive

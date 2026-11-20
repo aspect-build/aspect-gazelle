@@ -58,6 +58,7 @@ func (ts *typeScriptLang) KnownDirectives() []string {
 		Directive_TestFiles,
 		Directive_Assets,
 		Directive_AssetFiles,
+		Directive_Import,
 
 		// TODO(deprecated): remove
 		Directive_CustomTargetFiles,
@@ -269,6 +270,17 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_AssetFiles, err)
 				return
 			}
+		case Directive_Import:
+			group, imp, err := config.parseImportDirective(value)
+			if err != nil {
+				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s: %v", Directive_Import, d.Value, err)
+				return
+			}
+
+			if err := config.AddTargetImport(group, imp); err != nil {
+				common.MisconfiguredErrorf(c, "directive %q: %s", Directive_Import, err)
+				return
+			}
 		case Directive_Assets:
 			if value == "" {
 				common.MisconfiguredErrorf(c, "invalid value for directive %q: %s", Directive_Assets, d.Value)
@@ -312,4 +324,46 @@ func (ts *typeScriptLang) readDirectives(c *config.Config, rel string, f *rule.F
 			os.Exit(1)
 		}
 	}
+}
+
+// parseImportDirective parses a [Directive_Import] value into its optional target group,
+// the symbol to import, and any modifier flags:
+//
+//	# gazelle:js_import [target_group] <symbol> [multiple|ancestor]
+func (c *JsGazelleConfig) parseImportDirective(value string) (string, declaredImport, error) {
+	var imp declaredImport
+
+	// Flags are a closed set consumed from the end so that we don't mistake them for a symbol.
+	// Accept both comma separated and whitespace separated flags
+	fields := make([]string, 0, 3)
+	for _, token := range strings.Fields(value) {
+		for part := range strings.SplitSeq(token, ",") {
+			if part = strings.TrimSpace(part); part != "" {
+				fields = append(fields, part)
+			}
+		}
+	}
+
+	for len(fields) > 0 {
+		switch fields[len(fields)-1] {
+		case "multiple":
+			imp.multiple = true
+		case "ancestor":
+			imp.ancestor = true
+		default:
+			// Not a flag, so the remaining fields are positional.
+			switch len(fields) {
+			case 1:
+				imp.id = fields[0]
+				return DefaultLibraryName, imp, nil
+			case 2:
+				imp.id = fields[1]
+				return c.ReverseMapTargetName(fields[0]), imp, nil
+			}
+			return "", imp, fmt.Errorf("expected an optional target name, a symbol, and flags (multiple, ancestor)")
+		}
+		fields = fields[:len(fields)-1]
+	}
+
+	return "", imp, fmt.Errorf("missing symbol to import")
 }

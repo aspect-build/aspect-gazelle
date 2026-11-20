@@ -1,0 +1,13 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+js_library(
+    name = "theme_yaml",
+    srcs = ["theme.yml"],
+    visibility = ["//visibility:public"],
+)
+
+ts_project(
+    name = "plain",
+    srcs = ["p.ts"],
+)

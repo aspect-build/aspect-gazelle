@@ -1,0 +1,8 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Nothing provides l10n.yml at or above here, so there is no dep and no error.
+
+ts_project(
+    name = "standalone",
+    srcs = ["s.ts"],
+)

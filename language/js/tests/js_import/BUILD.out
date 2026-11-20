@@ -1,0 +1,9 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# The `ancestor` option resolves to the nearest provider at or above the importing package
+# gazelle:js_import l10n.yml ancestor
+
+ts_project(
+    name = "root",
+    srcs = ["root.ts"],
+)

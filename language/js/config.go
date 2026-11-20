@@ -67,6 +67,8 @@ const (
 	Directive_Assets = "js_assets"
 	// The glob for additional asset files, in addition to assets detected within parsed source files.
 	Directive_AssetFiles = "js_asset_files"
+	// Declare a dependency on a target that no source file imports explicitly.
+	Directive_Import = "js_import"
 
 	// TODO(deprecated): remove - replaced with js_files [group]
 	Directive_CustomTargetFiles = "js_custom_files"
@@ -144,8 +146,27 @@ type TargetGroup struct {
 	// The `visibility` of the target
 	visibility []label.Label
 
+	// Imports declared via [Directive_Import], added to the target's `deps` in addition to those parsed out
+	// of its sources. Overrides any inherited declarations.
+	customImports []declaredImport
+
+	// Declared imports inherited from the parent package, shadowed by any locally specified customImports.
+	inheritedImports []declaredImport
+
 	// If the targets are always testonly
 	testonly bool
+}
+
+// declaredImport represents a [Directive_Import] entry
+type declaredImport struct {
+	// The symbol to resolve.
+	id string
+
+	// Resolve to every provider rather than requiring exactly one.
+	multiple bool
+
+	// Resolve to the nearest provider at or above the importing package.
+	ancestor bool
 }
 
 func boolPtr(b bool) *bool { return &b }
@@ -295,6 +316,14 @@ func (g *TargetGroup) assetGlobs() []string {
 	return g.inheritedAssets
 }
 
+// The effective declared imports for this group.
+func (g *TargetGroup) declaredImports() []declaredImport {
+	if len(g.customImports) > 0 {
+		return g.customImports
+	}
+	return g.inheritedImports
+}
+
 func (g *TargetGroup) newChild() *TargetGroup {
 	return &TargetGroup{
 		name:             g.name,
@@ -302,6 +331,8 @@ func (g *TargetGroup) newChild() *TargetGroup {
 		inheritedSources: g.sourceGlobs(),
 		customAssets:     []string{},
 		inheritedAssets:  g.assetGlobs(),
+		customImports:    []declaredImport{},
+		inheritedImports: g.declaredImports(),
 		testonly:         g.testonly,
 		visibility:       g.visibility,
 	}
@@ -667,6 +698,26 @@ func (c *JsGazelleConfig) GetSourceTarget(targetName string) *TargetGroup {
 			return target
 		}
 	}
+
+	return nil
+}
+
+// AddTargetImport declares an import on the targetName group's target. See [declaredImport].
+func (c *JsGazelleConfig) AddTargetImport(targetName string, imp declaredImport) error {
+	if imp.id == "" {
+		return fmt.Errorf("missing symbol to import")
+	}
+
+	if imp.ancestor && imp.multiple {
+		return fmt.Errorf("import %q cannot be both ancestor and multiple", imp.id)
+	}
+
+	target := c.GetSourceTarget(targetName)
+	if target == nil {
+		return fmt.Errorf("Target %q not found in %q", targetName, c.rel)
+	}
+
+	target.customImports = append(target.customImports, imp)
 
 	return nil
 }

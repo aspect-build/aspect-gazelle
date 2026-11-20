@@ -1,0 +1,14 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# `multiple` opts into every provider of the symbol instead of requiring
+# exactly one, so both targets above become deps.
+# gazelle:js_import util multiple
+
+ts_project(
+    name = "sub",
+    srcs = ["c.ts"],
+    deps = [
+        "//:extras",
+        "//:js_import_multiple",
+    ],
+)

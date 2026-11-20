@@ -1,0 +1,17 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# Only the main library target declares the import; bar_tests reaches it
+# transitively. Use `js_import {dirname}_tests ...` to give tests their own.
+
+ts_project(
+    name = "bar",
+    srcs = ["a.ts"],
+    deps = ["//foo:l10n_yaml"],
+)
+
+ts_project(
+    name = "bar_tests",
+    testonly = True,
+    srcs = ["a.spec.ts"],
+    deps = [":bar"],
+)

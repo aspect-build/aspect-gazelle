@@ -30,6 +30,14 @@ type ImportStatement struct {
 	// If the import is explicitly for types, in which case prefer @types package
 	// dependencies when types are shipped separately
 	TypesOnly bool
+
+	// If the import resolves to every provider rather than requiring exactly
+	// one. Declared imports only (see [Directive_Import]).
+	Multiple bool
+
+	// If the import resolves to the nearest provider at or above the importing
+	// package. Declared imports only (see [Directive_Import]).
+	Ancestor bool
 }
 
 type ImportKind string

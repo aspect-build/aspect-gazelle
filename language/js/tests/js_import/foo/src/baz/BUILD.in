@@ -1,0 +1,8 @@
+# A nearer l10n.yml shadows the ancestor's.
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+
+js_library(
+    name = "l10n_yaml",
+    srcs = ["l10n.yml"],
+    visibility = ["//visibility:public"],
+)

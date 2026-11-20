@@ -596,6 +596,12 @@ func (ts *typeScriptLang) resolveImport(
 ) (ResolutionType, []*label.Label, error) {
 	imp := impStm.ImportSpec
 
+	// A declared ancestor import (js_import ... ancestor) resolves against the importing
+	// package and each of its ancestors instead of the bare spec.
+	if impStm.Ancestor {
+		return ts.resolveAncestorImport(c, ix, from, impStm)
+	}
+
 	// Gazelle rule index
 	if resolution, match, err := ts.resolveExplicitImportFromIndex(c, ix, from, impStm); resolution != Resolution_NotFound {
 		return resolution, match, err
@@ -633,6 +639,39 @@ func (ts *typeScriptLang) resolveImport(
 	return Resolution_NotFound, nil, nil
 }
 
+// resolveAncestorImport resolves a declared ancestor import by trying the import spec prefixed
+// with the importing package and each of its ancestors, ending with the bare spec at the
+// workspace root. The first package that provides it wins.
+func (ts *typeScriptLang) resolveAncestorImport(
+	c *config.Config,
+	ix *resolve.RuleIndex,
+	from label.Label,
+	impStm ImportStatement,
+) (ResolutionType, []*label.Label, error) {
+	for rel := range ancestorRels(from.Pkg) {
+		candidate := impStm
+		candidate.ImportSpec = resolve.ImportSpec{
+			Lang: impStm.ImportSpec.Lang,
+			Imp:  joinPkg(rel, impStm.Imp),
+		}
+
+		resolution, match, err := ts.resolveExplicitImportFromIndex(c, ix, from, candidate)
+		switch resolution {
+		case Resolution_NotFound:
+			// Nothing indexed, but the package may hold the raw file.
+			if importLabel := ts.getImportLabel(candidate.Imp); importLabel != nil {
+				return Resolution_File, []*label.Label{importLabel}, nil
+			}
+		case Resolution_None:
+			// An ancestor may still provide it
+		default:
+			return resolution, match, err
+		}
+	}
+
+	return Resolution_NotFound, nil, nil
+}
+
 func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 	c *config.Config,
 	ix *resolve.RuleIndex,
@@ -652,9 +691,10 @@ func (ts *typeScriptLang) resolveExplicitImportFromIndex(
 	}
 
 	// Subpath imports may map to multiple targets, such as conditional
-	// 'imports' mapping different conditions to different files. All
-	// mapped targets are dependencies.
-	if len(matches) > 1 && !node.IsSubpathImport(impStm.Imp) {
+	// 'imports' mapping different conditions to different files, and a declared
+	// 'multiple' import opts into every provider. All mapped targets are deps.
+	allowsMultiple := impStm.Multiple || node.IsSubpathImport(impStm.Imp)
+	if len(matches) > 1 && !allowsMultiple {
 		// Too many results, don't know which is correct
 		return Resolution_Error, nil, fmt.Errorf(
 			"Import %q from %q resolved to multiple targets (%s) - this must be fixed using the \"aspect:resolve\" directive",

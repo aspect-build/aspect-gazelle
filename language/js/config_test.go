@@ -212,3 +212,86 @@ func TestAddTargetGlob(t *testing.T) {
 		}
 	})
 }
+
+func TestParseImportDirective(t *testing.T) {
+	for _, tc := range []struct {
+		name       string
+		value      string
+		wantGroup  string
+		wantImport declaredImport
+		wantErr    bool
+	}{
+		{
+			name:       "symbol only",
+			value:      "l10n.yml",
+			wantGroup:  DefaultLibraryName,
+			wantImport: declaredImport{id: "l10n.yml"},
+		},
+		{
+			name:       "group and symbol",
+			value:      "e2e l10n.yml",
+			wantGroup:  "e2e",
+			wantImport: declaredImport{id: "l10n.yml"},
+		},
+		{
+			name:       "trailing flag",
+			value:      "l10n.yml ancestor",
+			wantGroup:  DefaultLibraryName,
+			wantImport: declaredImport{id: "l10n.yml", ancestor: true},
+		},
+		{
+			name:       "group and trailing flag",
+			value:      "e2e l10n.yml ancestor",
+			wantGroup:  "e2e",
+			wantImport: declaredImport{id: "l10n.yml", ancestor: true},
+		},
+		{
+			name:       "comma separated flags",
+			value:      "pkg ancestor,multiple",
+			wantGroup:  DefaultLibraryName,
+			wantImport: declaredImport{id: "pkg", ancestor: true, multiple: true},
+		},
+		{
+			name:       "repeated flag",
+			value:      "pkg multiple multiple",
+			wantGroup:  DefaultLibraryName,
+			wantImport: declaredImport{id: "pkg", multiple: true},
+		},
+		{
+			name:       "flag before the symbol is positional",
+			value:      "ancestor l10n.yml",
+			wantGroup:  "ancestor",
+			wantImport: declaredImport{id: "l10n.yml"},
+		},
+		{
+			// A trailing flag is always consumed as one, so a symbol literally named "ancestor"
+			// or "multiple" can not be declared.
+			name:       "a symbol named like a flag is unrepresentable",
+			value:      "e2e ancestor",
+			wantGroup:  DefaultLibraryName,
+			wantImport: declaredImport{id: "e2e", ancestor: true},
+		},
+		{name: "empty", value: "", wantErr: true},
+		{name: "flags only", value: "ancestor", wantErr: true},
+		{name: "too many positionals", value: "a b c", wantErr: true},
+		{name: "too many positionals with flags", value: "a b c ancestor", wantErr: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			group, imp, err := newRootConfig().parseImportDirective(tc.value)
+
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("parseImportDirective(%q) = (%q, %+v, nil); want an error", tc.value, group, imp)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("parseImportDirective(%q): unexpected error: %v", tc.value, err)
+			}
+			if group != tc.wantGroup || imp != tc.wantImport {
+				t.Errorf("parseImportDirective(%q) = (%q, %+v); want (%q, %+v)",
+					tc.value, group, imp, tc.wantGroup, tc.wantImport)
+			}
+		})
+	}
+}
