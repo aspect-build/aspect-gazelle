@@ -768,13 +768,22 @@ func (ts *typeScriptLang) packageScopeLabel(cfg *JsGazelleConfig, args language.
 		pkgCfg = pkgCfg.parent
 	}
 	pkgRel = pkgCfg.rel
+	dir := strings.TrimPrefix(strings.TrimPrefix(scopeRel, pkgRel), "/")
+	reason = ""
 	switch {
 	case !pkgCfg.GenerationEnabled():
-		return label.NoLabel, pkgRel, "js generation is disabled there", false
+		reason = "js generation is disabled there"
 	case !pkgCfg.GetTsConfigPackageDepsEnabled():
-		return label.NoLabel, pkgRel, fmt.Sprintf("enable '# gazelle:%s' there", Directive_TsConfigPackageDeps), false
+		reason = fmt.Sprintf("enable '# gazelle:%s' there", Directive_TsConfigPackageDeps)
 	}
-	dir := strings.TrimPrefix(strings.TrimPrefix(scopeRel, pkgRel), "/")
+	if reason != "" {
+		// Gazelle manages no library there, but a hand-written one serves
+		// just as well.
+		if name, found := findPackageJsonLibrary(pkgRel, path.Join(dir, NpmPackageFilename), ruleUtils.MapKind(args, JsLibraryKind)); found {
+			return label.New(args.Config.RepoName, pkgRel, name), pkgRel, "", true
+		}
+		return label.NoLabel, pkgRel, reason, false
+	}
 	l = label.New(args.Config.RepoName, pkgRel, packageJsonTargetName(dir))
 	req := ts.usedPackageJsonDirs[scopeRel]
 	if req == nil {
@@ -802,6 +811,21 @@ func buildFileHasRule(rel, name string) bool {
 		return false
 	}
 	return slices.ContainsFunc(d.File.Rules, func(r *rule.Rule) bool { return r.Name() == name })
+}
+
+// findPackageJsonLibrary returns the name of a js_library (of the given,
+// possibly map_kind-renamed, kind) in rel's BUILD file whose only src is src.
+func findPackageJsonLibrary(rel, src, kind string) (string, bool) {
+	d, err := walk.GetDirInfo(rel)
+	if err != nil || d.File == nil {
+		return "", false
+	}
+	for _, r := range d.File.Rules {
+		if (r.Kind() == JsLibraryKind || r.Kind() == kind) && slices.Equal(r.AttrStrings("srcs"), []string{src}) {
+			return r.Name(), true
+		}
+	}
+	return "", false
 }
 
 // DoneGeneratingRules warns about package.json js_library targets that
