@@ -1,0 +1,4 @@
+# A glob is taken at face value: `**/*` collects every walked file, including
+# Bazel's own build definition files. Use `gazelle:exclude` to opt files out
+# (see ../broad_exclude).
+# gazelle:js_files everything **/*

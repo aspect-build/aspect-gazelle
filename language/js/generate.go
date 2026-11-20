@@ -241,22 +241,18 @@ func (ts *typeScriptLang) addSourceRules(cfg *JsGazelleConfig, args language.Gen
 
 	// Util for adding a file to a source group, an asset group or the data files.
 	processPotentialSourceFile := func(groups map[string]map[string]struct{}, file string) {
-		fileExt := path.Ext(file)
-		if isSourceFileExt(fileExt) || isDataFileExt(fileExt) {
-			if target := classifyFile(file); target != nil {
-				// Source files belonging to a target group.
-				if BazelLog.IsTraceEnabled() {
-					BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
-				}
-
-				g, hasGroup := groups[target.name]
-				if !hasGroup {
-					g = make(map[string]struct{}, 10)
-					groups[target.name] = g
-				}
-				g[file] = struct{}{}
-				return
+		if target := classifyFile(file); target != nil {
+			if BazelLog.IsTraceEnabled() {
+				BazelLog.Tracef("add '%s' src '%s/%s'", target.name, args.Rel, file)
 			}
+
+			g, hasGroup := groups[target.name]
+			if !hasGroup {
+				g = make(map[string]struct{}, 10)
+				groups[target.name] = g
+			}
+			g[file] = struct{}{}
+			return
 		}
 
 		// Files not collected as a source may be collected as an asset

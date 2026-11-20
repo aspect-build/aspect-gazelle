@@ -1,0 +1,12 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_files mixed_group *.{ts,yml,css}
+
+ts_project(
+    name = "mixed_group",
+    srcs = ["m.ts"],
+    assets = [
+        "l10n.yml",
+        "theme.css",
+    ],
+)

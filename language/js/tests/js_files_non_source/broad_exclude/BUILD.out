@@ -1,0 +1,13 @@
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# `gazelle:exclude` removes files from the walk, keeping them out of a broad
+# glob without any extension-based special casing in the generator.
+# gazelle:js_files everything **/*
+# gazelle:exclude BUILD.bazel
+# gazelle:exclude defs.bzl
+
+ts_project(
+    name = "everything",
+    srcs = ["e.ts"],
+    assets = ["data.yml"],
+)

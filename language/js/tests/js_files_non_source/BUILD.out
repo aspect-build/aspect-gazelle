@@ -1,0 +1,14 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_ts//ts:defs.bzl", "ts_project")
+
+# gazelle:js_files l10n_yaml l10n.yml
+
+ts_project(
+    name = "root",
+    srcs = ["a.ts"],
+)
+
+js_library(
+    name = "l10n_yaml",
+    srcs = ["l10n.yml"],
+)
