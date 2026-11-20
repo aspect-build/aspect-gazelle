@@ -678,8 +678,9 @@ func (ts *typeScriptLang) addPackageJsonLibraries(cfg *JsGazelleConfig, args lan
 	}
 
 	if args.File != nil {
+		kind := ruleUtils.MapKind(args, JsLibraryKind)
 		for _, r := range args.File.Rules {
-			if _, ok := emitted[r.Name()]; !ok && isPackageJsonLibrary(r) {
+			if _, ok := emitted[r.Name()]; !ok && isPackageJsonLibraryOfKind(r, kind) {
 				result.Empty = append(result.Empty, rule.NewRule(JsLibraryKind, r.Name()))
 			}
 		}
@@ -690,7 +691,15 @@ func (ts *typeScriptLang) addPackageJsonLibraries(cfg *JsGazelleConfig, args lan
 // addPackageJsonLibraries. It only makes a package.json available to
 // descendant ts_config rules and provides nothing importable.
 func isPackageJsonLibrary(r *rule.Rule) bool {
-	if r.Kind() != JsLibraryKind {
+	return isPackageJsonLibraryOfKind(r, JsLibraryKind)
+}
+
+// isPackageJsonLibraryOfKind is isPackageJsonLibrary for a rule whose
+// js_library kind may be renamed by map_kind. Gazelle restores the original
+// kind before Imports and Resolve, but not in an existing BUILD file's rules
+// during GenerateRules.
+func isPackageJsonLibraryOfKind(r *rule.Rule, kind string) bool {
+	if r.Kind() != kind {
 		return false
 	}
 	srcs := r.AttrStrings("srcs")

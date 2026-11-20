@@ -1,0 +1,7 @@
+load("//tools:kinds.bzl", "my_js_library")
+
+my_js_library(
+    name = "package_json",
+    srcs = ["package.json"],
+    visibility = [":__subpackages__"],
+)
