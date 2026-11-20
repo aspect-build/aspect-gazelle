@@ -888,30 +888,13 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 	ts.tsConfigRegeneratedRels[args.Rel] = struct{}{}
 	ts.addPackageJsonLibraries(cfg, args, result)
 
+	var hasBaseLocal bool
 	if cfg.GetTsConfigPackageDepsEnabled() {
-		var hasBaseLocal bool
 		packageJsonDeps, hasBaseLocal = ts.collectTsConfigPackageJsonDeps(args)
 		hasLocalPackageJson = len(packageJsonDeps) > 0
-
-		// args.Rel's own files resolve to the nearest package.json at or above
-		// it; when args.Rel has none locally that is in an ancestor Bazel
-		// package, reached through the js_library it generates for it. Only a
-		// package that emits a ts_config below needs it.
-		emitsTsConfig := hasLocalPackageJson || slices.ContainsFunc(cfg.TsConfigGroupNames(), func(g string) bool {
-			return cfg.GetTsConfigGenerationEnabled(g) && ts.tsconfig.GetTsConfigFile(args.Rel, g) != nil
-		})
-		if !hasBaseLocal && emitsTsConfig {
-			if scopeRel, found := tsPackageJsonDir(args.Rel); found {
-				if l, pkgRel, reason, ok := ts.packageScopeLabel(cfg, args, scopeRel); ok {
-					packageJsonDeps = append(packageJsonDeps, &l)
-				} else {
-					BazelLog.Warnf("//%s cannot include %s in its ts_config: //%s does not provide it; %s",
-						args.Rel, path.Join(scopeRel, NpmPackageFilename), pkgRel, reason)
-				}
-			}
-		}
 	}
 
+	var emittedInfos []*TsProjectInfo
 	emittedNames := make(map[string]struct{})
 	for _, groupName := range cfg.TsConfigGroupNames() {
 		if !cfg.GetTsConfigGenerationEnabled(groupName) {
@@ -965,6 +948,25 @@ func (ts *typeScriptLang) addTsConfigRules(cfg *JsGazelleConfig, args language.G
 		result.Gen = append(result.Gen, tsconfigRule)
 		result.Imports = append(result.Imports, info)
 		result.RelsToIndex = append(result.RelsToIndex, ts.tsPackageInfoToRelsToIndex(cfg, args, info)...)
+		emittedInfos = append(emittedInfos, info)
+	}
+
+	// args.Rel's own files resolve to the nearest package.json at or above
+	// it; when args.Rel has none locally that is in an ancestor Bazel
+	// package, reached through the js_library it generates for it. Only
+	// request it once a ts_config was actually emitted here, so the ancestor
+	// does not keep a library nothing uses.
+	if cfg.GetTsConfigPackageDepsEnabled() && !hasBaseLocal && len(emittedInfos) > 0 {
+		if scopeRel, found := tsPackageJsonDir(args.Rel); found {
+			if l, pkgRel, reason, ok := ts.packageScopeLabel(cfg, args, scopeRel); ok {
+				for _, info := range emittedInfos {
+					info.staticDeps = append(info.staticDeps, &l)
+				}
+			} else {
+				BazelLog.Warnf("//%s cannot include %s in its ts_config: //%s does not provide it; %s",
+					args.Rel, path.Join(scopeRel, NpmPackageFilename), pkgRel, reason)
+			}
+		}
 	}
 }
 
